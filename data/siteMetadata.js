@@ -3,7 +3,6 @@ const siteMetadata = {
   title: 'Cary Bengals Fantasy Football',
   author: 'Cary Bengals LLC',
   headerTitle: 'Cary Bengals Fantasy Football',
-  description: 'Home of all Cary Bengals Content',
   language: 'en-us',
   theme: 'system', // system, dark or light
   siteUrl: 'https://tailwind-nextjs-starter-blog.vercel.app',
