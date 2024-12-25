@@ -44,6 +44,8 @@ yarn-error.log*
 .env.production.local
 backend/env
 backend/__pycache__
+backend/core/__pycache__
+
 
 # Contentlayer
 .contentlayer
