@@ -14,6 +14,7 @@ export default function Page() {
           League Members
         </h1>
       </div>
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {allAuthors.map((author) => {
         const mainContent = coreContent(author as Authors)
         return (
@@ -24,6 +25,7 @@ export default function Page() {
           </div>
         )
       })}
+      </div>
     </>
   )
 }
