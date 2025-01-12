@@ -32,7 +32,7 @@ export default function BlogPage() {
           posts={posts}
           initialDisplayPosts={initialDisplayPosts}
           pagination={pagination}
-          title="All Posts"
+          title="Previews & Recaps"
         />
       </div>
 
