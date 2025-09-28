@@ -3,6 +3,8 @@ const siteMetadata = {
   title: 'Cary Bengals Fantasy Football',
   author: 'Cary Bengals LLC',
   headerTitle: 'Cary Bengals Fantasy Football',
+  description: 'Cary Bengals Fantasy Football League - Weekly previews, recaps, and analysis',
+  email: 'revanthbobba1@gmail.com',
   language: 'en-us',
   theme: 'system', // system, dark or light
   siteUrl: 'https://tailwind-nextjs-starter-blog.vercel.app',
