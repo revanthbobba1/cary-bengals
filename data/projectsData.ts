@@ -1,5 +1,11 @@
 const projectsData = [
   {
+    title: '2025 - Cary Bengals Week 3 Press Conference',
+    description: `Listen to the Cary Bengals week three press conference featuring various members of the league, as they recap the first month of NFL football, dicuss current standings, and preview week four matchups.`,
+    imgSrc: '/static/images/thumbnails/2025-week-three-press.png',
+    href: 'https://www.youtube.com/watch?v=GoCuumaFPBs&t=1178s',
+  },
+  {
     title: 'Cary Bengals Week 4 Press Conference',
     description: `Cary Bengals week four press conference featuring Team ETENRAL PAIN's GM Amogh Natu, 
     Certified Boys Lover GM Joseph Hong, Great Waller China's GM Alvin Bao, 
