@@ -67,7 +67,11 @@ module.exports = () => {
     },
     images: {
       domains: ['picsum.photos'],
+      unoptimized: true, // Required for static export
     },
+    output: 'export', // Enable static export
+    trailingSlash: true, // Add trailing slashes for better compatibility
+    distDir: 'out', // Output directory for static files
     async headers() {
       return [
         {
