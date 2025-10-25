@@ -29,8 +29,9 @@ Set these environment variables in your Netlify dashboard under Site Settings > 
 
 2. **Configure Build Settings:**
    - Build command: `yarn build`
-   - Publish directory: `out`
+   - Publish directory: `.next` (Netlify Next.js plugin handles this automatically)
    - Node version: `18`
+   - **Important:** Netlify will automatically detect and use the `@netlify/plugin-nextjs` plugin from your `netlify.toml` file
 
 3. **Set Environment Variables:**
    - Go to Site Settings > Environment Variables
@@ -38,14 +39,24 @@ Set these environment variables in your Netlify dashboard under Site Settings > 
 
 4. **Deploy:**
    - Click "Deploy site"
-   - Netlify will automatically build and deploy your site
+   - Netlify will automatically install the Next.js plugin and deploy your site
 
 ## Build Process
 
 The build process includes:
-1. Next.js static export generation
+1. Next.js build with Netlify's Next.js runtime plugin (supports API routes)
 2. RSS feed generation
 3. Content processing with Contentlayer
+4. Automatic optimization by Netlify's Next.js plugin
+
+## Why Netlify Next.js Plugin?
+
+Your app uses:
+- **API Routes** (`/app/api/newsletter`) - requires server runtime
+- **Image Optimization** - Next.js Image component needs server runtime
+- **Next.js Features** - Better support for SSR, ISR, and other Next.js features
+
+The plugin enables these features while still providing excellent performance.
 
 ## Custom Domain (Optional)
 
