@@ -1,9 +1,21 @@
 const projectsData = [
   {
+    title: '2025 - Cary Bengals Week 7 Press Conference',
+    description: `Listen to the Cary Bengals week seven press conference, with a special guest with spicy takes going into the middle of the fantasy football season.`,
+    imgSrc: '/static/images/thumbnails/2025-week-seven-press.png',
+    href: 'https://www.youtube.com/watch?v=iy1mO9EK25k',
+  },
+  {
+    title: '2025 - Cary Bengals Week 6 Press Conference',
+    description: `Cary Bengals is out with their press conference after week 6, tune in for some hot takes and analysis from around the league!`,
+    imgSrc: '/static/images/thumbnails/2025-week-three-press.png',
+    href: 'https://www.youtube.com/watch?v=CWIN8oBV2og',
+  },
+  {
     title: '2025 - Cary Bengals Week 3 Press Conference',
     description: `Listen to the Cary Bengals week three press conference featuring various members of the league, as they recap the first month of NFL football, dicuss current standings, and preview week four matchups.`,
     imgSrc: '/static/images/thumbnails/2025-week-three-press.png',
-    href: 'https://www.youtube.com/watch?v=GoCuumaFPBs&t=1178s',
+    href: 'https://www.youtube.com/watch?v=GoCuumaFPBs',
   },
   {
     title: 'Cary Bengals Week 4 Press Conference',
