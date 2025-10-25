@@ -2,13 +2,9 @@
   # Build command
   command = "yarn build"
   
-  # Directory to publish (Netlify Next.js plugin handles this automatically)
-  publish = ".next"
-  
   # Node.js version
   [build.environment]
     NODE_VERSION = "18"
-    # NPM_FLAGS = "--version"   # removed — printing npm version can interrupt the build
     YARN_VERSION = "3.6.1"
 
 # Netlify Next.js plugin (required for Next.js runtime support)
@@ -49,7 +45,4 @@
   for = "/**/*.svg"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
-
-# Functions (if you have any)
-[functions]
-  directory = "netlify/functions"
+    
