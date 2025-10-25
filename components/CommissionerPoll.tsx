@@ -1,4 +1,4 @@
-"use client"
+'use client'
 import React, { useState } from 'react'
 
 const pollData = {
@@ -44,13 +44,19 @@ export default function CoachesPollClient(): JSX.Element {
   return (
     <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-4">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Bengals Managers Poll</h2>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+          Bengals Managers Poll
+        </h2>
         <div>
-          <label className="text-gray-600 dark:text-gray-300 mr-2">Select Week:</label>
+          <label htmlFor="week-select" className="text-gray-600 dark:text-gray-300 mr-2">
+            Select Week:
+          </label>
           <select
+            id="week-select"
             className="border border-gray-300 dark:border-gray-600 rounded p-2 pr-10 bg-white dark:bg-gray-700 dark:text-gray-100 appearance-none"
             style={{
-              backgroundImage: 'url("data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"6 9 12 15 18 9\"></polyline></svg>")',
+              backgroundImage:
+                "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>\")",
               backgroundPosition: 'right 10px center',
               backgroundRepeat: 'no-repeat',
             }}
