@@ -15,18 +15,18 @@ export default function Page() {
         </h1>
       </div>
       <hr className="border-gray-200 dark:border-gray-700 mb-6" />
-        <div className="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
-          {allAuthors.map((author) => {
-            const mainContent = coreContent(author as Authors)
-            return (
-              <div key={author.slug} className="flex flex-col items-center">
-                <AuthorLayout content={mainContent}>
-                  <MDXLayoutRenderer code={author.body.code} />
-                </AuthorLayout>
-              </div>
-            )
-          })}
-        </div>
+      <div className="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
+        {allAuthors.map((author) => {
+          const mainContent = coreContent(author as Authors)
+          return (
+            <div key={author.slug} className="flex flex-col items-center">
+              <AuthorLayout content={mainContent}>
+                <MDXLayoutRenderer code={author.body.code} />
+              </AuthorLayout>
+            </div>
+          )
+        })}
+      </div>
     </>
   )
 }
