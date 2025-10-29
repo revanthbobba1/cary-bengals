@@ -114,7 +114,7 @@ export default function ListLayout({
           {displayPosts.map((post) => {
             const { path, date, title, summary } = post
             return (
-              <li key={path} className="py-4">
+              <li key={path} className="py-12 border-b border-gray-100 dark:border-gray-800 last:border-none">
                 <article className="space-y-2 xl:grid xl:grid-cols-4 xl:items-baseline xl:space-y-0">
                   <dl>
                     <dt className="sr-only">Published on</dt>
@@ -125,7 +125,7 @@ export default function ListLayout({
                   <div className="space-y-3 xl:col-span-3">
                     <div>
                       <h3 className="text-2xl font-bold leading-8 tracking-tight">
-                        <Link href={`/${path}`} className="text-gray-900 dark:text-gray-100">
+                        <Link href={`/${path}`} className="text-gray-900 dark:text-gray-100 hover:text-primary-500 dark:hover:text-primary-400">
                           {title}
                         </Link>
                       </h3>
