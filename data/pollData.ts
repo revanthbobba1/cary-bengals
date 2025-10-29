@@ -69,6 +69,20 @@ export const pollData: PollData = {
       { rank: 10, team: 'Jayden Jefferson Jr\'s Mom (Carter)', record: '3-4', points: 20, trend: '↓3' },
       { rank: 11, team: 'Indian DJ (TJ)', record: '2-5', points: 22, trend: '↓1' },
       { rank: 12, team: 'Stevenson and White Guys For (Alvin)', record: '2-5', points: 24, trend: '-' },
+    ],
+    9: [
+      { rank: 1, team: 'Code Monkey (PR #414) (Ankith)', record: '6-2', points: 4, trend: '-'},
+      { rank: 2, team: 'It Hurts a little (Rishi)', record: '6-2', points: 8, trend: '↑1' },
+      { rank: 3, team: 'Kamara vs the World (Amogh)', record: '5-3', points: 13, trend: '↓1' },
+      { rank: 4, team: 'Nangali\'s `Naners (Sam)', record: '3-5', points: 17, trend: '↑1' },
+      { rank: 5, team: 'Bark for Daddy!🫵🐶 (Kirk)', record: '6-2', points: 24, trend: '↑1' },
+      { rank: 6, team: 'Smooth Jazz w Kenny G (Keshav)', record: '4-4', points: 26, trend: '↓2' },
+      { rank: 7, team: 'Indian DJ (TJ)', record: '3-5', points: 28, trend: '↑4' },
+      { rank: 8, team: 'Tet Offensive (Sparsh)', record: '4-4', points: 29, trend: '-' },
+      { rank: 9, team: 'Heterophobes Reloaded 😈 (Joseph)', record: '3-5', points: 32, trend: '↓1' },
+      { rank: 10, team: 'Jayden Jefferson Jr\'s Mom (Carter)', record: '4-4', points: 41, trend: '-' },
+      { rank: 11, team: 'Maye I Digg in yo Boutte (Revanth)', record: '2-6', points: 41, trend: '↓4' },
+      { rank: 12, team: 'Stevenson and White Guys For (Alvin)', record: '2-6', points: 48, trend: '-' },
     ]
   },
   2024: {
