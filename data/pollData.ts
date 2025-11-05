@@ -83,6 +83,20 @@ export const pollData: PollData = {
       { rank: 10, team: 'Jayden Jefferson Jr\'s Mom (Carter)', record: '4-4', points: 41, trend: '-' },
       { rank: 11, team: 'Maye I Digg in yo Boutte (Revanth)', record: '2-6', points: 41, trend: '↓4' },
       { rank: 12, team: 'Stevenson and White Guys For (Alvin)', record: '2-6', points: 48, trend: '-' },
+    ],
+    10: [
+      { rank: 1, team: 'Code Monkey (PR #414) (Ankith)', record: '7-2', points: 3, trend: '-' },
+      { rank: 2, team: 'It Hurts a little (Rishi)', record: '6-3', points: 6, trend: '-' },
+      { rank: 3, team: 'Smooth Jazz w Kenny G (Keshav)', record: '5-4', points: 11, trend: '↑3' },
+      { rank: 4, team: 'Kamara vs the World (Amogh)', record: '5-4', points: 15, trend: '↓1' },
+      { rank: 5, team: 'Tet Offensive (Sparsh)', record: '5-4', points: 17, trend: '↑3' },
+      { rank: 6, team: "Jayden Jefferson Jr’s Mom (Carter)", record: '5-4', points: 20, trend: '↑4' },
+      { rank: 6, team: 'Heterophobes Locked in (Joseph)', record: '4-5', points: 20, trend: '↑2' },
+      { rank: 8, team: 'Bark for Daddy!🫵🐶 (Kirk)', record: '6-3', points: 24, trend: '↓3' },
+      { rank: 8, team: 'Indian DJ (TJ)', record: '3-6', points: 24, trend: '↓2' },
+      { rank: 10, team: "Nangali’s `Naners (Sam)", record: '3-6', points: 25, trend: '↓6' },
+      { rank: 11, team: 'Maye I Digg in yo Boutte (Revanth)', record: '2-7', points: 33, trend: '-' },
+      { rank: 12, team: 'Stevenson and White Guys For (Alvin)', record: '3-6', points: 36, trend: '-' },
     ]
   },
   2024: {
