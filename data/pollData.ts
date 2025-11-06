@@ -103,7 +103,7 @@ export const pollData: PollData = {
     1: [
       { rank: 1, team: 'Kupp Kupp and Away! (Sparsh)', record: '1-0', points: 6, trend: '-' },
       { rank: 2, team: 'My Puka Bear (Alvin)', record: '1-0', points: 16, trend: '-' },
-      { rank: 3, team: 'JamesOn (Cotbib)', record: '1-0', points: 18, trend: '-' },
+      { rank: 3, team: 'JamesOn (Carter)', record: '1-0', points: 18, trend: '-' },
       { rank: 4, team: 'I Cook Brown Rice (Revanth)', record: '1-0', points: 19, trend: '-' },
       { rank: 5, team: 'Code Monkey (Master) (Ankith)', record: '1-0', points: 28, trend: '-' },
       { rank: 6, team: 'JJ Phoenix Rising (Kirk)', record: '1-0', points: 31, trend: '-' },
@@ -115,7 +115,7 @@ export const pollData: PollData = {
       { rank: 12, team: 'London is Red (Rishi)', record: '0-1', points: 57, trend: '-' },
     ],
     2: [
-      { rank: 1, team: 'JamesOn (Cotbib)', record: '2-0', points: 9, trend: '↑2' },
+      { rank: 1, team: 'JamesOn (Carter)', record: '2-0', points: 9, trend: '↑2' },
       { rank: 2, team: 'I Cook Brown Rice (Revanth)', record: '2-0', points: 10, trend: '↑2' },
       { rank: 3, team: 'My Puka Bear (Alvin)', record: '2-0', points: 11, trend: '↓1' },
       { rank: 4, team: "Super Zay'in (Amogh)", record: '1-1', points: 15, trend: '↑7' },
