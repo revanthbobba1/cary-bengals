@@ -1,4 +1,10 @@
 const projectsData = [
+    {
+    title: '2025 - Cary Bengals Week 9 Press Conference',
+    description: `Week 9 Cary Bengals press conference, with fan favorites discussing the state of the league.`,
+    imgSrc: '/static/images/thumbnails/2025-week-nine-press.png',
+    href: 'https://www.youtube.com/watch?v=y18O6JAoaiw',
+  },
   {
     title: '2025 - Cary Bengals Week 8 Press Conference',
     description: `Listen to the Cary Bengals week eight press conference, where we unveil our new website and the midseason playoff picture.`,
