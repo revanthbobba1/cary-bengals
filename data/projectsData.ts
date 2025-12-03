@@ -1,5 +1,17 @@
 const projectsData = [
-    {
+  {
+    title: '2025 - Cary Bengals Week 11 Press Conference',
+    description: `Week 11 Cary Bengals press conference, a special guest joins the show to give his thoughts on the home stretch of the season.`,
+    imgSrc: '/static/images/thumbnails/2025-week-eleven-press.png',
+    href: 'https://www.youtube.com/watch?v=YH_ngXTYinY',
+  },
+  {
+    title: '2025 - Cary Bengals Week 10 Press Conference',
+    description: `Tune into the Cary Bengals week ten press conference. The season is heating up! Teams are facing must-win scenarios, and the playoff picture is starting to take shape.`,
+    imgSrc: '/static/images/thumbnails/2025-week-ten-press.png',
+    href: 'https://www.youtube.com/watch?v=DgClD4cZgFs',
+  },
+  {
     title: '2025 - Cary Bengals Week 9 Press Conference',
     description: `Week 9 Cary Bengals press conference, with fan favorites discussing the state of the league.`,
     imgSrc: '/static/images/thumbnails/2025-week-nine-press.png',
