@@ -50,3 +50,6 @@ backend/routes/__pycache__
 
 # Contentlayer
 .contentlayer
+
+# Claude Code
+.claude/
