@@ -2,7 +2,12 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
 function safeRedirectPath(redirectTo: string | null): string {
-  if (redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//') && !redirectTo.includes('@')) {
+  if (
+    redirectTo &&
+    redirectTo.startsWith('/') &&
+    !redirectTo.startsWith('//') &&
+    !redirectTo.includes('@')
+  ) {
     return redirectTo
   }
   return '/admin'
