@@ -5,6 +5,7 @@ import Link from './Link'
 import MobileNav from './MobileNav'
 import ThemeSwitch from './ThemeSwitch'
 import SearchButton from './SearchButton'
+import AuthNav from './AuthNav'
 
 const Header = () => {
   return (
@@ -37,6 +38,7 @@ const Header = () => {
               {link.title}
             </Link>
           ))}
+        <AuthNav />
         <SearchButton />
         <ThemeSwitch />
         <MobileNav />

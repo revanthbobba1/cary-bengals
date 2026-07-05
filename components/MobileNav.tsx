@@ -1,11 +1,30 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from './Link'
 import headerNavLinks from '@/data/headerNavLinks'
+import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
 
 const MobileNav = () => {
   const [navShow, setNavShow] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const supabase = createClient()
+  const router = useRouter()
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setIsLoggedIn(!!user)
+    })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(!!session?.user)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   const onToggleNav = () => {
     setNavShow((status) => {
@@ -17,6 +36,13 @@ const MobileNav = () => {
       }
       return !status
     })
+  }
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    onToggleNav()
+    router.push('/')
+    router.refresh()
   }
 
   return (
@@ -68,6 +94,35 @@ const MobileNav = () => {
               </Link>
             </div>
           ))}
+          {isLoggedIn && (
+            <div className="px-12 py-4">
+              <Link
+                href="/admin"
+                className="text-2xl font-bold tracking-widest text-gray-900 dark:text-gray-100"
+                onClick={onToggleNav}
+              >
+                Admin
+              </Link>
+            </div>
+          )}
+          <div className="px-12 py-4">
+            {isLoggedIn ? (
+              <button
+                onClick={handleLogout}
+                className="text-2xl font-bold tracking-widest text-gray-900 dark:text-gray-100"
+              >
+                Logout
+              </button>
+            ) : (
+              <Link
+                href="/login"
+                className="text-2xl font-bold tracking-widest text-gray-900 dark:text-gray-100"
+                onClick={onToggleNav}
+              >
+                Login
+              </Link>
+            )}
+          </div>
         </nav>
       </div>
     </>
