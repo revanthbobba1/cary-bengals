@@ -8,10 +8,7 @@ export default function AuthNav() {
 
   if (!isLoggedIn) {
     return (
-      <Link
-        href="/login"
-        className="hidden sm:block font-medium text-gray-900 dark:text-gray-100"
-      >
+      <Link href="/login" className="hidden sm:block font-medium text-gray-900 dark:text-gray-100">
         Login
       </Link>
     )
@@ -19,10 +16,7 @@ export default function AuthNav() {
 
   return (
     <>
-      <Link
-        href="/admin"
-        className="hidden sm:block font-medium text-gray-900 dark:text-gray-100"
-      >
+      <Link href="/admin" className="hidden sm:block font-medium text-gray-900 dark:text-gray-100">
         Admin
       </Link>
       <button

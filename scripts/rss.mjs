@@ -40,7 +40,6 @@ async function generateRSS(config, allBlogs, page = 'feed.xml') {
     const rss = generateRss(config, sortPosts(publishPosts))
     writeFileSync(`./public/${page}`, rss)
   }
-
 }
 
 const rss = () => {
