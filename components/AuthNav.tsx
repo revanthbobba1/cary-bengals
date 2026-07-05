@@ -1,34 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import Link from './Link'
-import { useRouter } from 'next/navigation'
+import { useAuth } from '@/lib/hooks/useAuth'
 
 export default function AuthNav() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const supabase = createClient()
-  const router = useRouter()
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setIsLoggedIn(!!user)
-    })
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsLoggedIn(!!session?.user)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/')
-    router.refresh()
-  }
+  const { isLoggedIn, logout } = useAuth()
 
   if (!isLoggedIn) {
     return (
@@ -50,7 +26,7 @@ export default function AuthNav() {
         Admin
       </Link>
       <button
-        onClick={handleLogout}
+        onClick={logout}
         className="hidden sm:block font-medium text-gray-900 dark:text-gray-100"
       >
         Logout

@@ -1,37 +1,19 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Link from './Link'
 import headerNavLinks from '@/data/headerNavLinks'
-import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useAuth } from '@/lib/hooks/useAuth'
 
 const MobileNav = () => {
   const [navShow, setNavShow] = useState(false)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const supabase = createClient()
-  const router = useRouter()
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setIsLoggedIn(!!user)
-    })
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsLoggedIn(!!session?.user)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
+  const { isLoggedIn, logout } = useAuth()
 
   const onToggleNav = () => {
     setNavShow((status) => {
       if (status) {
         document.body.style.overflow = 'auto'
       } else {
-        // Prevent scrolling
         document.body.style.overflow = 'hidden'
       }
       return !status
@@ -39,10 +21,8 @@ const MobileNav = () => {
   }
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
     onToggleNav()
-    router.push('/')
-    router.refresh()
+    await logout()
   }
 
   return (

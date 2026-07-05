@@ -1,14 +1,16 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 export default function AuthListener() {
   const router = useRouter()
   const supabase = createClient()
+  const cancelled = useRef(false)
 
   useEffect(() => {
+    cancelled.current = false
     const hash = window.location.hash.substring(1)
     if (!hash || !hash.includes('access_token')) return
 
@@ -22,7 +24,7 @@ export default function AuthListener() {
     supabase.auth
       .setSession({ access_token: accessToken, refresh_token: refreshToken })
       .then(({ error }) => {
-        if (error) return
+        if (error || cancelled.current) return
 
         window.history.replaceState(null, '', window.location.pathname)
 
@@ -33,6 +35,10 @@ export default function AuthListener() {
         }
         router.refresh()
       })
+
+    return () => {
+      cancelled.current = true
+    }
   }, [])
 
   return null

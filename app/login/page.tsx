@@ -4,6 +4,13 @@ import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
+function safeRedirectPath(value: string | null): string {
+  if (value && value.startsWith('/') && !value.startsWith('//') && !value.includes('@')) {
+    return value
+  }
+  return '/admin'
+}
+
 function LoginForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -12,6 +19,7 @@ function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
+  const redirectTo = safeRedirectPath(searchParams.get('redirectTo'))
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -29,13 +37,11 @@ function LoginForm() {
       return
     }
 
-    const redirectTo = searchParams.get('redirectTo') || '/admin'
     router.push(redirectTo)
     router.refresh()
   }
 
   const handleGoogleLogin = async () => {
-    const redirectTo = searchParams.get('redirectTo') || '/admin'
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
