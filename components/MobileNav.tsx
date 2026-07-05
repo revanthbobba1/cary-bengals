@@ -3,20 +3,26 @@
 import { useState } from 'react'
 import Link from './Link'
 import headerNavLinks from '@/data/headerNavLinks'
+import { useAuth } from '@/lib/hooks/useAuth'
 
 const MobileNav = () => {
   const [navShow, setNavShow] = useState(false)
+  const { isLoggedIn, logout } = useAuth()
 
   const onToggleNav = () => {
     setNavShow((status) => {
       if (status) {
         document.body.style.overflow = 'auto'
       } else {
-        // Prevent scrolling
         document.body.style.overflow = 'hidden'
       }
       return !status
     })
+  }
+
+  const handleLogout = async () => {
+    onToggleNav()
+    await logout()
   }
 
   return (
@@ -68,6 +74,35 @@ const MobileNav = () => {
               </Link>
             </div>
           ))}
+          {isLoggedIn && (
+            <div className="px-12 py-4">
+              <Link
+                href="/admin"
+                className="text-2xl font-bold tracking-widest text-gray-900 dark:text-gray-100"
+                onClick={onToggleNav}
+              >
+                Admin
+              </Link>
+            </div>
+          )}
+          <div className="px-12 py-4">
+            {isLoggedIn ? (
+              <button
+                onClick={handleLogout}
+                className="text-2xl font-bold tracking-widest text-gray-900 dark:text-gray-100"
+              >
+                Logout
+              </button>
+            ) : (
+              <Link
+                href="/login"
+                className="text-2xl font-bold tracking-widest text-gray-900 dark:text-gray-100"
+                onClick={onToggleNav}
+              >
+                Login
+              </Link>
+            )}
+          </div>
         </nav>
       </div>
     </>
