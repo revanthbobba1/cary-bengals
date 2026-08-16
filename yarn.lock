@@ -4060,6 +4060,7 @@ __metadata:
     eslint-config-next: 13.5.3
     eslint-config-prettier: ^8.8.0
     eslint-plugin-prettier: ^5.0.0
+    framer-motion: ^13.1.0
     github-slugger: ^1.4.0
     gray-matter: ^4.0.2
     husky: ^8.0.0
@@ -5814,6 +5815,25 @@ __metadata:
   version: 4.3.7
   resolution: "fraction.js@npm:4.3.7"
   checksum: e1553ae3f08e3ba0e8c06e43a3ab20b319966dfb7ddb96fd9b5d0ee11a66571af7f993229c88ebbb0d4a816eb813a24ed48207b140d442a8f76f33763b8d1f3f
+  languageName: node
+  linkType: hard
+
+"framer-motion@npm:^13.1.0":
+  version: 13.1.0
+  resolution: "framer-motion@npm:13.1.0"
+  dependencies:
+    motion-dom: ^13.0.0
+    motion-utils: ^13.0.0
+    tslib: ^2.4.0
+  peerDependencies:
+    react: ^18.0.0 || ^19.0.0
+    react-dom: ^18.0.0 || ^19.0.0
+  peerDependenciesMeta:
+    react:
+      optional: true
+    react-dom:
+      optional: true
+  checksum: e462d4fd112d6022a8dde60114780636f4ebf1a5acc01ecefe490c09e5b58aac51e832c7f0b3fb8ad594cee10296ab89c5bd9975926db22fc61d60c26e45e371
   languageName: node
   linkType: hard
 
@@ -8471,6 +8491,22 @@ __metadata:
   version: 0.5.2
   resolution: "moo@npm:0.5.2"
   checksum: 5a41ddf1059fd0feb674d917c4774e41c877f1ca980253be4d3aae1a37f4bc513f88815041243f36f5cf67a62fb39324f3f997cf7fb17b6cb00767c165e7c499
+  languageName: node
+  linkType: hard
+
+"motion-dom@npm:^13.0.0":
+  version: 13.0.0
+  resolution: "motion-dom@npm:13.0.0"
+  dependencies:
+    motion-utils: ^13.0.0
+  checksum: bb9a6eadd6c3477f960451a17f69f035d275576abb5d3ff9b7aad4e1ad8b354356fe7e297627e8362d59674774788d3b7813043fe31e848d59ab0e3ed538e4b3
+  languageName: node
+  linkType: hard
+
+"motion-utils@npm:^13.0.0":
+  version: 13.0.0
+  resolution: "motion-utils@npm:13.0.0"
+  checksum: 0cb30b6d2b50b40fa8430a7c8fa3e75f93167135d48fa78a25deb3007810ec278176e51f3c984e99b9f30d81da7c27e2c07cfe4a028fa989118eb0a87f83bfdb
   languageName: node
   linkType: hard
 

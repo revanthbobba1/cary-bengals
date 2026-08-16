@@ -1,0 +1,64 @@
+import Link from 'next/link'
+
+type AdminSection = 'dashboard' | 'poll' | 'manage'
+
+interface Props {
+  active: AdminSection
+  showManage: boolean
+}
+
+const linkClasses = 'rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap'
+
+/**
+ * Shared in-app navigation for the admin area, used on /admin, /admin/poll,
+ * and /admin/poll/manage so a user never has to fall back to the browser's
+ * back/forward buttons to move between them.
+ *
+ * "Manage Poll Weeks" is pushed to the right and kept visually distinct
+ * (only rendered for commissioners) to reinforce that it's a different kind
+ * of action than the member-facing "Dashboard" / "Submit Rankings" links.
+ */
+export default function AdminSubNav({ active, showManage }: Props) {
+  return (
+    <nav
+      aria-label="Admin navigation"
+      className="mb-8 flex flex-wrap items-center gap-2 border-b border-gray-200 pb-4 dark:border-gray-700"
+    >
+      <Link
+        href="/admin"
+        aria-current={active === 'dashboard' ? 'page' : undefined}
+        className={`${linkClasses} ${
+          active === 'dashboard'
+            ? 'bg-primary-500 text-white'
+            : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
+        }`}
+      >
+        Dashboard
+      </Link>
+      <Link
+        href="/admin/poll"
+        aria-current={active === 'poll' ? 'page' : undefined}
+        className={`${linkClasses} ${
+          active === 'poll'
+            ? 'bg-primary-500 text-white'
+            : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
+        }`}
+      >
+        Submit Rankings
+      </Link>
+      {showManage && (
+        <Link
+          href="/admin/poll/manage"
+          aria-current={active === 'manage' ? 'page' : undefined}
+          className={`${linkClasses} ml-auto ${
+            active === 'manage'
+              ? 'bg-gray-700 text-white dark:bg-gray-600'
+              : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
+          }`}
+        >
+          Manage Poll Weeks
+        </Link>
+      )}
+    </nav>
+  )
+}
