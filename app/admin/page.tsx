@@ -30,8 +30,8 @@ export default async function AdminPage() {
 
   // Real name is only available when the user logged in via Google OAuth;
   // email/password accounts created via Dashboard invite have no name set.
-  // Email is always present, so it's the reliable fallback.
-  const displayName = user?.user_metadata?.full_name || user?.email || 'Admin'
+  // Email is always present, so it's the reliable fallback (local part only).
+  const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Admin'
 
   // Get current open poll week
   const { data: openWeek } = await supabase
