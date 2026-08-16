@@ -28,6 +28,11 @@ export default async function AdminPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
+  // Real name is only available when the user logged in via Google OAuth;
+  // email/password accounts created via Dashboard invite have no name set.
+  // Email is always present, so it's the reliable fallback.
+  const displayName = user?.user_metadata?.full_name || user?.email || 'Admin'
+
   // Get current open poll week
   const { data: openWeek } = await supabase
     .from('poll_weeks')
@@ -73,7 +78,9 @@ export default async function AdminPage() {
         <h1 className="text-3xl font-extrabold leading-9 tracking-tight text-gray-900 dark:text-gray-100 sm:text-4xl sm:leading-10 md:text-6xl md:leading-14">
           Admin Dashboard
         </h1>
-        <p className="text-lg leading-7 text-gray-500 dark:text-gray-400">Welcome, Admin.</p>
+        <p className="text-lg leading-7 text-gray-500 dark:text-gray-400">
+          Welcome, {displayName}.
+        </p>
       </div>
 
       <AdminSubNav active="dashboard" showManage={showManageLink} />
