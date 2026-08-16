@@ -87,4 +87,15 @@ Supabase Auth gates `/admin` (email/password + Google OAuth). No self-registrati
   nothing should merge below that bar. This step is pre-authorized here specifically so it can run
   without asking each time. (`/code-review ultra` gives a deeper multi-agent cloud review, but it's
   user-triggered and billed — don't invoke it automatically.)
+- Address the review's findings directly (or via `code-review --fix`), using whatever context is
+  already in hand from opening/reviewing the PR, rather than delegating interpretation of the raw
+  posted comments to a fresh subagent — re-deriving codebase context from GitHub comments alone
+  when it's already loaded is wasteful. Delegating to a background subagent is still fine when the
+  user explicitly wants to keep working on something else in the meantime — that's a situational
+  call each time, not the default.
+- **Do not apply findings blindly.** `max` effort trades precision for coverage on purpose and can
+  surface false positives or genuinely debatable findings alongside real ones. Evaluate each one
+  on its merits before touching code; skip (and say why) anything that isn't actually a problem in
+  context, rather than "fixing" it just because it was flagged. Summarize what was fixed vs.
+  skipped and why before pushing. Confirm with the user before pushing the fixes.
 - After a PR merges, switch back to `main`, pull latest, and delete the local feature branch.
