@@ -54,12 +54,16 @@ export default function PollWeekManager({ existingWeeks }: Props) {
 
   const handleUpdateDeadline = async (weekId: string, newDeadline: string) => {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('poll_weeks')
         .update({ deadline: new Date(newDeadline).toISOString() })
         .eq('id', weekId)
+        .select('id')
 
       if (error) throw error
+      // RLS silently filters denied rows rather than erroring, so a blocked
+      // update returns success with zero rows changed — check explicitly.
+      if (!data || data.length === 0) throw new Error('Update was not applied')
       setEditingWeekId(null)
       router.refresh()
     } catch (err) {
@@ -69,12 +73,14 @@ export default function PollWeekManager({ existingWeeks }: Props) {
 
   const handleToggleLock = async (weekId: string, currentlyLocked: boolean) => {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('poll_weeks')
         .update({ is_locked: !currentlyLocked })
         .eq('id', weekId)
+        .select('id')
 
       if (error) throw error
+      if (!data || data.length === 0) throw new Error('Update was not applied')
       router.refresh()
     } catch (err) {
       alert('Failed to update lock status')

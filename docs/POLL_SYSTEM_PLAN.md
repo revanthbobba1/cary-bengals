@@ -163,11 +163,10 @@ the P0 submission bug is fixed vs. what depends on real submission data existing
 
 ## 6. Next Session Priorities
 
-1. Fix the P0 submission-persistence bug (see debugging step above).
-2. Restore the RLS admin-role check on `poll_submissions` INSERT/DELETE (P1) — separate from
-   the commissioner-role work above, which only covers week/team management.
-3. Decide on and implement the admin submission-status view (P1).
-4. Remove/gate the debug endpoint before any production deploy.
-5. Run migration `010` and add `commissioner` to your own `app_metadata.roles` (see §4) — do
-   this whenever convenient, it's not blocking anything else.
-6. Then pick up remaining stretch goals — ESPN API integration is next in line per your priority.
+1. Verify the P0 fix end-to-end from a **non-commissioner** account (the bug it fixes is
+   invisible from the commissioner account — see §3).
+2. Poll week lock/deadline UX and edge cases (P1, §3) — reopen flow, deadline validation,
+   public-page "newest week" selection, trigger efficiency.
+3. Decide on and implement the admin submission-status view (P1, §3).
+4. Continue ESPN API integration per `docs/ESPN_INTEGRATION_PLAN.md` — Phase 0 (public/private
+   league, league ID, cookies) still needs the user's input before implementation starts.

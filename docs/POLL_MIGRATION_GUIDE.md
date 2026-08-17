@@ -196,7 +196,8 @@ Netlify will auto-deploy on push to `main`.
 ### RLS Errors
 
 **Error: "new row violates row-level security policy"**
-- Verify user has `admin` or `member` role in `app_metadata.roles`
+- Verify user has `admin` role in `app_metadata.roles` (the `member` role referenced in earlier
+  versions of this guide was removed — see `supabase/migrations/README.md`)
 - Check RLS policies are correctly applied
 - Use Supabase Dashboard → Authentication → Users to verify user roles
 
@@ -217,7 +218,7 @@ Netlify will auto-deploy on push to `main`.
    - Use `/admin/poll/manage` to create weeks 2-17
 
 2. **Invite league members to submit rankings**
-   - All users with admin/member role can access `/admin/poll`
+   - All users (everyone has the `admin` role by default) can access `/admin/poll`
 
 3. **Set up weekly reminders** (future enhancement)
    - Consider email notifications for members who haven't submitted
