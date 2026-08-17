@@ -105,6 +105,22 @@ already-handled "week closed" case, the prior ballot is already gone with nothin
 A `submit_poll_ballot` RPC (single transaction, reusing `poll_week_is_open()`) would close this
 but is a bigger change; left as optional follow-up rather than folded in here.
 
+**2026-08-17 follow-up (caught by automated PR review on #40):** the public-page fix above
+originally used "newest week with any results" as its filter, but `recalculate_poll_results()`
+fires on the very first vote, not when voting closes — so a freshly-staged week's first ballot
+would immediately look "finished" and displace a genuinely complete previous week. Corrected to
+a three-tier fallback: newest **closed** (locked or deadline passed) week with results → newest
+week with any results → absolute newest week.
+
+Also flagged (confidence just under the review's posting threshold, not yet fixed): `formatDeadline`
+and `toDatetimeLocal` (`app/admin/page.tsx`, `PollWeekManager.tsx`) use local-timezone `Date`
+methods (`getHours()`, `getMonth()`, etc.), so server (Netlify, likely UTC) and client (the
+viewer's local zone) can render different text for the same instant — a hydration mismatch. This
+predates this session (the pattern was originally added to fix an *earlier* hydration issue) and
+was propagated into `PollWeekManager.tsx` in PR #40. Cosmetic (console warning + brief re-render),
+not a data issue. Worth a proper fix (e.g. format in UTC explicitly, or move formatting to a
+`useEffect` so it only ever runs client-side) next time either file is touched.
+
 ### 🟡 P1 — No admin visibility into league-wide submission status
 `auth.admin.listUsers()` can't run with the anon key. To restore the "who has/hasn't
 submitted" dashboard view, need either:
