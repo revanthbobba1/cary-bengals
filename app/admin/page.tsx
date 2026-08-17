@@ -19,6 +19,17 @@ function formatDeadline(isoString: string): string {
   return `${month}/${day}/${year} at ${displayHours}:${minutes} ${ampm}`
 }
 
+// Real name is only available when a user logged in via Google OAuth; email/password
+// accounts created via Dashboard invite have no name set. Email is always present, so
+// it's the reliable fallback (local part only) before finally falling back to a fixed string.
+function getDisplayName(
+  fullName: string | null | undefined,
+  email: string | null | undefined,
+  fallback: string
+): string {
+  return fullName || email?.split('@')[0] || fallback
+}
+
 export const metadata = genPageMetadata({ title: 'Admin Dashboard' })
 
 export default async function AdminPage() {
@@ -28,10 +39,7 @@ export default async function AdminPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Real name is only available when the user logged in via Google OAuth;
-  // email/password accounts created via Dashboard invite have no name set.
-  // Email is always present, so it's the reliable fallback (local part only).
-  const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Admin'
+  const displayName = getDisplayName(user?.user_metadata?.full_name, user?.email, 'Admin')
 
   // Get current open poll week
   const { data: openWeek } = await supabase
@@ -209,7 +217,7 @@ export default async function AdminPage() {
                         key={row.user_id}
                         className="flex items-center justify-between py-2 text-sm"
                       >
-                        <span>{row.email}</span>
+                        <span>{getDisplayName(row.full_name, row.email, 'Unknown member')}</span>
                         {row.has_submitted ? (
                           <span className="text-green-600 dark:text-green-400">✓ Submitted</span>
                         ) : (
