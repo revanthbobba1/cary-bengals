@@ -19,8 +19,16 @@ export default async function CommissionerPoll() {
     .order('season_year', { ascending: false })
     .order('week_number', { ascending: false })
 
-  if (weeksError || !weeksWithResults || weeksWithResults.length === 0) {
-    return <div>No poll data available</div>
+  if (weeksError) {
+    return <div>Error loading poll data</div>
+  }
+
+  if (!weeksWithResults || weeksWithResults.length === 0) {
+    return (
+      <div>
+        No poll results have been finalized yet — check back once the commissioner locks a week.
+      </div>
+    )
   }
 
   const seenWeeks = new Set<string>()
