@@ -6,7 +6,7 @@ source of truth for where this feature stands. See `POLL_MIGRATION_GUIDE.md` for
 deployment instructions and `supabase/migrations/README.md` for an index of what each migration
 file does — this doc is about scope, status, and roadmap.
 
-Last reviewed: 2026-08-16
+Last reviewed: 2026-08-17
 
 ## 1. Goal
 
@@ -77,24 +77,49 @@ granted to every user and checked nowhere else, so gating INSERT on it again wou
 access control while creating a silent-403 footgun for the next hand-invited member. The actual
 gap was always the week-open check, which `015` now provides.
 
-### 🟡 P1 — Poll week lock/deadline UX and edge cases
+### ✅ P1 — Poll week lock/deadline UX and edge cases (RESOLVED 2026-08-17)
 A follow-up audit of the full `is_locked` × deadline × submission-state space (beyond the P0 fix
-above) found several smaller, real issues, not yet fixed:
-- Reopening a week that's both locked *and* past deadline requires two separate edits (unlock,
-  then extend deadline) with no UI indication both are needed — no single "Reopen" action.
-- `PollWeekManager.tsx` doesn't validate that a new/edited deadline is actually in the future,
-  and doesn't check the result of its Supabase updates for a silently-blocked (0-row) RLS denial.
-- The public `/poll` page picks the *newest* week by number regardless of whether it has
-  published results, so creating the next week's poll can blank or prematurely expose an
-  in-progress week's live results.
-- The per-row result-recalculation trigger runs the full aggregation query 12 times per submit
-  instead of once, which can spuriously fail under concurrent submissions near a deadline.
-- Two simultaneously "open" weeks (e.g. next week staged early) silently resolve to whichever
-  has the nearer deadline, with no indication to the commissioner which one members are
-  actually seeing.
+above) found several smaller, real issues. Fixed:
+- **Reopen action** — a week that's both locked *and* past deadline now has a single "Reopen"
+  button (prompts for a new deadline, unlocks and extends in one update) instead of requiring two
+  separate edits with no indication both were needed.
+- **Deadline validation** — creating a week blocks a non-future deadline outright; editing an
+  existing deadline into the past asks for confirmation instead (closing early is legitimate,
+  just worth confirming). `PollWeekManager.tsx`'s updates now also check the row count returned,
+  not just `error` — RLS silently no-ops a blocked update rather than raising an error.
+- **Public page week selection** — `CommissionerPoll.tsx` now defaults to the newest week that
+  actually has published results, not just the newest week that exists, so staging next week's
+  poll early no longer blanks the public page.
+- **Trigger efficiency/correctness** — `016_statement_level_result_trigger.sql` replaces the
+  `FOR EACH ROW` trigger (which ran the full aggregation 24 times per 12-team submit) with a
+  `FOR EACH STATEMENT` trigger using transition tables plus a per-week advisory lock, fixing both
+  the redundant work and the real race where concurrent submissions near a deadline could
+  spuriously 23505 against `poll_results`'s unique constraint.
+- **Multiple open weeks** — `PollWeekManager.tsx` now shows a warning banner naming every
+  currently-open week and which one members are actually seeing (nearest deadline wins, matching
+  the app's own query logic), rather than silently resolving with no visibility.
 
-Full state-space table and proposed fixes (additional migration + `PollWeekManager.tsx`/public
-page changes) available on request — not yet written to a file.
+**Deliberately not done:** the submit flow (`PollSubmissionForm.tsx`) is still a client-side
+delete-then-insert, not a single transaction — if the insert fails for a reason other than the
+already-handled "week closed" case, the prior ballot is already gone with nothing to replace it.
+A `submit_poll_ballot` RPC (single transaction, reusing `poll_week_is_open()`) would close this
+but is a bigger change; left as optional follow-up rather than folded in here.
+
+**2026-08-17 follow-up (caught by automated PR review on #40):** the public-page fix above
+originally used "newest week with any results" as its filter, but `recalculate_poll_results()`
+fires on the very first vote, not when voting closes — so a freshly-staged week's first ballot
+would immediately look "finished" and displace a genuinely complete previous week. Corrected to
+a three-tier fallback: newest **closed** (locked or deadline passed) week with results → newest
+week with any results → absolute newest week.
+
+Also flagged (confidence just under the review's posting threshold, not yet fixed): `formatDeadline`
+and `toDatetimeLocal` (`app/admin/page.tsx`, `PollWeekManager.tsx`) use local-timezone `Date`
+methods (`getHours()`, `getMonth()`, etc.), so server (Netlify, likely UTC) and client (the
+viewer's local zone) can render different text for the same instant — a hydration mismatch. This
+predates this session (the pattern was originally added to fix an *earlier* hydration issue) and
+was propagated into `PollWeekManager.tsx` in PR #40. Cosmetic (console warning + brief re-render),
+not a data issue. Worth a proper fix (e.g. format in UTC explicitly, or move formatting to a
+`useEffect` so it only ever runs client-side) next time either file is touched.
 
 ### 🟡 P1 — No admin visibility into league-wide submission status
 `auth.admin.listUsers()` can't run with the anon key. To restore the "who has/hasn't
@@ -181,8 +206,8 @@ submit before building on top of that data):
    commissioner account — see §3). A second league member is setting up an account for this. By
    deliberate choice, PR #39 doesn't wait on this verification before merging — this is the
    deferred follow-up, not a merge blocker.
-2. Poll week lock/deadline UX and edge cases (P1, §3) — reopen flow, deadline validation,
-   public-page "newest week" selection, trigger efficiency.
-3. Decide on and implement the admin submission-status view (P1, §3).
+2. Decide on and implement the admin submission-status view (P1, §3).
+3. Optional: `submit_poll_ballot` RPC to make ballot submission a single transaction (see the
+   "deliberately not done" note under the now-resolved poll week UX item in §3).
 4. Continue ESPN API integration per `docs/ESPN_INTEGRATION_PLAN.md` — Phase 0 (public/private
    league, league ID, cookies) still needs the user's input before implementation starts.

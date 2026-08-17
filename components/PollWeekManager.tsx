@@ -7,31 +7,77 @@ import type { PollWeek } from '@/lib/types/poll'
 
 interface Props {
   existingWeeks: PollWeek[]
+  // Passed from the server component rather than computed with `new Date()`
+  // during client render, which would disagree with the server's render time
+  // by however long the request took and cause a hydration mismatch on any
+  // week whose deadline falls in that window.
+  now: string
 }
 
-export default function PollWeekManager({ existingWeeks }: Props) {
+// Deterministic formatter (matches app/admin/page.tsx) so server and client
+// render the exact same string instead of relying on toLocaleString(), whose
+// output can differ by environment/locale between server and browser.
+function formatDeadline(isoString: string): string {
+  const date = new Date(isoString)
+  const month = date.getMonth() + 1
+  const day = date.getDate()
+  const year = date.getFullYear()
+  const hours = date.getHours()
+  const minutes = date.getMinutes().toString().padStart(2, '0')
+  const ampm = hours >= 12 ? 'PM' : 'AM'
+  const displayHours = hours % 12 || 12
+  return `${month}/${day}/${year} at ${displayHours}:${minutes} ${ampm}`
+}
+
+function toDatetimeLocal(iso: string) {
+  const d = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+function isOpen(week: PollWeek, now: Date) {
+  return !week.is_locked && new Date(week.deadline) > now
+}
+
+function isClosed(week: PollWeek, now: Date) {
+  return week.is_locked || new Date(week.deadline) <= now
+}
+
+export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
   const router = useRouter()
   const supabase = createClient()
+  const now = new Date(nowIso)
 
-  const [seasonYear, setSeasonYear] = useState(new Date().getFullYear())
+  const [seasonYear, setSeasonYear] = useState(new Date(nowIso).getFullYear())
   const [weekNumber, setWeekNumber] = useState(1)
   const [deadline, setDeadline] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [editingWeekId, setEditingWeekId] = useState<string | null>(null)
   const [editDeadline, setEditDeadline] = useState('')
+  const [reopeningWeekId, setReopeningWeekId] = useState<string | null>(null)
+  const [reopenDeadline, setReopenDeadline] = useState('')
+  const [reopenError, setReopenError] = useState<string | null>(null)
 
-  const toDatetimeLocal = (iso: string) => {
-    const d = new Date(iso)
-    const pad = (n: number) => String(n).padStart(2, '0')
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
-  }
+  const openWeeks = existingWeeks
+    .filter((w) => isOpen(w, now))
+    .sort((a, b) => a.week_number - b.week_number)
+  // Matches the ordering the app's own "current open week" queries use
+  // (app/admin/page.tsx, app/admin/poll/page.tsx): nearest deadline wins.
+  const currentlyServedWeek = [...openWeeks].sort(
+    (a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
+  )[0]
 
   const handleCreateWeek = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
     setError(null)
 
+    if (!deadline || new Date(deadline) <= now) {
+      setError('Deadline must be in the future.')
+      return
+    }
+
+    setLoading(true)
     try {
       const { error: insertError } = await supabase.from('poll_weeks').insert({
         season_year: seasonYear,
@@ -53,6 +99,15 @@ export default function PollWeekManager({ existingWeeks }: Props) {
   }
 
   const handleUpdateDeadline = async (weekId: string, newDeadline: string) => {
+    if (
+      new Date(newDeadline) <= now &&
+      !window.confirm(
+        'This deadline is in the past — the week will close to submissions immediately. Continue?'
+      )
+    ) {
+      return
+    }
+
     try {
       const { data, error } = await supabase
         .from('poll_weeks')
@@ -87,8 +142,44 @@ export default function PollWeekManager({ existingWeeks }: Props) {
     }
   }
 
+  // Reopening a week that's both locked and past deadline used to require two
+  // separate edits (unlock, then extend the deadline) with no indication both
+  // were needed. This does it in one action/one update.
+  const handleReopen = async (weekId: string, newDeadline: string) => {
+    setReopenError(null)
+
+    if (!newDeadline || new Date(newDeadline) <= now) {
+      setReopenError('New deadline must be in the future.')
+      return
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('poll_weeks')
+        .update({ is_locked: false, deadline: new Date(newDeadline).toISOString() })
+        .eq('id', weekId)
+        .select('id')
+
+      if (error) throw error
+      if (!data || data.length === 0) throw new Error('Update was not applied')
+      setReopeningWeekId(null)
+      router.refresh()
+    } catch (err) {
+      setReopenError('Failed to reopen this week.')
+    }
+  }
+
   return (
     <div className="space-y-8">
+      {openWeeks.length > 1 && (
+        <div className="rounded-md bg-yellow-50 p-4 text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400">
+          <strong>{openWeeks.length} weeks are open at once</strong> (Week
+          {openWeeks.map((w) => ` ${w.week_number}`).join(', ')}). Members only see one at a time —
+          whichever has the nearest deadline
+          {currentlyServedWeek && <> (currently Week {currentlyServedWeek.week_number})</>}.
+        </div>
+      )}
+
       <form
         onSubmit={handleCreateWeek}
         className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow space-y-4"
@@ -138,6 +229,7 @@ export default function PollWeekManager({ existingWeeks }: Props) {
               type="datetime-local"
               value={deadline}
               onChange={(e) => setDeadline(e.target.value)}
+              min={toDatetimeLocal(nowIso)}
               required
               className="w-full border border-gray-300 dark:border-gray-600 rounded p-2 bg-white dark:bg-gray-700"
             />
@@ -166,73 +258,125 @@ export default function PollWeekManager({ existingWeeks }: Props) {
             </tr>
           </thead>
           <tbody>
-            {existingWeeks.map((week) => (
-              <tr key={week.id} className="border-b border-gray-100 dark:border-gray-800">
-                <td className="p-2">{week.season_year}</td>
-                <td className="p-2">{week.week_number}</td>
-                <td className="p-2">
-                  {editingWeekId === week.id ? (
-                    <input
-                      type="datetime-local"
-                      value={editDeadline}
-                      onChange={(e) => setEditDeadline(e.target.value)}
-                      className="border border-gray-300 dark:border-gray-600 rounded p-1 bg-white dark:bg-gray-700"
-                    />
-                  ) : (
-                    new Date(week.deadline).toLocaleString()
-                  )}
-                </td>
-                <td className="p-2">
-                  {week.is_locked ? (
-                    <span className="text-red-600">Locked</span>
-                  ) : new Date(week.deadline) < new Date() ? (
-                    <span className="text-yellow-600">Past deadline</span>
-                  ) : (
-                    <span className="text-green-600">Open</span>
-                  )}
-                </td>
-                <td className="p-2">
-                  {editingWeekId === week.id ? (
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleUpdateDeadline(week.id, editDeadline)}
-                        className="text-sm text-primary-600 hover:underline"
-                      >
-                        Save
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEditingWeekId(null)}
-                        className="text-sm text-gray-500 hover:underline"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex gap-3">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingWeekId(week.id)
-                          setEditDeadline(toDatetimeLocal(week.deadline))
-                        }}
-                        className="text-sm text-primary-600 hover:underline"
-                      >
-                        Edit deadline
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleToggleLock(week.id, week.is_locked)}
-                        className="text-sm text-primary-600 hover:underline"
-                      >
-                        {week.is_locked ? 'Unlock' : 'Lock'}
-                      </button>
-                    </div>
-                  )}
-                </td>
-              </tr>
-            ))}
+            {existingWeeks.map((week) => {
+              const closed = isClosed(week, now)
+              const needsReopen = week.is_locked && new Date(week.deadline) <= now
+
+              return (
+                <tr key={week.id} className="border-b border-gray-100 dark:border-gray-800">
+                  <td className="p-2">{week.season_year}</td>
+                  <td className="p-2">{week.week_number}</td>
+                  <td className="p-2">
+                    {editingWeekId === week.id ? (
+                      <input
+                        type="datetime-local"
+                        value={editDeadline}
+                        onChange={(e) => setEditDeadline(e.target.value)}
+                        className="border border-gray-300 dark:border-gray-600 rounded p-1 bg-white dark:bg-gray-700"
+                      />
+                    ) : (
+                      formatDeadline(week.deadline)
+                    )}
+                  </td>
+                  <td className="p-2">
+                    {week.is_locked ? (
+                      <span className="text-red-600">
+                        Locked{new Date(week.deadline) > now ? ' — unlock to reopen' : ''}
+                      </span>
+                    ) : closed ? (
+                      <span className="text-yellow-600">
+                        Closed: deadline passed — extend deadline to reopen
+                      </span>
+                    ) : (
+                      <span className="text-green-600">Open</span>
+                    )}
+                  </td>
+                  <td className="p-2">
+                    {reopeningWeekId === week.id ? (
+                      <div className="flex flex-col gap-2">
+                        {reopenError && <span className="text-sm text-red-600">{reopenError}</span>}
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="datetime-local"
+                            value={reopenDeadline}
+                            onChange={(e) => setReopenDeadline(e.target.value)}
+                            min={toDatetimeLocal(nowIso)}
+                            className="border border-gray-300 dark:border-gray-600 rounded p-1 bg-white dark:bg-gray-700"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleReopen(week.id, reopenDeadline)}
+                            className="text-sm text-primary-600 hover:underline"
+                          >
+                            Reopen
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setReopeningWeekId(null)
+                              setReopenError(null)
+                            }}
+                            className="text-sm text-gray-500 hover:underline"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : editingWeekId === week.id ? (
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateDeadline(week.id, editDeadline)}
+                          className="text-sm text-primary-600 hover:underline"
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingWeekId(null)}
+                          className="text-sm text-gray-500 hover:underline"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-3">
+                        {needsReopen && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setReopeningWeekId(week.id)
+                              setReopenDeadline('')
+                              setReopenError(null)
+                            }}
+                            className="text-sm font-medium text-primary-600 hover:underline"
+                          >
+                            Reopen
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingWeekId(week.id)
+                            setEditDeadline(toDatetimeLocal(week.deadline))
+                          }}
+                          className="text-sm text-primary-600 hover:underline"
+                        >
+                          Edit deadline
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleLock(week.id, week.is_locked)}
+                          className="text-sm text-primary-600 hover:underline"
+                        >
+                          {week.is_locked ? 'Unlock' : 'Lock'}
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>

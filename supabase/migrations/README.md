@@ -15,8 +15,9 @@ For current feature status and open issues, see `../../docs/POLL_SYSTEM_PLAN.md`
 | File | What it does |
 |---|---|
 | `001_create_poll_tables.sql` | Core tables: `teams`, `poll_weeks`, `poll_submissions`, `poll_results` |
-| `003_create_poll_functions.sql` | `recalculate_poll_results()` trigger function — auto-aggregates ballots into `poll_results` |
+| `003_create_poll_functions.sql` | `recalculate_poll_results()` trigger function — auto-aggregates ballots into `poll_results`. The `FOR EACH ROW` trigger it originally shipped with is superseded by `016`. |
 | `004_fix_tied_ranks.sql` | Drops the unique constraint on `final_rank`, switches `ROW_NUMBER()` → `RANK()` so tied teams share a rank (traditional sports ranking) |
+| `016_statement_level_result_trigger.sql` | Replaces `003`'s `FOR EACH ROW` trigger with a `FOR EACH STATEMENT` one (transition tables + a per-week advisory lock) — fixes both the 24x-per-submit redundant recalculation and a real race where concurrent submissions could spuriously violate `poll_results`'s unique constraint. |
 
 ## Row-Level Security (iterative — each superseded the last for the policies it touches)
 
@@ -47,5 +48,5 @@ For current feature status and open issues, see `../../docs/POLL_SYSTEM_PLAN.md`
 
 ## Still outstanding
 
-- Poll week lock/deadline UX and edge cases (reopen flow, deadline validation, public-page
-  "newest week" selection, trigger efficiency) — see the P1 item in `docs/POLL_SYSTEM_PLAN.md` §3.
+- Optional: a `submit_poll_ballot` RPC to make ballot submission a single transaction, instead of
+  the current client-side delete-then-insert — see `docs/POLL_SYSTEM_PLAN.md` §3.
