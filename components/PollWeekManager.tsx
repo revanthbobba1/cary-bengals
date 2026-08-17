@@ -400,16 +400,23 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
                               Reopen
                             </button>
                           )}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditingWeekId(week.id)
-                              setEditDeadline(toDatetimeLocal(week.deadline))
-                            }}
-                            className="text-sm text-primary-600 hover:underline"
-                          >
-                            Edit deadline
-                          </button>
+                          {/* Editing just the deadline on a week that's still locked wouldn't
+                              actually reopen it — is_locked stays true either way, so
+                              submissions would remain blocked regardless of what the deadline
+                              says. Reopen (above) is the only action that does anything real
+                              once a week is both locked and past-deadline. */}
+                          {!needsReopen && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingWeekId(week.id)
+                                setEditDeadline(toDatetimeLocal(week.deadline))
+                              }}
+                              className="text-sm text-primary-600 hover:underline"
+                            >
+                              Edit deadline
+                            </button>
+                          )}
                           {/* Once past deadline, a plain Unlock would just get auto-locked
                               again within minutes (see 019_auto_lock_expired_weeks.sql) unless
                               the deadline is also extended — Reopen (above) does both in one
