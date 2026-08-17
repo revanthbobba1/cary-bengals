@@ -410,13 +410,19 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
                           >
                             Edit deadline
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => handleToggleLock(week.id, week.is_locked)}
-                            className="text-sm text-primary-600 hover:underline"
-                          >
-                            {week.is_locked ? 'Unlock' : 'Lock'}
-                          </button>
+                          {/* Once past deadline, a plain Unlock would just get auto-locked
+                              again within minutes (see 019_auto_lock_expired_weeks.sql) unless
+                              the deadline is also extended — Reopen (above) does both in one
+                              step, so it's the only unlock path offered here. */}
+                          {!needsReopen && (
+                            <button
+                              type="button"
+                              onClick={() => handleToggleLock(week.id, week.is_locked)}
+                              className="text-sm text-primary-600 hover:underline"
+                            >
+                              {week.is_locked ? 'Unlock' : 'Lock'}
+                            </button>
+                          )}
                         </div>
                       )}
                     </td>

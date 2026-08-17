@@ -105,12 +105,20 @@ already-handled "week closed" case, the prior ballot is already gone with nothin
 A `submit_poll_ballot` RPC (single transaction, reusing `poll_week_is_open()`) would close this
 but is a bigger change; left as optional follow-up rather than folded in here.
 
-**2026-08-17 follow-up (caught by automated PR review on #40):** the public-page fix above
-originally used "newest week with any results" as its filter, but `recalculate_poll_results()`
-fires on the very first vote, not when voting closes — so a freshly-staged week's first ballot
-would immediately look "finished" and displace a genuinely complete previous week. Corrected to
-a three-tier fallback: newest **closed** (locked or deadline passed) week with results → newest
-week with any results → absolute newest week.
+**2026-08-17 follow-up — public page gating landed on `is_locked` alone.** This went through a
+few iterations (any-week-with-results → closed-or-deadline-passed → locked-only) before settling
+on the current state: `CommissionerPoll.tsx` shows only weeks with `is_locked = true`, per
+explicit direction — locking is the deliberate "these results are final" signal, independent of
+how many of the ~12 members actually voted. The dropdown is gated the same way; previously it had
+no filter at all and could list a week with zero submissions.
+
+This made a second gap matter that didn't before: **nothing set `is_locked` automatically** — it
+was purely a manual commissioner action. Now that public visibility depends entirely on it,
+forgetting to click Lock after a deadline passes meant results never went public. Fixed in
+`019_auto_lock_expired_weeks.sql` — a `pg_cron` job locks any week whose deadline has passed,
+every 5 minutes. `PollWeekManager.tsx`'s plain "Unlock" button is now hidden for a week that's
+both locked and past-deadline (only "Reopen," which sets a new deadline in the same action, is
+offered there) — otherwise a plain unlock would just get auto-locked again within minutes.
 
 Also flagged (confidence just under the review's posting threshold, not yet fixed): `formatDeadline`
 and `toDatetimeLocal` (`app/admin/page.tsx`, `PollWeekManager.tsx`) use local-timezone `Date`
