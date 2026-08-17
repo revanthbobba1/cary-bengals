@@ -33,7 +33,16 @@ designed, with the deviations below — mostly driven by things that surfaced du
 
 ## 3. Known Issues (Backlog)
 
-### ✅ P0 — Submissions not persisting (RESOLVED 2026-08-16)
+### ✅ P0 — Submissions not persisting (fix applied 2026-08-16, live verification pending)
+**Not fully closed out yet.** The fix below is applied to production and verified correct by
+direct inspection of the live RLS policies and data, but the actual bug only manifests from a
+**non-commissioner** account — the commissioner bypasses it entirely via a separate `FOR ALL`
+policy — so it hasn't been confirmed working end-to-end through the real UI yet. A second league
+member is setting up an account; once they can log in, have them check `/admin` and `/admin/poll`
+show their real submission status (not "not submitted" for a week they've actually ranked) and
+that editing an existing ballot works. Don't mark the poll feature as fully done until that
+passes — see item 1 in §6.
+
 Root cause found via a full RLS/state-space audit, and it was never actually about inserts
 failing. **There was no SELECT policy letting a member read their own submissions.** Migration
 `010` (commissioner role) dropped the old admin-gated SELECT policy on `poll_submissions` and
@@ -93,10 +102,6 @@ submitted" dashboard view, need either:
 - A Route Handler using the service role key (server-only, never exposed to the client), or
 - A `submission_status` view/table joined against `auth.users` via a `SECURITY DEFINER` Postgres function
 
-### 🟡 P1 — Debug endpoint is unauthenticated
-`/api/debug-poll` exposes user IDs and submission data to anyone. Remove before production, or
-at minimum gate it behind the admin auth check used elsewhere.
-
 ## 4. Completed ✅ (this update: commissioner role)
 
 - [x] **Commissioner role** — `supabase/migrations/010_add_commissioner_role.sql` introduces a
@@ -131,7 +136,8 @@ at minimum gate it behind the admin auth check used elsewhere.
 ### Completed ✅ (prior)
 
 - [x] Schema + indexes for `teams`, `poll_weeks`, `poll_submissions`, `poll_results`
-- [x] RLS enabled on all poll tables (see caveat above — role check currently relaxed)
+- [x] RLS enabled on all poll tables, including a member-readable SELECT policy and a shared
+  week-open check on INSERT/UPDATE/DELETE (see P0 above — `015`)
 - [x] Trigger-based auto-aggregation (`recalculate_poll_results`) on submission insert/update/delete
 - [x] Tied-rank handling (traditional sports ranking)
 - [x] Historical 2024–2025 data migrated (ties preserved) — the one-time script that did this
@@ -140,8 +146,14 @@ at minimum gate it behind the admin auth check used elsewhere.
   dependency, now that their one-time job is done
 - [x] 2026 teams seeded, Week 1 poll created
 - [x] Public poll display (`CommissionerPoll.tsx` → `CommissionerPollClient.tsx`) reading from Supabase
-- [x] Admin ballot submission form (`PollSubmissionForm.tsx`) with previous-week record/rank shown as context
-- [x] Poll week management UI (`PollWeekManager.tsx`) for creating weeks / adjusting deadlines
+- [x] Admin ballot submission form (`PollSubmissionForm.tsx`), drag-and-drop ranking (Framer Motion,
+  with a keyboard fallback), previous-week record/rank shown as context
+- [x] Poll week management UI (`PollWeekManager.tsx`) for creating weeks, editing deadlines, and
+  locking/unlocking submissions
+- [x] Persistent in-app navigation (`AdminSubNav`) across `/admin`, `/admin/poll`, and
+  `/admin/poll/manage` — no reliance on browser back/forward
+- [x] Unauthenticated `/api/debug-poll` endpoint removed (had already served its purpose once
+  direct `psql` access via the Supabase CLI was set up)
 - [x] Supabase CLI linked, migration history repaired, `supabase/migrations/*.sql` as source of truth going forward
 
 ## 5. Backlog / Stretch Goals
@@ -151,11 +163,12 @@ the P0 submission bug is fixed vs. what depends on real submission data existing
 
 **Safe to build now** (don't require live submissions):
 1. **ESPN API integration** — pull live team names/records/owners from the league's ESPN
-   Fantasy Football API instead of manual entry. Needs: league ID, whether the league is
-   public or private (private requires `espn_s2` + `SWID` cookies).
-2. **Mobile-optimized ranking UI** — drag-and-drop reordering instead of per-row dropdowns.
+   Fantasy Football API instead of manual entry. Design complete, see
+   `docs/ESPN_INTEGRATION_PLAN.md`; Phase 0 needs the user's input (league ID, public/private).
+2. ~~Mobile-optimized ranking UI~~ — done, see §4 (drag-and-drop via Framer Motion).
 
-**Blocked until P0 is fixed** (need real submission rows to build/verify against):
+**Blocked until non-commissioner verification lands** (need to confirm real members can actually
+submit before building on top of that data):
 3. **Detailed ballot breakdowns** — page showing each member's individual ranking, not just the aggregate.
 4. **Email reminders** — notify members who haven't submitted before deadline.
 5. **Historical trends chart** — visualize a team's rank across the season.
@@ -163,8 +176,11 @@ the P0 submission bug is fixed vs. what depends on real submission data existing
 
 ## 6. Next Session Priorities
 
-1. Verify the P0 fix end-to-end from a **non-commissioner** account (the bug it fixes is
-   invisible from the commissioner account — see §3).
+1. **Gating item — don't mark the poll feature complete until this passes.** Verify the P0 fix
+   end-to-end from a **non-commissioner** account (the bug it fixes is invisible from the
+   commissioner account — see §3). A second league member is setting up an account for this. By
+   deliberate choice, PR #39 doesn't wait on this verification before merging — this is the
+   deferred follow-up, not a merge blocker.
 2. Poll week lock/deadline UX and edge cases (P1, §3) — reopen flow, deadline validation,
    public-page "newest week" selection, trigger efficiency.
 3. Decide on and implement the admin submission-status view (P1, §3).
