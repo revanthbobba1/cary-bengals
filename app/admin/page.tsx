@@ -1,7 +1,7 @@
 import { genPageMetadata } from 'app/seo'
 import { createClient } from '@/lib/supabase/server'
 import { isCommissioner } from '@/lib/supabase/roles'
-import type { PollWeek } from '@/lib/types/poll'
+import type { PollWeek, SubmissionStatus } from '@/lib/types/poll'
 import Link from 'next/link'
 import AdminSubNav from '@/components/AdminSubNav'
 
@@ -69,6 +69,23 @@ export default async function AdminPage() {
       hasSubmitted: !!userSubmissions && userSubmissions.length === 12, // Should have 12 submissions
       submittedAt: userSubmissions?.[0]?.submitted_at,
       submissionCount: userSubmissions?.length || 0,
+    }
+  }
+
+  // League-wide "who has/hasn't submitted" — commissioner only. The RPC itself enforces the
+  // commissioner check server-side (SECURITY DEFINER function reading the JWT), this is just
+  // avoiding a pointless call for members who'd get an error back anyway.
+  let leagueStatus: SubmissionStatus[] | null = null
+  if (openWeek && showManageLink) {
+    const { data: statusRows, error: statusError } = await supabase.rpc(
+      'get_poll_week_submission_status',
+      { p_poll_week_id: openWeek.id }
+    )
+
+    if (statusError) {
+      console.error('Failed to load league submission status:', statusError)
+    } else {
+      leagueStatus = statusRows
     }
   }
 
@@ -171,6 +188,32 @@ export default async function AdminPage() {
               </div>
             )}
           </div>
+
+          {/* League-wide submission status — commissioner only, only when a week is open.
+              Full-width below the grid since it's a list, not a single action card. */}
+          {leagueStatus && leagueStatus.length > 0 && (
+            <div className="mt-6 p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+              <h3 className="text-lg font-semibold mb-4">
+                Week {openWeek?.week_number} Submission Status (
+                {leagueStatus.filter((row) => row.has_submitted).length}/{leagueStatus.length})
+              </h3>
+              <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+                {leagueStatus.map((row) => (
+                  <li key={row.user_id} className="flex items-center justify-between py-2 text-sm">
+                    <span>{row.email}</span>
+                    {row.has_submitted ? (
+                      <span className="text-green-600 dark:text-green-400">✓ Submitted</span>
+                    ) : (
+                      <span className="text-gray-400">
+                        Not submitted
+                        {row.submission_count > 0 && ` (partial: ${row.submission_count})`}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </section>
       </div>
     </div>

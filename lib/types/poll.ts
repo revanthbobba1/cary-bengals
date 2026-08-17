@@ -45,11 +45,14 @@ export interface PollResultWithTeam extends PollResult {
   team: Team
 }
 
+// Shape returned by the get_poll_week_submission_status RPC
+// (supabase/migrations/017_submission_status_function.sql)
 export interface SubmissionStatus {
   user_id: string
-  user_email: string
+  email: string
+  submission_count: number
   has_submitted: boolean
-  submitted_at?: string
+  submitted_at: string | null
 }
 
 // Form data types

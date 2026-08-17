@@ -46,6 +46,12 @@ For current feature status and open issues, see `../../docs/POLL_SYSTEM_PLAN.md`
 | `013_normalize_admin_role.sql` | Grants `admin` to every user (matches original design intent — all league members get equal `/admin` access) |
 | `014_drop_member_role.sql` | Removes `member` entirely — it was never checked anywhere in the codebase; the role model is now `admin` (everyone) + `commissioner` (additive, poll administration) |
 
+## Admin-facing features
+
+| File | What it does |
+|---|---|
+| `017_submission_status_function.sql` | `get_poll_week_submission_status()` — `SECURITY DEFINER` function powering the "who has/hasn't submitted" view on `/admin`. Enforces its own `commissioner` check internally rather than relying on a service-role-key Route Handler, keeping the app free of that runtime secret. |
+
 ## Still outstanding
 
 - Optional: a `submit_poll_ballot` RPC to make ballot submission a single transaction, instead of

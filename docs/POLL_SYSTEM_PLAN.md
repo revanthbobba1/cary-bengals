@@ -26,7 +26,7 @@ designed, with the deviations below — mostly driven by things that surfaced du
 | Tie handling | Not addressed in original schema (`UNIQUE(poll_week_id, final_rank)`, `ROW_NUMBER()`) | Fixed in `004_fix_tied_ranks.sql`: dropped the unique constraint on `final_rank`, switched `ROW_NUMBER()` → `RANK()` | ✅ intentional change per your requirement (traditional sports ranking: ties share a rank, next rank skips) |
 | RLS policies | Role-gated via `raw_app_meta_data->roles` query against `auth.users` (`002`) | Rewritten repeatedly: `002` (query `auth.users`, hits "permission denied") → `007` (use `auth.jwt()` claims) → `008` (drops the role check entirely, testing shim) → `010` (commissioner-only SELECT, member SELECT accidentally dropped) → `015` (member SELECT restored; INSERT/UPDATE/DELETE all gated on a shared `poll_week_is_open()` check instead of role) | ✅ resolved — see P0 in §3 |
 | Team record on ballot | User-entered free-text field per team | Changed to **read-only display context**: pulled from the *previous* week's `poll_results.team_record`, shown next to each team, not submitted by the user | ✅ your call — a team's W-L record shouldn't influence how it's ranked |
-| Admin dashboard (`app/admin/page.tsx`) | Lists **all** members' submission status via `supabase.auth.admin.listUsers()` | `auth.admin.listUsers()` requires the **service role key**, which isn't available in a server component using the anon key — so this was simplified to show only the **current user's own** submission status | ⚠️ **gap vs. original intent**: there is currently no admin-facing view of who on the league has/hasn't submitted. Needs a proper solution (see Backlog) |
+| Admin dashboard (`app/admin/page.tsx`) | Lists **all** members' submission status via `supabase.auth.admin.listUsers()` | `auth.admin.listUsers()` requires the **service role key**, not available with the anon key — solved instead with a `SECURITY DEFINER` Postgres function (`017_submission_status_function.sql`) callable via the normal client | ✅ resolved — see P1 in §3 |
 | Deadline formatting | `toLocaleString()` | `app/admin/page.tsx` uses a custom `formatDeadline()` (to fix a hydration mismatch); `app/admin/poll/page.tsx` still uses `toLocaleString()` directly | Low risk (server-only render), but worth double-checking if the hydration warning ever resurfaces on the poll page |
 | Debug tooling | Not in original plan | `app/api/debug-poll/route.ts` — GET endpoint dumping poll weeks/submissions/user IDs, **no auth check** | ⚠️ **must be removed or auth-gated before deploying to production** |
 | 2026 teams / Week 1 setup | Via admin UI or SQL | Done via SQL migrations `005` (teams) and `006`/`009` (Week 1, deadline extended for testing) | ✅ fine for bootstrapping; future weeks should go through the `PollWeekManager` UI as intended |
@@ -121,11 +121,21 @@ was propagated into `PollWeekManager.tsx` in PR #40. Cosmetic (console warning +
 not a data issue. Worth a proper fix (e.g. format in UTC explicitly, or move formatting to a
 `useEffect` so it only ever runs client-side) next time either file is touched.
 
-### 🟡 P1 — No admin visibility into league-wide submission status
-`auth.admin.listUsers()` can't run with the anon key. To restore the "who has/hasn't
-submitted" dashboard view, need either:
-- A Route Handler using the service role key (server-only, never exposed to the client), or
-- A `submission_status` view/table joined against `auth.users` via a `SECURITY DEFINER` Postgres function
+### ✅ P1 — No admin visibility into league-wide submission status (RESOLVED 2026-08-17)
+`auth.admin.listUsers()` can't run with the anon key, so this couldn't be built the way the
+original plan assumed. Went with the `SECURITY DEFINER` Postgres function option rather than a
+service-role-key Route Handler — it avoids introducing a permanent service-role secret into the
+running app (previously only ever used for the one-time data migration script) and matches the
+`jwt_has_role()`/`poll_week_is_open()` pattern already established here of pushing access control
+into Postgres.
+
+`get_poll_week_submission_status(p_poll_week_id)` (`017_submission_status_function.sql`) enforces
+its own `commissioner` check internally (raises if not a commissioner — verified this actually
+rejects a non-commissioner-context call), joins `auth.users` (filtered to accounts with the
+`admin` role, i.e. league members) against `poll_submissions` for the given week, and computes
+`has_submitted` against the season's actual team count rather than a hardcoded 12. Wired into
+`app/admin/page.tsx` as a commissioner-only list below the existing Poll section, only rendered
+when a week is open.
 
 ## 4. Completed ✅ (this update: commissioner role)
 
@@ -206,8 +216,9 @@ submit before building on top of that data):
    commissioner account — see §3). A second league member is setting up an account for this. By
    deliberate choice, PR #39 doesn't wait on this verification before merging — this is the
    deferred follow-up, not a merge blocker.
-2. Decide on and implement the admin submission-status view (P1, §3).
-3. Optional: `submit_poll_ballot` RPC to make ballot submission a single transaction (see the
+2. Optional: `submit_poll_ballot` RPC to make ballot submission a single transaction (see the
    "deliberately not done" note under the now-resolved poll week UX item in §3).
+3. Optional: fix the `formatDeadline`/`toDatetimeLocal` timezone-dependent hydration mismatch
+   (see the 2026-08-17 follow-up note in §3) next time either file is touched.
 4. Continue ESPN API integration per `docs/ESPN_INTEGRATION_PLAN.md` — Phase 0 (public/private
    league, league ID, cookies) still needs the user's input before implementation starts.
