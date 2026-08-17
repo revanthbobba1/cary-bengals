@@ -226,11 +226,11 @@ function RankingRow({ ranking, index, isLast, teamData, onMove }: RankingRowProp
           onClick={() => onMove(ranking.team_id, -1)}
           disabled={index === 0}
           aria-label={`Move ${ranking.team_name} up`}
-          className="rounded p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-700
-            disabled:pointer-events-none disabled:opacity-25 dark:hover:bg-gray-700
-            dark:hover:text-gray-200"
+          className="flex h-9 w-9 items-center justify-center rounded text-gray-400
+            hover:bg-gray-200 hover:text-gray-700 disabled:pointer-events-none
+            disabled:opacity-25 dark:hover:bg-gray-700 dark:hover:text-gray-200"
         >
-          <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+          <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
             <path
               fillRule="evenodd"
               d="M10 3a.75.75 0 01.53.22l4.25 4.25a.75.75 0 01-1.06 1.06L10.75 5.56v10.69a.75.75 0 01-1.5 0V5.56L6.28 8.53a.75.75 0 01-1.06-1.06l4.25-4.25A.75.75 0 0110 3z"
@@ -243,11 +243,11 @@ function RankingRow({ ranking, index, isLast, teamData, onMove }: RankingRowProp
           onClick={() => onMove(ranking.team_id, 1)}
           disabled={isLast}
           aria-label={`Move ${ranking.team_name} down`}
-          className="rounded p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-700
-            disabled:pointer-events-none disabled:opacity-25 dark:hover:bg-gray-700
-            dark:hover:text-gray-200"
+          className="flex h-9 w-9 items-center justify-center rounded text-gray-400
+            hover:bg-gray-200 hover:text-gray-700 disabled:pointer-events-none
+            disabled:opacity-25 dark:hover:bg-gray-700 dark:hover:text-gray-200"
         >
-          <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+          <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
             <path
               fillRule="evenodd"
               d="M10 17a.75.75 0 01-.53-.22l-4.25-4.25a.75.75 0 011.06-1.06l2.97 2.97V3.75a.75.75 0 011.5 0v10.69l2.97-2.97a.75.75 0 111.06 1.06l-4.25 4.25A.75.75 0 0110 17z"

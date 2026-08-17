@@ -5,15 +5,17 @@ import type { PollResultWithTeam } from '@/lib/types/poll'
 export default async function CommissionerPoll() {
   const supabase = createClient()
 
-  // Only weeks with actual submitted results are real, viewable polls — a week
-  // that's been created but has no votes yet (e.g. staged early via "Create
-  // Poll Week") shouldn't appear as a dropdown choice or as the default, since
-  // there's nothing to show for it. poll_results!inner(id) filters to weeks
-  // with at least one result row; it produces one row per (week, result row)
-  // pair, so it's deduped below to one entry per week.
+  // Only show weeks the commissioner has explicitly locked — that's the
+  // deliberate "these results are final" signal in this app, independent of how
+  // many of the ~12 members actually voted (a locked week with partial
+  // participation is still meant to be public; an unlocked week isn't, even
+  // with full participation). poll_results!inner(id) additionally excludes a
+  // locked-but-empty week (e.g. locked before anyone voted) — it produces one
+  // row per (week, result row) pair, so it's deduped below to one entry per week.
   const { data: weeksWithResults, error: weeksError } = await supabase
     .from('poll_weeks')
     .select('season_year, week_number, poll_results!inner(id)')
+    .eq('is_locked', true)
     .order('season_year', { ascending: false })
     .order('week_number', { ascending: false })
 
@@ -29,7 +31,7 @@ export default async function CommissionerPoll() {
     return true
   })
 
-  // Default to the newest week with real data — the most readily available poll.
+  // Default to the newest locked (finalized) week.
   const mostRecentWeek = weeks[0]
   const { data: pollWeek } = await supabase
     .from('poll_weeks')
