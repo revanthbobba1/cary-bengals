@@ -190,48 +190,42 @@ export default async function AdminPage() {
               </span>
             </h2>
 
-            <div className="space-y-6">
+            {/* No "Manage Poll Weeks" card here on purpose — that's exactly what the
+                "Manage Poll Weeks" tab in AdminSubNav already navigates to, and a static
+                description + link would add nothing beyond what the tab label already
+                says. This section is for live, dashboard-only oversight content instead
+                (things with no dedicated tab of their own), not a second copy of navigation. */}
+            {leagueStatus && leagueStatus.length > 0 ? (
               <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
-                <h3 className="text-lg font-semibold mb-2">Manage Poll Weeks</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                  Create poll weeks, edit deadlines, and lock or unlock submissions.
-                </p>
-                <Link
-                  href="/admin/poll/manage"
-                  className="inline-block rounded-md bg-gray-600 px-4 py-2 text-white font-medium hover:bg-gray-700 dark:bg-gray-600 dark:hover:bg-gray-500"
-                >
-                  Manage Poll Weeks
-                </Link>
+                <h3 className="text-lg font-semibold mb-4">
+                  Week {openWeek?.week_number} Submission Status (
+                  {leagueStatus.filter((row) => row.has_submitted).length}/{leagueStatus.length})
+                </h3>
+                <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+                  {leagueStatus.map((row) => (
+                    <li
+                      key={row.user_id}
+                      className="flex items-center justify-between py-2 text-sm"
+                    >
+                      <span>{getDisplayName(row.full_name, row.email, 'Unknown member')}</span>
+                      {row.has_submitted ? (
+                        <span className="text-green-600 dark:text-green-400">✓ Submitted</span>
+                      ) : (
+                        <span className="text-gray-400">
+                          Not submitted
+                          {row.submission_count > 0 && ` (partial: ${row.submission_count})`}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
               </div>
-
-              {/* Only rendered when a week is open — nothing to show otherwise. */}
-              {leagueStatus && leagueStatus.length > 0 && (
-                <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
-                  <h3 className="text-lg font-semibold mb-4">
-                    Week {openWeek?.week_number} Submission Status (
-                    {leagueStatus.filter((row) => row.has_submitted).length}/{leagueStatus.length})
-                  </h3>
-                  <ul className="divide-y divide-gray-100 dark:divide-gray-800">
-                    {leagueStatus.map((row) => (
-                      <li
-                        key={row.user_id}
-                        className="flex items-center justify-between py-2 text-sm"
-                      >
-                        <span>{getDisplayName(row.full_name, row.email, 'Unknown member')}</span>
-                        {row.has_submitted ? (
-                          <span className="text-green-600 dark:text-green-400">✓ Submitted</span>
-                        ) : (
-                          <span className="text-gray-400">
-                            Not submitted
-                            {row.submission_count > 0 && ` (partial: ${row.submission_count})`}
-                          </span>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
+            ) : (
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                No poll is currently open, so there's no submission status to show. Manage poll
+                weeks from the tab above.
+              </p>
+            )}
           </section>
         )}
       </div>

@@ -59,6 +59,15 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
   const [reopenDeadline, setReopenDeadline] = useState('')
   const [reopenError, setReopenError] = useState<string | null>(null)
 
+  // Year filter for the table below, same idea as the public poll page's year
+  // dropdown. All years are already loaded (no separate fetch needed), so this
+  // is just a client-side filter, defaulting to the newest year present.
+  const availableYears = [...new Set(existingWeeks.map((w) => w.season_year))].sort((a, b) => b - a)
+  const [selectedYear, setSelectedYear] = useState(
+    availableYears[0] ?? new Date(nowIso).getFullYear()
+  )
+  const weeksForSelectedYear = existingWeeks.filter((w) => w.season_year === selectedYear)
+
   const openWeeks = existingWeeks
     .filter((w) => isOpen(w, now))
     .sort((a, b) => a.week_number - b.week_number)
@@ -89,6 +98,7 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
       if (insertError) throw insertError
 
       router.refresh()
+      setSelectedYear(seasonYear)
       setWeekNumber((prev) => prev + 1)
       setDeadline('')
     } catch (err) {
@@ -246,11 +256,34 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
       </form>
 
       <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
-        <h2 className="text-xl font-semibold mb-4">Existing Poll Weeks</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Existing Poll Weeks</h2>
+          {availableYears.length > 1 && (
+            <div>
+              <label
+                htmlFor="manage-year-select"
+                className="text-sm text-gray-600 dark:text-gray-300 mr-2"
+              >
+                Season:
+              </label>
+              <select
+                id="manage-year-select"
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(Number(e.target.value))}
+                className="border border-gray-300 dark:border-gray-600 rounded p-2 bg-white dark:bg-gray-700"
+              >
+                {availableYears.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-200 dark:border-gray-700">
-              <th className="text-left p-2">Season</th>
               <th className="text-left p-2">Week</th>
               <th className="text-left p-2">Deadline</th>
               <th className="text-left p-2">Status</th>
@@ -258,13 +291,19 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
             </tr>
           </thead>
           <tbody>
-            {existingWeeks.map((week) => {
+            {weeksForSelectedYear.length === 0 && (
+              <tr>
+                <td colSpan={4} className="p-2 text-center text-gray-500 dark:text-gray-400">
+                  No poll weeks for {selectedYear}.
+                </td>
+              </tr>
+            )}
+            {weeksForSelectedYear.map((week) => {
               const closed = isClosed(week, now)
               const needsReopen = week.is_locked && new Date(week.deadline) <= now
 
               return (
                 <tr key={week.id} className="border-b border-gray-100 dark:border-gray-800">
-                  <td className="p-2">{week.season_year}</td>
                   <td className="p-2">{week.week_number}</td>
                   <td className="p-2">
                     {editingWeekId === week.id ? (

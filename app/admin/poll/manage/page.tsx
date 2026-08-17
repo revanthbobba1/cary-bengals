@@ -27,12 +27,14 @@ export default async function ManagePollPage() {
     )
   }
 
+  // No limit here (unlike some other queries in this app) — the year filter in
+  // PollWeekManager needs every season's weeks available to filter across, and
+  // this table will never realistically be large enough to need pagination.
   const { data: pollWeeks } = await supabase
     .from('poll_weeks')
     .select('*')
     .order('season_year', { ascending: false })
     .order('week_number', { ascending: false })
-    .limit(10)
 
   return (
     <div className="py-12 max-w-4xl mx-auto">
