@@ -16,8 +16,18 @@ export default async function CommissionerPoll() {
     return <div>Error loading poll data</div>
   }
 
-  // Get most recent week's results as default
-  const mostRecentWeek = weeks[0]
+  // Default to the newest week that actually has published results, not just the
+  // newest week that exists — otherwise staging next week's poll early (creating
+  // it before it has any submissions) blanks the public page instead of continuing
+  // to show last week's finished results.
+  const { data: newestWithResults } = await supabase
+    .from('poll_weeks')
+    .select('season_year, week_number, poll_results!inner(id)')
+    .order('season_year', { ascending: false })
+    .order('week_number', { ascending: false })
+    .limit(1)
+
+  const mostRecentWeek = newestWithResults?.[0] || weeks[0]
   const { data: pollWeek } = await supabase
     .from('poll_weeks')
     .select('id')

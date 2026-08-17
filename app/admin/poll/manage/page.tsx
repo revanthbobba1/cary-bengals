@@ -38,7 +38,7 @@ export default async function ManagePollPage() {
     <div className="py-12 max-w-4xl mx-auto">
       <AdminSubNav active="manage" showManage={showManageLink} />
       <h1 className="text-2xl font-bold mb-6">Manage Poll Weeks</h1>
-      <PollWeekManager existingWeeks={pollWeeks || []} />
+      <PollWeekManager existingWeeks={pollWeeks || []} now={new Date().toISOString()} />
     </div>
   )
 }
