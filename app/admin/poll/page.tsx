@@ -84,7 +84,6 @@ export default async function AdminPollPage() {
         teams={teams || []}
         teamRecords={teamRecords}
         existingSubmission={existingSubmission || []}
-        userId={user.id}
       />
     </div>
   )

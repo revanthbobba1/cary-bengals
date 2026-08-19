@@ -11,7 +11,6 @@ interface Props {
   teams: Team[]
   teamRecords: Record<string, { record: string | null; prevRank: number }>
   existingSubmission: Partial<PollSubmission>[]
-  userId: string
 }
 
 export default function PollSubmissionForm({
@@ -19,7 +18,6 @@ export default function PollSubmissionForm({
   teams,
   teamRecords,
   existingSubmission,
-  userId,
 }: Props) {
   const router = useRouter()
   const supabase = createClient()
@@ -142,17 +140,14 @@ function describeSubmissionError(err: unknown): string {
       ? (err as { code?: string }).code
       : undefined
 
-  // submit_poll_ballot (020) runs SECURITY DEFINER, so RLS never denies this
-  // call directly — a closed/locked week instead surfaces via its own RAISE
-  // EXCEPTION message, matched here so the reader gets the same actionable
-  // "go refresh" guidance the old client-side delete/insert flow gave.
+  // submit_poll_ballot (020, message text updated in 022) runs SECURITY
+  // DEFINER, so RLS never denies this call directly — a closed/locked week
+  // instead surfaces via its own RAISE EXCEPTION message, which is already
+  // the actionable, user-facing text to show as-is.
   if (code === '23505') {
     return 'Your rankings could not be saved due to a conflicting submission. Please refresh and try again.'
   }
   if (err instanceof Error) {
-    if (err.message === 'This week is no longer open for submissions') {
-      return 'This week closed while you were ranking. Refresh the page to see the current poll status.'
-    }
     return err.message
   }
   return 'Failed to submit poll rankings.'
