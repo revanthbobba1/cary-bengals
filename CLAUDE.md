@@ -99,4 +99,9 @@ Supabase Auth gates `/admin` (email/password + Google OAuth). No self-registrati
   on its merits before touching code; skip (and say why) anything that isn't actually a problem in
   context, rather than "fixing" it just because it was flagged. Summarize what was fixed vs.
   skipped and why before pushing. Confirm with the user before pushing the fixes.
+- Before merging, resolve every open review-comment thread posted by the `code-review` skill:
+  reply to each one stating what was actually done (fixed in `<commit>` with a one-line summary,
+  or explicitly skipped and why), then mark the thread resolved. This is also the sanity-check
+  point — re-read each comment against the real diff before closing it, rather than closing on
+  autopilot, since a thread can be marked resolved without ever being addressed.
 - After a PR merges, switch back to `main`, pull latest, and delete the local feature branch.
