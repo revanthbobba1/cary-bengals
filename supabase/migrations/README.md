@@ -53,8 +53,9 @@ For current feature status and open issues, see `../../docs/POLL_SYSTEM_PLAN.md`
 | `017_submission_status_function.sql` | `get_poll_week_submission_status()` — `SECURITY DEFINER` function powering the "who has/hasn't submitted" view on `/admin`. Enforces its own `commissioner` check internally rather than relying on a service-role-key Route Handler, keeping the app free of that runtime secret. |
 | `018_submission_status_full_name.sql` | Drops and recreates `017`'s function to also return `full_name`, so the submission-status list can show a real name instead of a raw email address, matching the fallback logic used for the page's own welcome message. |
 | `019_auto_lock_expired_weeks.sql` | Enables `pg_cron` and schedules a job (every 5 min) that sets `is_locked = true` on any week whose deadline has passed. Previously `is_locked` was purely a manual commissioner action — that mattered less until the public poll page started gating entirely on it (see `docs/POLL_SYSTEM_PLAN.md`), at which point forgetting to click Lock meant results never went public even after voting genuinely closed. |
+| `020_submit_poll_ballot.sql` | `submit_poll_ballot(p_poll_week_id, p_rankings)` — wraps the ballot delete-then-insert in one `SECURITY DEFINER` transaction, reusing `poll_week_is_open()` (015) for the same access check RLS already did. A failed insert now rolls back the delete instead of leaving the member with no ballot. |
 
 ## Still outstanding
 
-- Optional: a `submit_poll_ballot` RPC to make ballot submission a single transaction, instead of
-  the current client-side delete-then-insert — see `docs/POLL_SYSTEM_PLAN.md` §3.
+None currently tracked — see `docs/POLL_SYSTEM_PLAN.md` §6 for the remaining non-migration backlog
+(timezone hydration-mismatch cosmetic fix, ESPN API integration).

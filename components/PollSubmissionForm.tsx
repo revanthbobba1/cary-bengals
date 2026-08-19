@@ -71,37 +71,21 @@ export default function PollSubmissionForm({
     setError(null)
 
     try {
-      // Delete existing submissions for this user/week. RLS silently filters
-      // rows rather than raising an error, so a closed week produces a
-      // *successful* delete of zero rows here, not a thrown error — check the
-      // count explicitly rather than relying on deleteError.
-      const { data: deletedRows, error: deleteError } = await supabase
-        .from('poll_submissions')
-        .delete()
-        .eq('poll_week_id', pollWeek.id)
-        .eq('user_id', userId)
-        .select('id')
+      // Delete-then-insert as a single transaction (submit_poll_ballot, 020),
+      // rather than two separate client round-trips — an insert failure for
+      // any reason (bad data, a dropped connection, a constraint violation)
+      // used to leave the member with no ballot at all, since the prior one
+      // was already deleted by the time the insert failed.
+      const { error: submitError } = await supabase.rpc('submit_poll_ballot', {
+        p_poll_week_id: pollWeek.id,
+        p_rankings: rankings.map((r) => ({
+          team_id: r.team_id,
+          rank: r.rank,
+          team_record: teamRecords[r.team_id]?.record || null,
+        })),
+      })
 
-      if (deleteError) throw deleteError
-
-      if (existingSubmission.length > 0 && (deletedRows?.length || 0) === 0) {
-        throw new Error(
-          'This week closed while you were ranking. Refresh the page to see the current poll status.'
-        )
-      }
-
-      // Insert new submissions (with team records from previous week)
-      const submissions = rankings.map((r) => ({
-        poll_week_id: pollWeek.id,
-        user_id: userId,
-        team_id: r.team_id,
-        rank: r.rank,
-        team_record: teamRecords[r.team_id]?.record || null,
-      }))
-
-      const { error: insertError } = await supabase.from('poll_submissions').insert(submissions)
-
-      if (insertError) throw insertError
+      if (submitError) throw submitError
 
       router.push('/admin')
       router.refresh()
@@ -158,9 +142,10 @@ function describeSubmissionError(err: unknown): string {
       ? (err as { code?: string }).code
       : undefined
 
-  if (code === '42501') {
-    return 'This week is no longer open for submissions.'
-  }
+  // submit_poll_ballot (020) runs SECURITY DEFINER, so RLS never denies this
+  // call directly — a closed/locked week instead surfaces as the RAISE
+  // EXCEPTION message below via the `err instanceof Error` branch, which is
+  // already a clear, user-facing message on its own.
   if (code === '23505') {
     return 'Your rankings could not be saved due to a conflicting submission. Please refresh and try again.'
   }

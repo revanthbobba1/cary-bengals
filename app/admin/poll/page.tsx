@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { isCommissioner } from '@/lib/supabase/roles'
+import { formatDeadline } from '@/lib/formatDeadline'
 import PollSubmissionForm from '@/components/PollSubmissionForm'
 import AdminSubNav from '@/components/AdminSubNav'
 
@@ -75,7 +76,7 @@ export default async function AdminPollPage() {
       <h1 className="text-2xl font-bold mb-2">Submit Poll Rankings</h1>
       <p className="text-gray-600 dark:text-gray-400 mb-6">
         Season {openWeek.season_year}, Week {openWeek.week_number} - Deadline:{' '}
-        {new Date(openWeek.deadline).toLocaleString()}
+        {formatDeadline(openWeek.deadline)}
       </p>
 
       <PollSubmissionForm
