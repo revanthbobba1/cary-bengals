@@ -124,6 +124,17 @@ message that could silently drift. `022_friendlier_closed_week_message.sql` rais
 message directly from the function instead, so `describeSubmissionError` is back to a plain
 pass-through of `err.message` with one source of truth for the copy.
 
+**Caught by a second review before merge — TOCTOU gap.** `submit_poll_ballot` checked
+`poll_week_is_open()` once, then ran `DELETE`/`INSERT` unconditionally with no re-check at write
+time. Under READ COMMITTED, a concurrent lock (the auto-lock cron, `019`, or a manual lock)
+committing between the check and the writes would still let the ballot write land — and since
+`021` dropped RLS's member write policies, nothing backstopped this at the database layer either.
+Narrower than the old two-round-trip client flow's equivalent window, so not a strict regression,
+but not airtight. `023_lock_poll_week_row_on_submit.sql` fixes it by locking the `poll_weeks` row
+(`SELECT ... FOR UPDATE`) instead of calling the non-locking `poll_week_is_open()` helper for this
+one check — a concurrent lock/unlock on the same row now blocks against this transaction instead
+of racing it. Verified live: the closed-week branch correctly raises against a real locked week.
+
 **2026-08-17 follow-up — public page gating landed on `is_locked` alone.** This went through a
 few iterations (any-week-with-results → closed-or-deadline-passed → locked-only) before settling
 on the current state: `CommissionerPoll.tsx` shows only weeks with `is_locked = true`, per
