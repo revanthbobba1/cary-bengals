@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { formatDeadline } from '@/lib/formatDeadline'
 import type { PollWeek } from '@/lib/types/poll'
 
 interface Props {
@@ -14,21 +15,10 @@ interface Props {
   now: string
 }
 
-// Deterministic formatter (matches app/admin/page.tsx) so server and client
-// render the exact same string instead of relying on toLocaleString(), whose
-// output can differ by environment/locale between server and browser.
-function formatDeadline(isoString: string): string {
-  const date = new Date(isoString)
-  const month = date.getMonth() + 1
-  const day = date.getDate()
-  const year = date.getFullYear()
-  const hours = date.getHours()
-  const minutes = date.getMinutes().toString().padStart(2, '0')
-  const ampm = hours >= 12 ? 'PM' : 'AM'
-  const displayHours = hours % 12 || 12
-  return `${month}/${day}/${year} at ${displayHours}:${minutes} ${ampm}`
-}
-
+// Feeds a native <input type="datetime-local">, which is always interpreted
+// in the browser's own local timezone — unlike formatDeadline (display-only
+// text), this can't use a fixed zone without breaking the round-trip back to
+// an ISO timestamp on save (new Date(value) parses using the browser's zone).
 function toDatetimeLocal(iso: string) {
   const d = new Date(iso)
   const pad = (n: number) => String(n).padStart(2, '0')

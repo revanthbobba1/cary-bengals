@@ -1,23 +1,10 @@
 import { genPageMetadata } from 'app/seo'
 import { createClient } from '@/lib/supabase/server'
 import { isCommissioner } from '@/lib/supabase/roles'
+import { formatDeadline } from '@/lib/formatDeadline'
 import type { PollWeek, SubmissionStatus } from '@/lib/types/poll'
 import Link from 'next/link'
 import AdminSubNav from '@/components/AdminSubNav'
-
-// Helper to format date consistently on server and client
-function formatDeadline(isoString: string): string {
-  const date = new Date(isoString)
-  const month = date.getMonth() + 1
-  const day = date.getDate()
-  const year = date.getFullYear()
-  const hours = date.getHours()
-  const minutes = date.getMinutes().toString().padStart(2, '0')
-  const ampm = hours >= 12 ? 'PM' : 'AM'
-  const displayHours = hours % 12 || 12
-
-  return `${month}/${day}/${year} at ${displayHours}:${minutes} ${ampm}`
-}
 
 // Real name is only available when a user logged in via Google OAuth; email/password
 // accounts created via Dashboard invite have no name set. Email is always present, so

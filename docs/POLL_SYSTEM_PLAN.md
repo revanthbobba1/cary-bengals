@@ -6,7 +6,7 @@ source of truth for where this feature stands. See `POLL_MIGRATION_GUIDE.md` for
 deployment instructions and `supabase/migrations/README.md` for an index of what each migration
 file does — this doc is about scope, status, and roadmap.
 
-Last reviewed: 2026-08-17
+Last reviewed: 2026-08-19
 
 ## 1. Goal
 
@@ -28,7 +28,7 @@ designed, with the deviations below — mostly driven by things that surfaced du
 | Team record on ballot | User-entered free-text field per team | Changed to **read-only display context**: pulled from the *previous* week's `poll_results.team_record`, shown next to each team, not submitted by the user | ✅ your call — a team's W-L record shouldn't influence how it's ranked |
 | Admin dashboard (`app/admin/page.tsx`) | Lists **all** members' submission status via `supabase.auth.admin.listUsers()` | `auth.admin.listUsers()` requires the **service role key**, not available with the anon key — solved instead with a `SECURITY DEFINER` Postgres function (`017_submission_status_function.sql`) callable via the normal client | ✅ resolved — see P1 in §3 |
 | Deadline formatting | `toLocaleString()` | `app/admin/page.tsx` uses a custom `formatDeadline()` (to fix a hydration mismatch); `app/admin/poll/page.tsx` still uses `toLocaleString()` directly | Low risk (server-only render), but worth double-checking if the hydration warning ever resurfaces on the poll page |
-| Debug tooling | Not in original plan | `app/api/debug-poll/route.ts` — GET endpoint dumping poll weeks/submissions/user IDs, **no auth check** | ⚠️ **must be removed or auth-gated before deploying to production** |
+| Debug tooling | Not in original plan | `app/api/debug-poll/route.ts` — GET endpoint dumping poll weeks/submissions/user IDs, **no auth check** | ✅ removed once direct `psql` access was set up — see §4 |
 | 2026 teams / Week 1 setup | Via admin UI or SQL | Done via SQL migrations `005` (teams) and `006`/`009` (Week 1, deadline extended for testing) | ✅ fine for bootstrapping; future weeks should go through the `PollWeekManager` UI as intended |
 
 ## 3. Known Issues (Backlog)
@@ -99,11 +99,41 @@ above) found several smaller, real issues. Fixed:
   currently-open week and which one members are actually seeing (nearest deadline wins, matching
   the app's own query logic), rather than silently resolving with no visibility.
 
-**Deliberately not done:** the submit flow (`PollSubmissionForm.tsx`) is still a client-side
-delete-then-insert, not a single transaction — if the insert fails for a reason other than the
-already-handled "week closed" case, the prior ballot is already gone with nothing to replace it.
-A `submit_poll_ballot` RPC (single transaction, reusing `poll_week_is_open()`) would close this
-but is a bigger change; left as optional follow-up rather than folded in here.
+**✅ Resolved 2026-08-19:** the submit flow now goes through `submit_poll_ballot`
+(`020_submit_poll_ballot.sql`), a `SECURITY DEFINER` function wrapping the delete-then-insert in
+one transaction — reuses `poll_week_is_open()` for the same access check RLS already enforced,
+so a failed insert (bad data, dropped connection, constraint violation) now rolls back the delete
+too instead of leaving the member with no ballot. `PollSubmissionForm.tsx` calls it via a single
+`supabase.rpc()` call instead of two round-trips; the now-unreachable RLS-denial (`42501`) branch
+in `describeSubmissionError` was removed since this RPC bypasses RLS by design and surfaces a
+closed-week error via its own `RAISE EXCEPTION` message instead. The now-unused `userId` prop
+threaded through `PollSubmissionForm.tsx` was also removed — the RPC identifies the caller via
+`auth.uid()` server-side, never a client-supplied id.
+
+**Caught by review before merge:** `020` alone didn't actually make the atomicity guarantee
+airtight — it left the member-only INSERT/UPDATE/DELETE policies from `015` in place, so a
+direct PostgREST call (bypassing the app's own code entirely) could still do the old two-step
+write. `021_require_submit_poll_ballot.sql` drops those three policies; RLS defaults to deny with
+no policy present, so this alone requires every member write to go through the RPC. Verified live
+against production (`pg_policies` on `poll_submissions` now shows only the member SELECT policy
+and the commissioner's SELECT/`FOR ALL` policies — no member-only write policy remains).
+
+The first fix for the "closed week" message match (022's predecessor) had the client string-match
+the RPC's exact exception text and swap in a friendlier one — fragile, and two copies of the same
+message that could silently drift. `022_friendlier_closed_week_message.sql` raises the friendlier
+message directly from the function instead, so `describeSubmissionError` is back to a plain
+pass-through of `err.message` with one source of truth for the copy.
+
+**Caught by a second review before merge — TOCTOU gap.** `submit_poll_ballot` checked
+`poll_week_is_open()` once, then ran `DELETE`/`INSERT` unconditionally with no re-check at write
+time. Under READ COMMITTED, a concurrent lock (the auto-lock cron, `019`, or a manual lock)
+committing between the check and the writes would still let the ballot write land — and since
+`021` dropped RLS's member write policies, nothing backstopped this at the database layer either.
+Narrower than the old two-round-trip client flow's equivalent window, so not a strict regression,
+but not airtight. `023_lock_poll_week_row_on_submit.sql` fixes it by locking the `poll_weeks` row
+(`SELECT ... FOR UPDATE`) instead of calling the non-locking `poll_week_is_open()` helper for this
+one check — a concurrent lock/unlock on the same row now blocks against this transaction instead
+of racing it. Verified live: the closed-week branch correctly raises against a real locked week.
 
 **2026-08-17 follow-up — public page gating landed on `is_locked` alone.** This went through a
 few iterations (any-week-with-results → closed-or-deadline-passed → locked-only) before settling
@@ -120,14 +150,20 @@ every 5 minutes. `PollWeekManager.tsx`'s plain "Unlock" button is now hidden for
 both locked and past-deadline (only "Reopen," which sets a new deadline in the same action, is
 offered there) — otherwise a plain unlock would just get auto-locked again within minutes.
 
-Also flagged (confidence just under the review's posting threshold, not yet fixed): `formatDeadline`
-and `toDatetimeLocal` (`app/admin/page.tsx`, `PollWeekManager.tsx`) use local-timezone `Date`
-methods (`getHours()`, `getMonth()`, etc.), so server (Netlify, likely UTC) and client (the
-viewer's local zone) can render different text for the same instant — a hydration mismatch. This
-predates this session (the pattern was originally added to fix an *earlier* hydration issue) and
-was propagated into `PollWeekManager.tsx` in PR #40. Cosmetic (console warning + brief re-render),
-not a data issue. Worth a proper fix (e.g. format in UTC explicitly, or move formatting to a
-`useEffect` so it only ever runs client-side) next time either file is touched.
+**✅ Resolved 2026-08-19 — timezone hydration mismatch.** `formatDeadline` used local-timezone
+`Date` methods (`getHours()`, `getMonth()`, etc.), so server (Netlify, UTC) and client (the
+viewer's own zone) could render different text for the same instant. Rather than deferring to
+client-only rendering (which would've meant a blank/placeholder flash on load), the fix removes
+the dependency on either machine's local clock entirely: deadlines are always shown in a fixed
+league timezone (`America/New_York`, per your explicit call — Cary Bengals is Cary, NC-based, and
+a shared deadline should read the same for every viewer rather than each person seeing their own
+converted local time). Deduplicated the two copies of `formatDeadline` (`app/admin/page.tsx`,
+`PollWeekManager.tsx`) into `lib/formatDeadline.ts`, using `Intl.DateTimeFormat` with an explicit
+`timeZone` so DST (EST/EDT) is handled automatically; also fixed `app/admin/poll/page.tsx`, which
+had been silently showing the Netlify server's own zone (UTC) via a bare `toLocaleString()`, not
+any meaningfully "local" time. `toDatetimeLocal` (feeds native `<input type="datetime-local">`)
+is deliberately untouched — that control is always interpreted in the *browser's* local zone, so
+switching it to a fixed zone would break the round-trip back to an ISO timestamp on save.
 
 ### ✅ P1 — No admin visibility into league-wide submission status (RESOLVED 2026-08-17)
 `auth.admin.listUsers()` can't run with the anon key, so this couldn't be built the way the
@@ -224,9 +260,9 @@ submit before building on top of that data):
    commissioner account — see §3). A second league member is setting up an account for this. By
    deliberate choice, PR #39 doesn't wait on this verification before merging — this is the
    deferred follow-up, not a merge blocker.
-2. Optional: `submit_poll_ballot` RPC to make ballot submission a single transaction (see the
-   "deliberately not done" note under the now-resolved poll week UX item in §3).
-3. Optional: fix the `formatDeadline`/`toDatetimeLocal` timezone-dependent hydration mismatch
-   (see the 2026-08-17 follow-up note in §3) next time either file is touched.
+2. ~~Optional: `submit_poll_ballot` RPC~~ — done, see the resolved note under the poll week UX
+   item in §3.
+3. ~~Optional: fix the `formatDeadline`/`toDatetimeLocal` timezone-dependent hydration mismatch~~
+   — done, see the 2026-08-19 resolved note in §3.
 4. Continue ESPN API integration per `docs/ESPN_INTEGRATION_PLAN.md` — Phase 0 (public/private
    league, league ID, cookies) still needs the user's input before implementation starts.
