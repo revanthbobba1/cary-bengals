@@ -106,7 +106,16 @@ so a failed insert (bad data, dropped connection, constraint violation) now roll
 too instead of leaving the member with no ballot. `PollSubmissionForm.tsx` calls it via a single
 `supabase.rpc()` call instead of two round-trips; the now-unreachable RLS-denial (`42501`) branch
 in `describeSubmissionError` was removed since this RPC bypasses RLS by design and surfaces a
-closed-week error via its own `RAISE EXCEPTION` message instead.
+closed-week error via its own `RAISE EXCEPTION` message instead (matched back to the same
+actionable "refresh the page" copy the old flow gave, rather than the raw exception text).
+
+**Caught by review before merge:** `020` alone didn't actually make the atomicity guarantee
+airtight — it left the member-only INSERT/UPDATE/DELETE policies from `015` in place, so a
+direct PostgREST call (bypassing the app's own code entirely) could still do the old two-step
+write. `021_require_submit_poll_ballot.sql` drops those three policies; RLS defaults to deny with
+no policy present, so this alone requires every member write to go through the RPC. Verified live
+against production (`pg_policies` on `poll_submissions` now shows only the member SELECT policy
+and the commissioner's SELECT/`FOR ALL` policies — no member-only write policy remains).
 
 **2026-08-17 follow-up — public page gating landed on `is_locked` alone.** This went through a
 few iterations (any-week-with-results → closed-or-deadline-passed → locked-only) before settling

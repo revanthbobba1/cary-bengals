@@ -143,13 +143,16 @@ function describeSubmissionError(err: unknown): string {
       : undefined
 
   // submit_poll_ballot (020) runs SECURITY DEFINER, so RLS never denies this
-  // call directly — a closed/locked week instead surfaces as the RAISE
-  // EXCEPTION message below via the `err instanceof Error` branch, which is
-  // already a clear, user-facing message on its own.
+  // call directly — a closed/locked week instead surfaces via its own RAISE
+  // EXCEPTION message, matched here so the reader gets the same actionable
+  // "go refresh" guidance the old client-side delete/insert flow gave.
   if (code === '23505') {
     return 'Your rankings could not be saved due to a conflicting submission. Please refresh and try again.'
   }
   if (err instanceof Error) {
+    if (err.message === 'This week is no longer open for submissions') {
+      return 'This week closed while you were ranking. Refresh the page to see the current poll status.'
+    }
     return err.message
   }
   return 'Failed to submit poll rankings.'

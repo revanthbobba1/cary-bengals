@@ -54,8 +54,9 @@ For current feature status and open issues, see `../../docs/POLL_SYSTEM_PLAN.md`
 | `018_submission_status_full_name.sql` | Drops and recreates `017`'s function to also return `full_name`, so the submission-status list can show a real name instead of a raw email address, matching the fallback logic used for the page's own welcome message. |
 | `019_auto_lock_expired_weeks.sql` | Enables `pg_cron` and schedules a job (every 5 min) that sets `is_locked = true` on any week whose deadline has passed. Previously `is_locked` was purely a manual commissioner action — that mattered less until the public poll page started gating entirely on it (see `docs/POLL_SYSTEM_PLAN.md`), at which point forgetting to click Lock meant results never went public even after voting genuinely closed. |
 | `020_submit_poll_ballot.sql` | `submit_poll_ballot(p_poll_week_id, p_rankings)` — wraps the ballot delete-then-insert in one `SECURITY DEFINER` transaction, reusing `poll_week_is_open()` (015) for the same access check RLS already did. A failed insert now rolls back the delete instead of leaving the member with no ballot. |
+| `021_require_submit_poll_ballot.sql` | Drops the member-only INSERT/UPDATE/DELETE policies on `poll_submissions` from `015`, closing a gap `020` left open: those policies still let any authenticated member write directly via PostgREST, bypassing the new atomic RPC entirely. RLS defaults to deny with no policy present, so this alone is enough to require every member write to go through `submit_poll_ballot`. Doesn't affect the commissioner's separate `FOR ALL` override policy (`010`) or the member SELECT policy (`015`). |
 
 ## Still outstanding
 
 None currently tracked — see `docs/POLL_SYSTEM_PLAN.md` §6 for the remaining non-migration backlog
-(timezone hydration-mismatch cosmetic fix, ESPN API integration).
+(ESPN API integration).
