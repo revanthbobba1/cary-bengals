@@ -108,7 +108,7 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
     }
   }
 
-  const handleUpdateDeadline = async (weekId: string, newDeadline: string) => {
+  const handleUpdateDeadline = async (weekId: string, newDeadline: string, wasLocked: boolean) => {
     if (
       new Date(newDeadline) <= now &&
       !window.confirm(
@@ -123,16 +123,28 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
         .from('poll_weeks')
         .update({ deadline: new Date(newDeadline).toISOString() })
         .eq('id', weekId)
+        // Guards against the auto-lock cron (019) locking this week between
+        // the edit form opening and this save — if is_locked no longer
+        // matches what it was when editing started, 0 rows update and we
+        // tell the commissioner to use Reopen instead of silently leaving
+        // the week locked with a newly-extended deadline.
+        .eq('is_locked', wasLocked)
         .select('id')
 
       if (error) throw error
       // RLS silently filters denied rows rather than erroring, so a blocked
       // update returns success with zero rows changed — check explicitly.
-      if (!data || data.length === 0) throw new Error('Update was not applied')
+      if (!data || data.length === 0) {
+        throw new Error(
+          wasLocked
+            ? 'Update was not applied'
+            : 'This week was auto-locked while you were editing — use Reopen instead.'
+        )
+      }
       setEditingWeekId(null)
       router.refresh()
     } catch (err) {
-      alert('Failed to update deadline')
+      alert(err instanceof Error ? err.message : 'Failed to update deadline')
     }
   }
 
@@ -269,7 +281,15 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
               <select
                 id="manage-year-select"
                 value={selectedYear}
-                onChange={(e) => setSelectedYear(Number(e.target.value))}
+                onChange={(e) => {
+                  setSelectedYear(Number(e.target.value))
+                  // An in-progress edit/reopen form for a week that's about to be
+                  // filtered out shouldn't persist invisibly and reappear (in its
+                  // stale state) if the commissioner switches the filter back.
+                  setEditingWeekId(null)
+                  setReopeningWeekId(null)
+                  setReopenError(null)
+                }}
                 className="border border-gray-300 dark:border-gray-600 rounded p-2 bg-white dark:bg-gray-700"
               >
                 {availableYears.map((year) => (
@@ -372,7 +392,9 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
                         <div className="flex gap-2">
                           <button
                             type="button"
-                            onClick={() => handleUpdateDeadline(week.id, editDeadline)}
+                            onClick={() =>
+                              handleUpdateDeadline(week.id, editDeadline, week.is_locked)
+                            }
                             className="text-sm text-primary-600 hover:underline"
                           >
                             Save

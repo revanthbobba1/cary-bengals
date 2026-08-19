@@ -84,6 +84,7 @@ export default async function AdminPage() {
   // commissioner check server-side (SECURITY DEFINER function reading the JWT), this is just
   // avoiding a pointless call for members who'd get an error back anyway.
   let leagueStatus: SubmissionStatus[] | null = null
+  let leagueStatusError = false
   if (openWeek && showManageLink) {
     const { data: statusRows, error: statusError } = await supabase.rpc(
       'get_poll_week_submission_status',
@@ -92,6 +93,7 @@ export default async function AdminPage() {
 
     if (statusError) {
       console.error('Failed to load league submission status:', statusError)
+      leagueStatusError = true
     } else {
       leagueStatus = statusRows
     }
@@ -220,6 +222,10 @@ export default async function AdminPage() {
                   ))}
                 </ul>
               </div>
+            ) : leagueStatusError ? (
+              <p className="text-sm text-red-600 dark:text-red-400">
+                Couldn't load submission status right now — try refreshing the page.
+              </p>
             ) : (
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 No poll is currently open, so there's no submission status to show. Manage poll
