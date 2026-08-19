@@ -18,6 +18,14 @@ have depth (soft shadows/layering instead of flat 1px borders), and respond to i
 (hover/press/focus states everywhere something is clickable) — none of which the app currently
 does in any consistent way.
 
+**Scope is the entire application, not just the poll feature.** Public pages (newsfeed, press
+conferences, member profiles), the nav/footer shell, and admin/poll surfaces should all end up
+feeling like one consistently modern, sleek, smooth product — not a polished poll section bolted
+onto an otherwise-template site. The poll ranking list is referenced throughout this doc only
+because it's the one place Framer Motion is *already* used (an existing proof-of-concept to extend
+the language from), not because the scope is limited to it — see the Phase 1/2/3/4 breakdown in
+§4, which spans nav, content, and admin/poll surfaces alike.
+
 ## 2. Current State Audit
 
 Grounded in what's actually in the repo today, not assumptions:
@@ -74,12 +82,84 @@ Grounded in what's actually in the repo today, not assumptions:
 Ordered so each phase is independently shippable and reviewable — no phase requires a later one
 to already exist. Phase ordering below is a proposal, not a decision — see §7.
 
-### Phase 0 — Design foundations
-Extend `tailwind.config.js`: a real shadow/elevation scale, a consistent radius scale, transition
-timing-function tokens, and (pending §7's open question) either a refined neutral scale or a
-secondary accent color alongside the existing orange primary. No visual changes ship in this
-phase — it's the vocabulary the rest of the plan draws from, so later phases aren't inventing
-one-off values per component.
+### Phase -1 — Reference gathering
+Before any tokens or mockups are drafted: look at the sites named as the design bar in §1 (Linear,
+Vercel, Raycast, Anthropic's product surfaces) and pull back *concrete* patterns, not adjectives —
+actual shadow/elevation values, spacing rhythm, motion timing/easing, radius scale, how accent
+color gets used vs. primary. Feeds directly into Phase 0's token values and the Phase 1/2 mockups,
+so both are grounded in real reference rather than descriptions like "soft shadows" or "springy."
+
+**Findings (2026-08-18, text/structure-based research pass — visual/CSS inspection via browser
+still pending, see below):**
+
+Reference set expanded beyond the §1 big names to include smaller/indie sites specifically praised
+for animation craft: [emilkowal.ski](https://emilkowal.ski) (Emil Kowalski, creator of `sonner`/
+`vaul`) and [rauno.me](https://rauno.me) (Rauno Freiberg, Vercel) — plus Arc, Attio, and Cal.com as
+small-team products with product-dashboard surface area closer to this app's admin/poll screens
+than a marketing landing page.
+
+*Concrete motion rules (from emilkowal.ski's animation essays — directly actionable for Phase 0/3):*
+- UI animations should generally stay **under 300ms**; a 180ms transition reads as more responsive
+  than 400ms for anything non-marketing.
+- Use `ease-out` for elements entering/exiting (accelerates at the start, reads as responsive);
+  avoid `ease-in` for UI work — it feels sluggish. Built-in CSS easings are often not enough;
+  budget for 1-2 custom cubic-bezier curves as Phase 0 tokens.
+- Button press feedback: a subtle `scale(0.97)` on press.
+- Scale-in animations should start from `scale(0.9)`, never `scale(0)` — avoids the "popping out of
+  nowhere" feel.
+- High-frequency, keyboard-initiated actions (e.g. poll ranking reorder, admin table actions)
+  should get little or no animation — motion on something used hundreds of times a day becomes
+  friction, not delight. Directly relevant to Phase 3, which already touches the ranking list.
+- Popover/dropdown-style elements should scale from their trigger point (CSS `transform-origin`),
+  not the element center — relevant to any menu/dropdown added in Phase 1 (mobile nav) or Phase 3.
+- `clip-path` is a hardware-accelerated alternative to animating `height`/`width` for reveal
+  effects — no layout shift, no extra wrapper markup. Worth considering for Phase 3's toast
+  enter/exit and any accordion-style admin UI.
+- Overarching test before adding any animation: does it explain functionality, give spatial
+  context, or (rarely) delight — if none of those, skip it. Reinforces principle 1 in §3.
+
+*Visual/structural patterns (from Linear, Vercel, Raycast, Cal.com, Attio):*
+- Dark/light mode is treated as two fully-designed states (paired asset variants), not a single
+  inverted palette — reinforces principle 5 in §3.
+- Modular, card-based section layout with consistent internal padding/spacing rhythm is close to
+  universal across all of these — supports Phase 0's push for one reusable spacing/radius scale
+  rather than per-component values.
+- Raycast leans on glassmorphism (blurred translucent panels) as a dark-mode-native accent — a
+  candidate treatment for elevated/raised surfaces in dark mode specifically (principle 5), not
+  necessarily light mode.
+- Attio's cards use clean borders *plus* layered information density rather than shadow alone —
+  a reminder that "depth" (principle 2) doesn't have to mean heavy shadows; a light border +
+  subtle background-tone shift reads as raised too, and cheaper to tune across light/dark.
+
+*Gap:* this pass was text/structure-only (WebFetch), not visual — the Chrome extension needed for
+actual screenshots and computed-style inspection (real shadow/blur values, actual easing curves,
+color hex values) wasn't connected this session. Revisit with the browser tool once connected,
+before finalizing Phase 0's exact token values.
+
+### Phase 0 — Design foundations ✅ done (2026-08-18)
+Extended `tailwind.config.js`: a real shadow/elevation scale, a consistent radius scale, transition
+timing-function tokens, and a secondary accent color alongside the existing orange primary (see
+§7.1). No visual changes ship in this phase — it's the vocabulary the rest of the plan draws from,
+so later phases aren't inventing one-off values per component.
+
+**What shipped:**
+- `colors.accent` (Tailwind `indigo`) — also replaces the ad hoc `indigo.500` the typography plugin
+  was already using for code color, so there's one deliberate non-primary hue instead of two.
+- `boxShadow`: `card` / `raised` / `overlay`, each with a `-dark` counterpart tuned separately
+  (lighter shadow + faint white hairline) rather than reusing light-mode values — a dark shadow
+  barely reads against a dark background. `overlay` matches `PollSubmissionForm.tsx`'s existing
+  `whileDrag` shadow value exactly, so that inline value can be swapped for the token later.
+- `borderRadius`: semantic aliases `control` / `card` / `overlay` so components pick a role instead
+  of an arbitrary `rounded-md`/`rounded-lg` per component (today's inconsistency, per §2).
+- `transitionTimingFunction.out-expo` — the cubic-bezier "ease-out" curve from the Phase -1
+  research, for anything entering/exiting.
+- `lib/motion.ts` — shared Framer Motion constants: `springSnappy` (codifies the ranking list's
+  existing `{stiffness: 500, damping: 35}` as the app-wide default spring, rather than each new
+  animated component inventing its own feel), `springGentle` for larger surfaces, `easeOut` +
+  `fadeScale` variants (scale-in from 0.9 per the Phase -1 research, not 0).
+- Deliberately *not* built: a `prefers-reduced-motion` wrapper/abstraction. Framer Motion's
+  built-in `useReducedMotion()` hook is enough at this app's scale — components that animate call
+  it directly rather than routing through a custom layer.
 
 ### Phase 1 — Navigation & layout shell
 `Header.tsx`, `Footer.tsx`, `MobileNav.tsx`, `SectionContainer.tsx`. Add hover/active states to
@@ -91,6 +171,23 @@ keyboard nav. Highest visibility per unit of effort, since this renders on every
 `Card.tsx`, `PostLayout.tsx`/`PostSimple.tsx`/`PostBanner.tsx`, `ListLayout.tsx`,
 `AuthorLayout.tsx`. Shadow/elevation instead of flat borders, hover lift + image scale on cards,
 smoother pagination/list transitions.
+
+**Images, folded into this phase** (audited 2026-08-18 — every image already renders through
+`next/image` via `components/Image.tsx`, no raw `<img>` tags, so this is refinement, not a
+pipeline rebuild):
+- Source files are oversized for their display size — several avatars are 500–900KB PNGs shown at
+  38–192px (`joseph.png` 911K, `alvin.png` 674K, `carter.jpeg` 662K, `amogh.png` 579K); press
+  thumbnails run up to 1.2MB. Resize/compress at the source and convert to `.webp` (none exist
+  today) rather than relying on `next/image`'s runtime transform alone to absorb oversized
+  originals.
+- Add `placeholder="blur"` (`next/image`'s built-in blur-up) to `Card.tsx` thumbnails and
+  `AuthorLayout.tsx`/`PostLayout.tsx` avatars — cheap "feels considered" win, directly in the
+  spirit of this plan's motion/polish goals.
+- Replace the generic `alt="avatar"` in `PostLayout.tsx:63` and `AuthorLayout.tsx:20` with the
+  actual author's name.
+- Storage stays in-repo (`public/static/images/`) — decided against moving to a bucket/CDN, since
+  that's an infra addition outside this plan's non-goals (§6) and `next/image` already handles
+  runtime optimization once source files are right-sized.
 
 ### Phase 3 — Admin & poll interactive surfaces
 `PollWeekManager.tsx`, `app/admin/page.tsx`, `PollSubmissionForm.tsx`. Extend the motion language
@@ -117,9 +214,9 @@ button press states, a final consistency pass across everything shipped in Phase
   existing Tailwind setup, not a framework migration.
 - **No new component library** (Radix, shadcn/ui, Headless UI) is assumed by default — the app's
   component count is small enough that hand-built, Tailwind-styled components are still
-  reasonable. Worth revisiting only if Phase 3's toast component (or anything with real
-  accessibility complexity, like a modal/dialog) turns out to need more than a light custom
-  implementation — flagged as a §7 open question, not decided here.
+  reasonable. Phase 3's toast component is hand-built (Tailwind + Framer Motion, see §7.4) rather
+  than pulling in a library like `sonner`. Worth revisiting only if a later component (e.g. a
+  modal/dialog) turns out to need more real accessibility complexity than that.
 
 ## 6. Non-Goals / Explicitly Out of Scope
 
@@ -130,18 +227,38 @@ button press states, a final consistency pass across everything shipped in Phase
   itself — this plan only touches how existing surfaces look and respond, not what they do.
 - Backend/data changes of any kind.
 
-## 7. Open Questions
+## 7. Decisions
 
-Things this doc deliberately leaves undecided, to settle with you before Phase 0 starts:
+Resolved on 2026-08-18, prior to Phase 0 starting:
 
-1. **Color system** — keep orange as the sole primary with a refined neutral scale, or introduce
-   a secondary accent (e.g. for gradients/highlights) alongside it?
-2. **Phase ordering** — is the proposed order (nav shell → content → admin/poll → transitions)
-   right, or does the admin/poll experience (where you personally spend the most time) deserve to
-   move earlier?
-3. **Mockups before code** — worth using the `design` skill to draft actual visual mockups for
-   Phase 1/2 first, so you're reacting to real screens rather than text descriptions, before any
-   implementation starts? (Recommended — cheap relative to redoing implemented UI after the fact.)
-4. **Toast/notification component** (Phase 3) — hand-built and Tailwind-styled, or worth pulling
-   in a small focused library (e.g. `sonner`) rather than building accessible toast semantics
-   (ARIA live regions, auto-dismiss timing, stacking) from scratch?
+1. **Color system** — add a secondary accent color alongside the existing orange primary (plus a
+   refined neutral scale). Orange stays the primary/CTA color; the accent (exact hue TBD in Phase
+   0 — a muted blue or violet is the working assumption) handles secondary actions, links, and
+   gradients/highlights. Rationale: a single-hue system caps how much hierarchy/depth the palette
+   can express, which cuts against this plan's goal.
+2. **Phase ordering** — kept as proposed: nav shell → content surfaces → admin/poll → page
+   transitions. Optimizes for visibility-per-effort (Phase 1 renders on every page) over
+   reordering around admin/poll despite that being the higher personal-usage surface.
+3. **Mockups before code** — yes. Use the `design` skill to draft visual mockups for Phase 1/2
+   before implementation starts, so review happens against real screens rather than text
+   descriptions.
+4. **Toast/notification component** (Phase 3) — hand-built with Tailwind + Framer Motion, no new
+   dependency (`sonner` or similar considered and passed on). The app's scale doesn't warrant a
+   library for a basic ARIA-live-region + auto-dismiss + small stack.
+
+## 8. Fixed Outside the Phase Sequence
+
+Found during the Phase -1/2 image audit (2026-08-18) — genuine bugs (broken asset references), not
+styling, so fixed immediately rather than waiting on Phase 2:
+- `siteMetadata.js` referenced a nonexistent `/static/images/logo.png` via an unused `siteLogo`
+  field (dead — `Header.tsx` renders `data/logo.svg` directly, not this) — removed.
+- `siteMetadata.socialBanner` was undefined despite being read as the default OG/Twitter image in
+  `app/seo.tsx`, `app/layout.tsx`, and `app/newsfeed/[...slug]/page.tsx` — every page's fallback
+  social-share image was broken. Now points to `/static/favicons/apple-touch-icon.png` as a
+  stopgap (real file, but 180×180 square, not an ideal 1200×630 banner ratio) — **a proper social
+  banner image is still worth designing**, flagged here rather than silently left as "good enough."
+- 17 newsfeed posts had unmodified template-default `images: ['/static/images/twitter-card.png']`
+  frontmatter pointing at a file that was never added to the repo — removed so they fall back to
+  `socialBanner` correctly instead of resolving to a broken image.
+- `week-nine-preview.mdx` referenced `players/kirk.png`; actual file is `kirk.jpeg` — fixed the
+  extension.
