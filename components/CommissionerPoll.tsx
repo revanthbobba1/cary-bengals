@@ -5,44 +5,42 @@ import type { PollResultWithTeam } from '@/lib/types/poll'
 export default async function CommissionerPoll() {
   const supabase = createClient()
 
-  // Fetch all available years and weeks
-  const { data: weeks, error: weeksError } = await supabase
+  // Only show weeks the commissioner has explicitly locked — that's the
+  // deliberate "these results are final" signal in this app, independent of how
+  // many of the ~12 members actually voted (a locked week with partial
+  // participation is still meant to be public; an unlocked week isn't, even
+  // with full participation). poll_results!inner(id) additionally excludes a
+  // locked-but-empty week (e.g. locked before anyone voted) — it produces one
+  // row per (week, result row) pair, so it's deduped below to one entry per week.
+  const { data: weeksWithResults, error: weeksError } = await supabase
     .from('poll_weeks')
-    .select('season_year, week_number')
+    .select('season_year, week_number, poll_results!inner(id)')
+    .eq('is_locked', true)
     .order('season_year', { ascending: false })
     .order('week_number', { ascending: false })
 
-  if (weeksError || !weeks || weeks.length === 0) {
+  if (weeksError) {
     return <div>Error loading poll data</div>
   }
 
-  // Default to the newest *closed* week that has results, not just the newest
-  // week that exists — otherwise staging next week's poll early (creating it
-  // before it has any submissions) blanks the public page instead of continuing
-  // to show last week's finished results. "Closed" (not just "has any results")
-  // matters because recalculate_poll_results() fires on every single vote, so a
-  // week with only its first ballot in would otherwise immediately look
-  // "finished" and displace a genuinely complete previous week.
-  const nowIso = new Date().toISOString()
-  const { data: newestClosedWithResults } = await supabase
-    .from('poll_weeks')
-    .select('season_year, week_number, poll_results!inner(id)')
-    .or(`is_locked.eq.true,deadline.lte.${nowIso}`)
-    .order('season_year', { ascending: false })
-    .order('week_number', { ascending: false })
-    .limit(1)
+  if (!weeksWithResults || weeksWithResults.length === 0) {
+    return (
+      <div>
+        No poll results have been finalized yet — check back once the commissioner locks a week.
+      </div>
+    )
+  }
 
-  // No closed week has results yet (e.g. very start of the season) — fall back
-  // to the newest week with any results at all, then to the absolute newest
-  // week (which may render "no results yet" if truly nothing exists).
-  const { data: newestAnyWithResults } = await supabase
-    .from('poll_weeks')
-    .select('season_year, week_number, poll_results!inner(id)')
-    .order('season_year', { ascending: false })
-    .order('week_number', { ascending: false })
-    .limit(1)
+  const seenWeeks = new Set<string>()
+  const weeks = weeksWithResults.filter((w) => {
+    const key = `${w.season_year}-${w.week_number}`
+    if (seenWeeks.has(key)) return false
+    seenWeeks.add(key)
+    return true
+  })
 
-  const mostRecentWeek = newestClosedWithResults?.[0] || newestAnyWithResults?.[0] || weeks[0]
+  // Default to the newest locked (finalized) week.
+  const mostRecentWeek = weeks[0]
   const { data: pollWeek } = await supabase
     .from('poll_weeks')
     .select('id')

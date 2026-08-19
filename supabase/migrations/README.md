@@ -46,6 +46,14 @@ For current feature status and open issues, see `../../docs/POLL_SYSTEM_PLAN.md`
 | `013_normalize_admin_role.sql` | Grants `admin` to every user (matches original design intent — all league members get equal `/admin` access) |
 | `014_drop_member_role.sql` | Removes `member` entirely — it was never checked anywhere in the codebase; the role model is now `admin` (everyone) + `commissioner` (additive, poll administration) |
 
+## Admin-facing features
+
+| File | What it does |
+|---|---|
+| `017_submission_status_function.sql` | `get_poll_week_submission_status()` — `SECURITY DEFINER` function powering the "who has/hasn't submitted" view on `/admin`. Enforces its own `commissioner` check internally rather than relying on a service-role-key Route Handler, keeping the app free of that runtime secret. |
+| `018_submission_status_full_name.sql` | Drops and recreates `017`'s function to also return `full_name`, so the submission-status list can show a real name instead of a raw email address, matching the fallback logic used for the page's own welcome message. |
+| `019_auto_lock_expired_weeks.sql` | Enables `pg_cron` and schedules a job (every 5 min) that sets `is_locked = true` on any week whose deadline has passed. Previously `is_locked` was purely a manual commissioner action — that mattered less until the public poll page started gating entirely on it (see `docs/POLL_SYSTEM_PLAN.md`), at which point forgetting to click Lock meant results never went public even after voting genuinely closed. |
+
 ## Still outstanding
 
 - Optional: a `submit_poll_ballot` RPC to make ballot submission a single transaction, instead of
