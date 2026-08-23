@@ -8,7 +8,7 @@ import SectionContainer from '@/components/SectionContainer'
 import Image from '@/components/Image'
 import siteMetadata from '@/data/siteMetadata'
 import ScrollTopAndComment from '@/components/ScrollTopAndComment'
-import { blurPlaceholders } from '@/lib/blurPlaceholders'
+import { getBlurProps } from '@/lib/blurPlaceholders'
 
 const editUrl = (path) => `${siteMetadata.siteRepo}/blob/main/data/${path}`
 
@@ -67,8 +67,7 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
                           height={38}
                           alt={author.name}
                           className="h-10 w-10 rounded-full object-cover"
-                          placeholder={blurPlaceholders[author.avatar] ? 'blur' : 'empty'}
-                          blurDataURL={blurPlaceholders[author.avatar]}
+                          {...getBlurProps(author.avatar)}
                         />
                       )}
                       <dl className="whitespace-nowrap text-sm font-medium leading-5">

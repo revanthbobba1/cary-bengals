@@ -2,7 +2,7 @@ import { ReactNode } from 'react'
 import type { Authors } from 'contentlayer/generated'
 import SocialIcon from '@/components/social-icons'
 import Image from '@/components/Image'
-import { blurPlaceholders } from '@/lib/blurPlaceholders'
+import { getBlurProps } from '@/lib/blurPlaceholders'
 
 interface Props {
   children: ReactNode
@@ -21,8 +21,7 @@ export default function AuthorLayout({ children, content }: Props) {
           width={208}
           height={208}
           className="h-52 w-52 rounded-full object-cover"
-          placeholder={blurPlaceholders[avatar] ? 'blur' : 'empty'}
-          blurDataURL={blurPlaceholders[avatar]}
+          {...getBlurProps(avatar)}
         />
       )}
       <h3 className="pb-1.5 pt-5 text-2xl font-bold tracking-tight text-ink dark:text-gray-100">
