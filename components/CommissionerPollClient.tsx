@@ -18,6 +18,45 @@ const getTrendColor = (trend: string) => {
   return 'text-gray-500'
 }
 
+// Matches the real table's column shape so the swap from skeleton to data doesn't shift layout.
+// 12 rows since that's the league's team count (see PollSubmissionForm's 12/12 submission check).
+function PollTableSkeleton() {
+  return (
+    <table className="w-full text-sm">
+      <thead>
+        <tr className="text-left text-gray-600 dark:text-gray-300">
+          <th className="py-2">Rank</th>
+          <th>Team</th>
+          <th>Record</th>
+          <th>Rank Score</th>
+          <th>Trend</th>
+        </tr>
+      </thead>
+      <tbody>
+        {Array.from({ length: 12 }).map((_, i) => (
+          <tr key={i} className="border-t border-gray-100 dark:border-gray-800">
+            <td className="py-2">
+              <div className="h-4 w-4 animate-pulse rounded bg-gray-200 dark:bg-gray-800" />
+            </td>
+            <td>
+              <div className="h-4 w-32 animate-pulse rounded bg-gray-200 dark:bg-gray-800" />
+            </td>
+            <td>
+              <div className="h-4 w-10 animate-pulse rounded bg-gray-200 dark:bg-gray-800" />
+            </td>
+            <td>
+              <div className="h-4 w-8 animate-pulse rounded bg-gray-200 dark:bg-gray-800" />
+            </td>
+            <td>
+              <div className="h-4 w-6 animate-pulse rounded bg-gray-200 dark:bg-gray-800" />
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
+
 export default function CommissionerPollClient({
   availableYears,
   weeksByYear,
@@ -134,7 +173,7 @@ export default function CommissionerPollClient({
       </div>
 
       {loading ? (
-        <div className="text-center py-8">Loading...</div>
+        <PollTableSkeleton />
       ) : results.length === 0 ? (
         <div className="text-center py-8">No poll data for this week</div>
       ) : (
