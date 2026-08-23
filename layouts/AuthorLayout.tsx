@@ -12,7 +12,7 @@ export default function AuthorLayout({ children, content }: Props) {
   const { name, avatar, team, company, email, twitter, linkedin, github } = content
 
   return (
-    <div className="flex w-full flex-col items-center rounded-card border border-gray-200 bg-white p-8 shadow-card transition-all duration-200 ease-out-expo hover:-translate-y-1 hover:shadow-raised dark:border-gray-800 dark:bg-gray-900 dark:shadow-card-dark dark:hover:shadow-raised-dark">
+    <div className="flex h-full w-full min-h-[420px] flex-col items-center rounded-card border border-gray-200 bg-white p-8 shadow-card transition-all duration-200 ease-out-expo hover:-translate-y-1 hover:shadow-raised dark:border-gray-800 dark:bg-gray-900 dark:shadow-card-dark dark:hover:shadow-raised-dark">
       {avatar && (
         <Image
           src={avatar}
@@ -27,7 +27,7 @@ export default function AuthorLayout({ children, content }: Props) {
       </h3>
       <div className="text-base text-gray-500 dark:text-gray-400">{team}</div>
       <div className="text-base text-gray-500 dark:text-gray-400">{company}</div>
-      <div className="flex items-center gap-2 pt-5">
+      <div className="flex min-h-9 items-center gap-2 pt-5">
         <SocialIcon kind="mail" href={`mailto:${email}`} size={6} />
         <SocialIcon kind="github" href={github} size={6} />
         <SocialIcon kind="linkedin" href={linkedin} size={6} />
