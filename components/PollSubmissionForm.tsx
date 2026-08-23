@@ -5,6 +5,7 @@ import { Reorder, useDragControls } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import type { Team, PollWeek, PollSubmission } from '@/lib/types/poll'
+import { springSnappy } from '@/lib/motion'
 
 interface Props {
   pollWeek: PollWeek
@@ -179,7 +180,7 @@ function RankingRow({ ranking, index, isLast, teamData, onMove }: RankingRowProp
         boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.25), 0 8px 10px -6px rgb(0 0 0 / 0.15)',
         zIndex: 1,
       }}
-      transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+      transition={springSnappy}
       className="flex items-center gap-3 rounded-card border border-gray-200 bg-white p-3 shadow-card
         transition-shadow duration-150 ease-out-expo hover:shadow-raised
         dark:border-gray-800 dark:bg-gray-900 dark:shadow-card-dark dark:hover:shadow-raised-dark"
