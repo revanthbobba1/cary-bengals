@@ -29,7 +29,9 @@ export default async function AdminPollPage() {
     return (
       <div className="py-12 max-w-4xl mx-auto">
         <AdminSubNav active="poll" showManage={showManageLink} />
-        <h1 className="text-2xl font-bold mb-4">Submit Poll Rankings</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-ink dark:text-gray-100 mb-4">
+          Submit Poll Rankings
+        </h1>
         <p>No poll is currently open for submissions.</p>
       </div>
     )
@@ -73,7 +75,9 @@ export default async function AdminPollPage() {
   return (
     <div className="py-12 max-w-4xl mx-auto">
       <AdminSubNav active="poll" showManage={showManageLink} />
-      <h1 className="text-2xl font-bold mb-2">Submit Poll Rankings</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-ink dark:text-gray-100 mb-2">
+        Submit Poll Rankings
+      </h1>
       <p className="text-gray-600 dark:text-gray-400 mb-6">
         Season {openWeek.season_year}, Week {openWeek.week_number} - Deadline:{' '}
         {formatDeadline(openWeek.deadline)}
