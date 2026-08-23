@@ -30,7 +30,11 @@ const Header = () => {
           : 'shadow-nav dark:shadow-nav-dark'
       }`}
     >
-      <Link href="/" aria-label={siteMetadata.headerTitle} className="group flex items-center gap-2">
+      <Link
+        href="/"
+        aria-label={siteMetadata.headerTitle}
+        className="group flex items-center gap-2"
+      >
         <span className="inline-block h-7 w-7 origin-center transition-transform duration-300 ease-out-expo [&>svg]:h-full [&>svg]:w-full group-hover:-rotate-3 group-hover:scale-105 group-active:scale-95">
           <Logo />
         </span>

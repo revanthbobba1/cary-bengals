@@ -1,56 +1,60 @@
 import Image from './Image'
 import Link from './Link'
 
-const Card = ({ title, description, imgSrc, href }) => (
-  <div className="md max-w-[544px] p-4 md:w-1/2">
-    <div
-      className={`${
-        imgSrc && 'h-full'
-      }  overflow-hidden rounded-md border-2 border-gray-200 border-opacity-60 dark:border-gray-700`}
-    >
-      {imgSrc &&
-        (href ? (
-          <Link href={href} aria-label={`Link to ${title}`}>
-            <Image
-              alt={title}
-              src={imgSrc}
-              className="object-cover object-center md:h-36 lg:h-48"
-              width={544}
-              height={306}
-            />
-          </Link>
-        ) : (
+const Card = ({ title, description, imgSrc, href }) => {
+  const content = (
+    <div className="group h-full overflow-hidden rounded-card border border-gray-200 bg-white shadow-card transition-all duration-200 ease-out-expo hover:-translate-y-1 hover:border-gray-300 hover:shadow-raised dark:border-gray-800 dark:bg-gray-900 dark:shadow-card-dark dark:hover:border-gray-700 dark:hover:shadow-raised-dark">
+      {imgSrc && (
+        <div className="overflow-hidden">
           <Image
             alt={title}
             src={imgSrc}
-            className="object-cover object-center md:h-36 lg:h-48"
+            className="object-cover object-center transition-transform duration-300 ease-out-expo group-hover:scale-105 md:h-36 lg:h-48"
             width={544}
             height={306}
           />
-        ))}
+        </div>
+      )}
       <div className="p-6">
-        <h2 className="mb-3 text-2xl font-bold leading-8 tracking-tight">
-          {href ? (
-            <Link href={href} aria-label={`Link to ${title}`}>
-              {title}
-            </Link>
-          ) : (
-            title
-          )}
+        <h2 className="mb-3 text-xl font-bold tracking-tight text-ink transition-colors duration-150 ease-out-expo group-hover:text-accent-500 dark:text-gray-100 dark:group-hover:text-accent-400">
+          {title}
         </h2>
-        <p className="prose mb-3 max-w-none text-gray-500 dark:text-gray-400">{description}</p>
+        <p className="prose mb-3 max-w-none text-sm text-gray-500 dark:text-gray-400">
+          {description}
+        </p>
         {href && (
-          <Link
-            href={href}
-            className="text-base font-medium leading-6 text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
-            aria-label={`Link to ${title}`}
-          >
-            Watch &rarr;
-          </Link>
+          <span className="inline-flex items-center text-sm font-semibold text-primary-500 dark:text-primary-400">
+            Watch
+            <span className="ml-1 inline-block w-0 overflow-hidden opacity-0 transition-all duration-200 ease-out-expo group-hover:ml-1 group-hover:w-3 group-hover:opacity-100">
+              <svg
+                viewBox="0 0 12 12"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.5}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-3 w-3"
+              >
+                <path d="M2.5 6h7M6.5 2.5L10 6l-3.5 3.5" />
+              </svg>
+            </span>
+          </span>
         )}
       </div>
     </div>
-  </div>
-)
+  )
+
+  return (
+    <div className="max-w-[544px] p-4 md:w-1/2">
+      {href ? (
+        <Link href={href} aria-label={`Link to ${title}`} className="block h-full">
+          {content}
+        </Link>
+      ) : (
+        content
+      )}
+    </div>
+  )
+}
 
 export default Card
