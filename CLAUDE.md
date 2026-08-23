@@ -80,34 +80,5 @@ Supabase Auth gates `/admin` (email/password + Google OAuth). No self-registrati
 ## Git Workflow
 
 - All changes go on a feature branch off `main` and land via a pull request — no direct commits to `main`.
-- After opening or updating a pull request, propose running an automated review against it using
-  the `code-review` skill with `--comment` (so findings get posted directly on the PR as inline
-  comments before merge), and wait for the user's confirmation before running it — this step is
-  documented here so it isn't forgotten, not so it can run unattended. Review it like a
-  principal/senior engineer would: correctness bugs, poor or unclear code, style/formatting
-  problems, and missed simplification opportunities — nothing should merge below that bar.
-  (`/code-review ultra` gives a deeper multi-agent cloud review, but it's user-triggered and
-  billed — don't invoke it automatically.)
-- **Scale review effort to the size/impact of the change, not a fixed default.** `max` burns
-  noticeably more usage than the lower levels (5 parallel reviewer agents + a scoring pass, same
-  as `high`/`medium`/`low` but run more exhaustively) — reserve it for large, high-blast-radius, or
-  security/RLS-touching changes. A small, contained patch (a handful of files, a narrow bug fix, a
-  docs-only change) should get `medium` or even `low` instead. State the proposed level and a
-  one-line reason when proposing the review, so the choice is visible and easy to override.
-- Address the review's findings directly (or via `code-review --fix`), using whatever context is
-  already in hand from opening/reviewing the PR, rather than delegating interpretation of the raw
-  posted comments to a fresh subagent — re-deriving codebase context from GitHub comments alone
-  when it's already loaded is wasteful. Delegating to a background subagent is still fine when the
-  user explicitly wants to keep working on something else in the meantime — that's a situational
-  call each time, not the default.
-- **Do not apply findings blindly.** `max` effort trades precision for coverage on purpose and can
-  surface false positives or genuinely debatable findings alongside real ones. Evaluate each one
-  on its merits before touching code; skip (and say why) anything that isn't actually a problem in
-  context, rather than "fixing" it just because it was flagged. Summarize what was fixed vs.
-  skipped and why before pushing. Confirm with the user before pushing the fixes.
-- Before merging, resolve every open review-comment thread posted by the `code-review` skill:
-  reply to each one stating what was actually done (fixed in `<commit>` with a one-line summary,
-  or explicitly skipped and why), then mark the thread resolved. This is also the sanity-check
-  point — re-read each comment against the real diff before closing it, rather than closing on
-  autopilot, since a thread can be marked resolved without ever being addressed.
-- After a PR merges, switch back to `main`, pull latest, and delete the local feature branch.
+- PR review, findings handling, thread resolution, and post-merge cleanup follow the
+  `pr-review-workflow` personal skill (same process across all my projects, not specific to this repo).

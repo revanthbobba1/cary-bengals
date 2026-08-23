@@ -10,6 +10,13 @@ const components = {
   mastodon: Mastodon,
 }
 
+// Tailwind's JIT scanner needs full class-name literals, not interpolated `h-${size}` strings.
+const sizeClasses: Record<number, string> = {
+  5: 'h-5 w-5',
+  6: 'h-6 w-6',
+  8: 'h-8 w-8',
+}
+
 type SocialIconProps = {
   kind: keyof typeof components
   href: string | undefined
@@ -24,15 +31,13 @@ const SocialIcon = ({ kind, href, size = 8 }: SocialIconProps) => {
 
   return (
     <a
-      className="text-sm text-gray-500 transition hover:text-gray-600"
+      className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-all duration-150 ease-out-expo hover:-translate-y-px hover:bg-gray-100 hover:text-accent-500 hover:shadow-[0_8px_16px_-4px_rgba(79,70,229,0.15)] dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-accent-400 dark:hover:shadow-[0_8px_16px_-4px_rgba(129,140,248,0.2)]"
       target="_blank"
       rel="noopener noreferrer"
       href={href}
     >
       <span className="sr-only">{kind}</span>
-      <SocialSvg
-        className={`fill-current text-gray-700 hover:text-primary-500 dark:text-gray-200 dark:hover:text-primary-400 h-${size} w-${size}`}
-      />
+      <SocialSvg className={`fill-current ${sizeClasses[size] ?? sizeClasses[8]}`} />
     </a>
   )
 }

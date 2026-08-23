@@ -79,7 +79,25 @@ module.exports = () => {
     webpack: (config, options) => {
       config.module.rules.push({
         test: /\.svg$/,
-        use: ['@svgr/webpack'],
+        use: [
+          {
+            loader: '@svgr/webpack',
+            options: {
+              // SVGO's default preset strips `viewBox` whenever it exactly matches the
+              // source width/height, assuming the icon is never resized. logo.svg IS
+              // resized via CSS (Header/Footer render it smaller than its native 50x50),
+              // so without viewBox the browser can't rescale the artwork and clips it.
+              svgoConfig: {
+                plugins: [
+                  {
+                    name: 'preset-default',
+                    params: { overrides: { removeViewBox: false } },
+                  },
+                ],
+              },
+            },
+          },
+        ],
       })
 
       return config

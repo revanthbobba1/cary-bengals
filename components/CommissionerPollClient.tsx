@@ -78,10 +78,10 @@ export default function CommissionerPollClient({
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-4">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-          Cary Bengals Commissioner's Poll
+    <div className="rounded-card border border-gray-200 bg-white p-6 shadow-card dark:border-gray-800 dark:bg-gray-900 dark:shadow-card-dark">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-xl font-bold tracking-tight text-ink dark:text-gray-100">
+          Cary Bengals Commissioner&apos;s Poll
         </h2>
         <div className="flex gap-4">
           <div>
@@ -90,7 +90,7 @@ export default function CommissionerPollClient({
             </label>
             <select
               id="year-select"
-              className="border border-gray-300 dark:border-gray-600 rounded p-2 pr-10 bg-white dark:bg-gray-700 dark:text-gray-100 appearance-none"
+              className="rounded-control border border-gray-200 bg-white p-2 pr-10 text-gray-900 shadow-card transition-shadow duration-150 ease-out-expo appearance-none focus:border-accent-500 focus:shadow-raised focus:outline-none focus:ring-1 focus:ring-accent-500 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:shadow-card-dark"
               style={{
                 backgroundImage:
                   "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>\")",
@@ -113,7 +113,7 @@ export default function CommissionerPollClient({
             </label>
             <select
               id="week-select"
-              className="border border-gray-300 dark:border-gray-600 rounded p-2 pr-10 bg-white dark:bg-gray-700 dark:text-gray-100 appearance-none"
+              className="rounded-control border border-gray-200 bg-white p-2 pr-10 text-gray-900 shadow-card transition-shadow duration-150 ease-out-expo appearance-none focus:border-accent-500 focus:shadow-raised focus:outline-none focus:ring-1 focus:ring-accent-500 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:shadow-card-dark"
               style={{
                 backgroundImage:
                   "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>\")",
@@ -150,9 +150,14 @@ export default function CommissionerPollClient({
           </thead>
           <tbody>
             {results.map((result) => (
-              <tr key={result.id} className="border-t border-gray-200 dark:border-gray-700">
-                <td className="py-2 font-semibold">{result.final_rank}</td>
-                <td>{result.team.name}</td>
+              <tr
+                key={result.id}
+                className="border-t border-gray-100 transition-colors duration-150 ease-out-expo hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800/60"
+              >
+                <td className="py-2 font-semibold text-ink dark:text-gray-100">
+                  {result.final_rank}
+                </td>
+                <td className="font-medium text-ink dark:text-gray-100">{result.team.name}</td>
                 <td>{result.team_record || '-'}</td>
                 <td>{result.avg_rank_score.toFixed(2)}</td>
                 <td className={`font-semibold ${getTrendColor(result.trend)}`}>{result.trend}</td>

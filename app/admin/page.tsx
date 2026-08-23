@@ -89,7 +89,7 @@ export default async function AdminPage() {
   return (
     <div>
       <div className="space-y-2 pb-8 pt-6 md:space-y-5">
-        <h1 className="text-3xl font-extrabold leading-9 tracking-tight text-gray-900 dark:text-gray-100 sm:text-4xl sm:leading-10 md:text-6xl md:leading-14">
+        <h1 className="text-3xl font-extrabold leading-9 tracking-tight text-ink dark:text-gray-100 sm:text-4xl sm:leading-10 md:text-6xl md:leading-14">
           Admin Dashboard
         </h1>
         <p className="text-lg leading-7 text-gray-500 dark:text-gray-400">
@@ -115,7 +115,7 @@ export default async function AdminPage() {
             Poll
           </h2>
 
-          <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+          <div className="rounded-card border border-gray-200 bg-white p-6 shadow-card dark:border-gray-800 dark:bg-gray-900 dark:shadow-card-dark">
             {submissionStatus ? (
               <>
                 <h3 className="text-xl font-bold mb-4">
@@ -126,7 +126,7 @@ export default async function AdminPage() {
                 </p>
 
                 {submissionStatus.hasSubmitted ? (
-                  <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 rounded-md">
+                  <div className="mb-6 rounded-control bg-green-50 p-4 dark:bg-green-900/20">
                     <p className="text-green-700 dark:text-green-400 font-medium">
                       ✓ You have submitted your rankings ({submissionStatus.submissionCount}/12
                       teams)
@@ -138,7 +138,7 @@ export default async function AdminPage() {
                     )}
                   </div>
                 ) : (
-                  <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-md">
+                  <div className="mb-6 rounded-control bg-yellow-50 p-4 dark:bg-yellow-900/20">
                     <p className="text-yellow-700 dark:text-yellow-400 font-medium">
                       ⚠ You have not submitted your rankings yet
                       {submissionStatus.submissionCount > 0 &&
@@ -149,7 +149,7 @@ export default async function AdminPage() {
 
                 <Link
                   href="/admin/poll"
-                  className="inline-block rounded-md bg-primary-500 px-4 py-2 text-white font-medium hover:bg-primary-600"
+                  className="inline-flex items-center rounded-full bg-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_6px_16px_-4px_rgba(249,115,22,0.4)] transition-all duration-150 ease-out-expo hover:-translate-y-px hover:bg-primary-600 hover:shadow-[0_8px_20px_-4px_rgba(249,115,22,0.5)] active:scale-[0.97]"
                 >
                   {submissionStatus.hasSubmitted ? 'Edit Your Rankings' : 'Submit Rankings'}
                 </Link>
@@ -185,7 +185,7 @@ export default async function AdminPage() {
                 says. This section is for live, dashboard-only oversight content instead
                 (things with no dedicated tab of their own), not a second copy of navigation. */}
             {leagueStatus && leagueStatus.length > 0 ? (
-              <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+              <div className="rounded-card border border-gray-200 bg-white p-6 shadow-card dark:border-gray-800 dark:bg-gray-900 dark:shadow-card-dark">
                 <h3 className="text-lg font-semibold mb-4">
                   Week {openWeek?.week_number} Submission Status (
                   {leagueStatus.filter((row) => row.has_submitted).length}/{leagueStatus.length})

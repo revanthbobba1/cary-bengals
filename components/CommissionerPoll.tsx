@@ -20,12 +20,16 @@ export default async function CommissionerPoll() {
     .order('week_number', { ascending: false })
 
   if (weeksError) {
-    return <div>Error loading poll data</div>
+    return (
+      <div className="rounded-card border border-gray-200 bg-white p-8 text-center text-gray-500 shadow-card dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:shadow-card-dark">
+        Error loading poll data
+      </div>
+    )
   }
 
   if (!weeksWithResults || weeksWithResults.length === 0) {
     return (
-      <div>
+      <div className="rounded-card border border-gray-200 bg-white p-8 text-center text-gray-500 shadow-card dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:shadow-card-dark">
         No poll results have been finalized yet — check back once the commissioner locks a week.
       </div>
     )
@@ -48,7 +52,12 @@ export default async function CommissionerPoll() {
     .eq('week_number', mostRecentWeek.week_number)
     .single()
 
-  if (!pollWeek) return <div>No poll data available</div>
+  if (!pollWeek)
+    return (
+      <div className="rounded-card border border-gray-200 bg-white p-8 text-center text-gray-500 shadow-card dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:shadow-card-dark">
+        No poll data available
+      </div>
+    )
 
   const { data: results, error: resultsError } = await supabase
     .from('poll_results')
@@ -62,7 +71,11 @@ export default async function CommissionerPoll() {
     .order('final_rank')
 
   if (resultsError) {
-    return <div>Error loading results</div>
+    return (
+      <div className="rounded-card border border-gray-200 bg-white p-8 text-center text-gray-500 shadow-card dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:shadow-card-dark">
+        Error loading results
+      </div>
+    )
   }
 
   // Transform data for client component

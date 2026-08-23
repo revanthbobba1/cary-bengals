@@ -3,12 +3,18 @@
 import Link from './Link'
 import { useAuth } from '@/lib/hooks/useAuth'
 
+const authLinkClasses =
+  'hidden whitespace-nowrap rounded-lg px-0.5 py-1.5 text-sm font-medium text-gray-600 transition-colors duration-150 ease-out-expo hover:text-ink dark:text-gray-400 dark:hover:text-gray-100 xl:block'
+
 export default function AuthNav() {
   const { isLoggedIn, logout } = useAuth()
 
   if (!isLoggedIn) {
     return (
-      <Link href="/login" className="hidden sm:block font-medium text-gray-900 dark:text-gray-100">
+      <Link
+        href="/login"
+        className="hidden items-center whitespace-nowrap rounded-full bg-primary-500 px-4 py-2 text-sm font-semibold text-white shadow-[0_6px_16px_-4px_rgba(249,115,22,0.4)] transition-all duration-150 ease-out-expo hover:-translate-y-px hover:bg-primary-600 hover:shadow-[0_8px_20px_-4px_rgba(249,115,22,0.5)] active:scale-[0.97] xl:inline-flex"
+      >
         Login
       </Link>
     )
@@ -16,13 +22,10 @@ export default function AuthNav() {
 
   return (
     <>
-      <Link href="/admin" className="hidden sm:block font-medium text-gray-900 dark:text-gray-100">
+      <Link href="/admin" className={authLinkClasses}>
         Admin
       </Link>
-      <button
-        onClick={logout}
-        className="hidden sm:block font-medium text-gray-900 dark:text-gray-100"
-      >
+      <button onClick={logout} className={authLinkClasses}>
         Logout
       </button>
     </>

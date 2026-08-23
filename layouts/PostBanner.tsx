@@ -46,28 +46,34 @@ export default function PostMinimal({ content, next, prev, children }: LayoutPro
             </div>
           )}
           <footer>
-            <div className="flex flex-col text-sm font-medium sm:flex-row sm:justify-between sm:text-base">
+            <div className="flex flex-col gap-3 pt-4 text-sm font-medium sm:flex-row xl:pt-8">
               {prev && prev.path && (
-                <div className="pt-4 xl:pt-8">
-                  <Link
-                    href={`/${prev.path}`}
-                    className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
-                    aria-label={`Previous post: ${prev.title}`}
-                  >
-                    &larr; {prev.title}
-                  </Link>
-                </div>
+                <Link
+                  href={`/${prev.path}`}
+                  className="group block flex-1 rounded-control border border-gray-200 bg-white p-4 shadow-card transition-all duration-150 ease-out-expo hover:-translate-y-0.5 hover:shadow-raised dark:border-gray-800 dark:bg-gray-900 dark:shadow-card-dark dark:hover:shadow-raised-dark"
+                  aria-label={`Previous post: ${prev.title}`}
+                >
+                  <h2 className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    &larr; Previous
+                  </h2>
+                  <div className="mt-1 font-semibold text-ink transition-colors duration-150 ease-out-expo group-hover:text-primary-500 dark:text-gray-100 dark:group-hover:text-primary-400">
+                    {prev.title}
+                  </div>
+                </Link>
               )}
               {next && next.path && (
-                <div className="pt-4 xl:pt-8">
-                  <Link
-                    href={`/${next.path}`}
-                    className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
-                    aria-label={`Next post: ${next.title}`}
-                  >
-                    {next.title} &rarr;
-                  </Link>
-                </div>
+                <Link
+                  href={`/${next.path}`}
+                  className="group block flex-1 rounded-control border border-gray-200 bg-white p-4 text-right shadow-card transition-all duration-150 ease-out-expo hover:-translate-y-0.5 hover:shadow-raised dark:border-gray-800 dark:bg-gray-900 dark:shadow-card-dark dark:hover:shadow-raised-dark"
+                  aria-label={`Next post: ${next.title}`}
+                >
+                  <h2 className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    Next &rarr;
+                  </h2>
+                  <div className="mt-1 font-semibold text-ink transition-colors duration-150 ease-out-expo group-hover:text-primary-500 dark:text-gray-100 dark:group-hover:text-primary-400">
+                    {next.title}
+                  </div>
+                </Link>
               )}
             </div>
           </footer>

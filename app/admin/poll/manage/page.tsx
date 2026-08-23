@@ -18,7 +18,9 @@ export default async function ManagePollPage() {
     return (
       <div className="py-12 max-w-4xl mx-auto">
         <AdminSubNav active="manage" showManage={false} />
-        <h1 className="text-2xl font-bold mb-2">Manage Poll Weeks</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-ink dark:text-gray-100 mb-2">
+          Manage Poll Weeks
+        </h1>
         <p className="text-gray-600 dark:text-gray-400">
           Commissioner access required. Contact the commissioner if you believe you should have
           access to this page.
@@ -39,7 +41,9 @@ export default async function ManagePollPage() {
   return (
     <div className="py-12 max-w-4xl mx-auto">
       <AdminSubNav active="manage" showManage={showManageLink} />
-      <h1 className="text-2xl font-bold mb-6">Manage Poll Weeks</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-ink dark:text-gray-100 mb-6">
+        Manage Poll Weeks
+      </h1>
       <PollWeekManager existingWeeks={pollWeeks || []} now={new Date().toISOString()} />
     </div>
   )

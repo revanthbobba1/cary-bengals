@@ -19,6 +19,9 @@ interface ListLayoutProps {
   pagination?: PaginationProps
 }
 
+const pillNavClasses =
+  'inline-flex items-center rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition-all duration-150 ease-out-expo hover:border-gray-300 hover:bg-gray-50 hover:text-ink dark:border-gray-800 dark:text-gray-400 dark:hover:border-gray-700 dark:hover:bg-gray-900 dark:hover:text-gray-100'
+
 function Pagination({ totalPages, currentPage }: PaginationProps) {
   const pathname = usePathname()
   const basePath = pathname.split('/')[1]
@@ -26,31 +29,28 @@ function Pagination({ totalPages, currentPage }: PaginationProps) {
   const nextPage = currentPage + 1 <= totalPages
 
   return (
-    <div className="space-y-2 pb-8 pt-6 md:space-y-5">
-      <nav className="flex justify-between">
+    <div className="pb-8 pt-10">
+      <nav className="flex items-center justify-between">
         {!prevPage && (
-          <button className="cursor-auto disabled:opacity-50" disabled={!prevPage}>
-            Previous
-          </button>
+          <span className={`${pillNavClasses} cursor-not-allowed opacity-40`}>Previous</span>
         )}
         {prevPage && (
           <Link
             href={currentPage - 1 === 1 ? `/${basePath}/` : `/${basePath}/page/${currentPage - 1}`}
             rel="prev"
+            className={pillNavClasses}
           >
             Previous
           </Link>
         )}
-        <span>
+        <span className="text-sm text-gray-400 dark:text-gray-500">
           {currentPage} of {totalPages}
         </span>
         {!nextPage && (
-          <button className="cursor-auto disabled:opacity-50" disabled={!nextPage}>
-            Next
-          </button>
+          <span className={`${pillNavClasses} cursor-not-allowed opacity-40`}>Next</span>
         )}
         {nextPage && (
-          <Link href={`/${basePath}/page/${currentPage + 1}`} rel="next">
+          <Link href={`/${basePath}/page/${currentPage + 1}`} rel="next" className={pillNavClasses}>
             Next
           </Link>
         )}
@@ -77,24 +77,22 @@ export default function ListLayout({
 
   return (
     <>
-      <div className="divide-y divide-gray-200 dark:divide-gray-700">
-        <div className="space-y-2 pb-8 pt-6 md:space-y-5">
-          <h1 className="text-3xl font-extrabold leading-9 tracking-tight text-gray-900 dark:text-gray-100 sm:text-4xl sm:leading-10 md:text-6xl md:leading-14">
-            {title}
-          </h1>
-          <div className="relative max-w-lg">
-            <label>
-              <span className="sr-only">Search articles</span>
-              <input
-                aria-label="Search articles"
-                type="text"
-                onChange={(e) => setSearchValue(e.target.value)}
-                placeholder="Search articles"
-                className="block w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-gray-900 focus:border-primary-500 focus:ring-primary-500 dark:border-gray-900 dark:bg-gray-800 dark:text-gray-100"
-              />
-            </label>
+      <div className="space-y-2 pb-8 pt-6 md:space-y-5">
+        <h1 className="text-3xl font-extrabold leading-9 tracking-tight text-ink dark:text-gray-100 sm:text-4xl sm:leading-10 md:text-6xl md:leading-14">
+          {title}
+        </h1>
+        <div className="relative max-w-lg">
+          <label>
+            <span className="sr-only">Search articles</span>
+            <input
+              aria-label="Search articles"
+              type="text"
+              onChange={(e) => setSearchValue(e.target.value)}
+              placeholder="Search articles"
+              className="block w-full rounded-full border border-gray-200 bg-white px-5 py-2.5 text-gray-900 shadow-card transition-shadow duration-150 ease-out-expo placeholder:text-gray-400 focus:border-accent-500 focus:shadow-raised focus:outline-none focus:ring-1 focus:ring-accent-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-100 dark:shadow-card-dark dark:focus:border-accent-400 dark:focus:ring-accent-400"
+            />
             <svg
-              className="absolute right-3 top-3 h-5 w-5 text-gray-400 dark:text-gray-300"
+              className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500"
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
@@ -107,16 +105,21 @@ export default function ListLayout({
                 d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
               />
             </svg>
-          </div>
+          </label>
         </div>
-        <ul>
-          {!filteredBlogPosts.length && 'No posts found.'}
-          {displayPosts.map((post) => {
-            const { path, date, title, summary } = post
-            return (
-              <li
-                key={path}
-                className="py-12 border-b border-gray-100 dark:border-gray-800 last:border-none"
+      </div>
+      <ul className="border-t border-gray-100 dark:border-gray-800">
+        {!filteredBlogPosts.length && 'No posts found.'}
+        {displayPosts.map((post) => {
+          const { path, date, title, summary } = post
+          return (
+            <li
+              key={path}
+              className="border-b border-gray-100 last:border-none dark:border-gray-800"
+            >
+              <Link
+                href={`/${path}`}
+                className="group -mx-4 block rounded-card px-4 py-10 transition-colors duration-200 ease-out-expo hover:bg-gray-50 dark:hover:bg-gray-900/60"
               >
                 <article className="space-y-2 xl:grid xl:grid-cols-4 xl:items-baseline xl:space-y-0">
                   <dl>
@@ -127,13 +130,8 @@ export default function ListLayout({
                   </dl>
                   <div className="space-y-3 xl:col-span-3">
                     <div>
-                      <h3 className="text-2xl font-bold leading-8 tracking-tight">
-                        <Link
-                          href={`/${path}`}
-                          className="text-gray-900 dark:text-gray-100 hover:text-primary-500 dark:hover:text-primary-400"
-                        >
-                          {title}
-                        </Link>
+                      <h3 className="text-2xl font-bold leading-8 tracking-tight text-ink transition-colors duration-150 ease-out-expo group-hover:text-primary-500 dark:text-gray-100 dark:group-hover:text-primary-400">
+                        {title}
                       </h3>
                     </div>
                     <div className="prose max-w-none text-gray-500 dark:text-gray-400">
@@ -141,11 +139,11 @@ export default function ListLayout({
                     </div>
                   </div>
                 </article>
-              </li>
-            )
-          })}
-        </ul>
-      </div>
+              </Link>
+            </li>
+          )
+        })}
+      </ul>
       {pagination && pagination.totalPages > 1 && !searchValue && (
         <Pagination currentPage={pagination.currentPage} totalPages={pagination.totalPages} />
       )}
