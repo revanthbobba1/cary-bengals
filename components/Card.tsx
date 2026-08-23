@@ -1,5 +1,6 @@
 import Image from './Image'
 import Link from './Link'
+import { blurPlaceholders } from '@/lib/blurPlaceholders'
 
 const Card = ({ title, description, imgSrc, href }) => {
   const content = (
@@ -12,6 +13,8 @@ const Card = ({ title, description, imgSrc, href }) => {
             className="object-cover object-center transition-transform duration-300 ease-out-expo group-hover:scale-105 md:h-36 lg:h-48"
             width={544}
             height={306}
+            placeholder={blurPlaceholders[imgSrc] ? 'blur' : 'empty'}
+            blurDataURL={blurPlaceholders[imgSrc]}
           />
         </div>
       )}

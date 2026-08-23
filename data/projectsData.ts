@@ -2,31 +2,31 @@ const projectsData = [
   {
     title: '2025 - Cary Bengals Week 11 Press Conference',
     description: `Week 11 Cary Bengals press conference, a special guest joins the show to give his thoughts on the home stretch of the season.`,
-    imgSrc: '/static/images/thumbnails/2025-week-eleven-press.png',
+    imgSrc: '/static/images/thumbnails/2025-week-eleven-press.jpg',
     href: 'https://www.youtube.com/watch?v=YH_ngXTYinY',
   },
   {
     title: '2025 - Cary Bengals Week 10 Press Conference',
     description: `Tune into the Cary Bengals week ten press conference. The season is heating up! Teams are facing must-win scenarios, and the playoff picture is starting to take shape.`,
-    imgSrc: '/static/images/thumbnails/2025-week-ten-press.png',
+    imgSrc: '/static/images/thumbnails/2025-week-ten-press.jpg',
     href: 'https://www.youtube.com/watch?v=DgClD4cZgFs',
   },
   {
     title: '2025 - Cary Bengals Week 9 Press Conference',
     description: `Week 9 Cary Bengals press conference, with fan favorites discussing the state of the league.`,
-    imgSrc: '/static/images/thumbnails/2025-week-nine-press.png',
+    imgSrc: '/static/images/thumbnails/2025-week-nine-press.jpg',
     href: 'https://www.youtube.com/watch?v=y18O6JAoaiw',
   },
   {
     title: '2025 - Cary Bengals Week 8 Press Conference',
     description: `Listen to the Cary Bengals week eight press conference, where we unveil our new website and the midseason playoff picture.`,
-    imgSrc: '/static/images/thumbnails/2025-week-eight-press.png',
+    imgSrc: '/static/images/thumbnails/2025-week-eight-press.jpg',
     href: 'https://www.youtube.com/watch?v=RG8iLvUP-70',
   },
   {
     title: '2025 - Cary Bengals Week 7 Press Conference',
     description: `Listen to the Cary Bengals week seven press conference, with a special guest with spicy takes going into the middle of the fantasy football season.`,
-    imgSrc: '/static/images/thumbnails/2025-week-seven-press.png',
+    imgSrc: '/static/images/thumbnails/2025-week-seven-press.jpg',
     href: 'https://www.youtube.com/watch?v=iy1mO9EK25k',
   },
   {
@@ -46,7 +46,7 @@ const projectsData = [
     description: `Cary Bengals week four press conference featuring Team ETENRAL PAIN's GM Amogh Natu, 
     Certified Boys Lover GM Joseph Hong, Great Waller China's GM Alvin Bao, 
     Hammy Heroes GM Sparsh Patel, and a spedcial interview from LA Akers GM Rishi Nookala.`,
-    imgSrc: '/static/images/thumbnails/week-four-press.png',
+    imgSrc: '/static/images/thumbnails/week-four-press.jpg',
     href: 'https://youtu.be/RjeOb-S3xX0?si=_71DY-NszkRVShya',
   },
   {
@@ -54,7 +54,7 @@ const projectsData = [
     description: `Cary Bengals week three press conference featuring Team Drake and Travis GM Keshav Sridhar, 
     Olave Garden GM Revanth Bobba, Chubbin and Grubbin' GM Kirk Broadbelt, 
     Meet The Stevenson's GM TJ Nanugonda, and LA Akers GM Rishi Nookala.`,
-    imgSrc: '/static/images/thumbnails/week-three-press.png',
+    imgSrc: '/static/images/thumbnails/week-three-press.jpg',
     href: 'https://youtu.be/Y6mEg2kepBw?si=Km5ro6Uo4wU2i6ZZ',
   },
   {
@@ -67,7 +67,7 @@ const projectsData = [
   {
     title: 'Cary Bengals Week 1 Press Conference',
     description: `Cary Bengals week two press conference featuring Meet the Stevenson's GM TJ Nanugonda, Code Monkey's GM Ankith Kodali, and Disney Pixar Baddies GM Sam Nangali.`,
-    imgSrc: '/static/images/players/more_mickey.png',
+    imgSrc: '/static/images/players/more_mickey.jpg',
     href: 'https://youtu.be/g2sH8AYwwZw?si=1OHZB9q4jZhwwM2q',
   },
 ]
