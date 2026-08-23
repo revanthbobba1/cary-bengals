@@ -78,15 +78,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProviders>
           <AuthListener />
           <Analytics analyticsConfig={siteMetadata.analytics as AnalyticsConfig} />
-          <SectionContainer>
-            <div className="flex h-screen flex-col justify-between font-sans">
-              <SearchProvider searchConfig={siteMetadata.search as SearchConfig}>
-                <Header />
+          <SearchProvider searchConfig={siteMetadata.search as SearchConfig}>
+            {/* Header lives outside SectionContainer (own wider container) and outside any
+                height-constrained ancestor, so its `sticky` positioning can hold for the full
+                page scroll instead of un-sticking after one viewport. */}
+            <Header />
+            <SectionContainer>
+              <div className="flex min-h-screen flex-col justify-between font-sans">
                 <main className="mb-auto">{children}</main>
-              </SearchProvider>
-              <Footer />
-            </div>
-          </SectionContainer>
+                <Footer />
+              </div>
+            </SectionContainer>
+          </SearchProvider>
         </ThemeProviders>
       </body>
     </html>

@@ -1,9 +1,9 @@
 const headerNavLinks = [
-  { href: '/', title: 'Home' },
-  { href: '/newsfeed/page/1', title: 'Previews & Recaps' },
-  { href: '/conferences', title: 'Press Conferences' },
-  { href: '/poll', title: 'Commissioner’s Poll'},
-  { href: '/league-members', title: 'League Members' }
+  { href: '/', title: 'Home', match: '/' },
+  { href: '/newsfeed/page/1', title: 'Previews & Recaps', match: '/newsfeed' },
+  { href: '/conferences', title: 'Press Conferences', match: '/conferences' },
+  { href: '/poll', title: 'Commissioner’s Poll', match: '/poll' },
+  { href: '/league-members', title: 'League Members', match: '/league-members' },
 ]
 
 export default headerNavLinks

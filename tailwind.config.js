@@ -31,6 +31,10 @@ module.exports = {
         // so there's one deliberate non-primary hue instead of two.
         accent: colors.indigo,
         gray: colors.gray,
+        // Accent-tinted near-black for headline/wordmark text in light mode (pairs with
+        // `gray.100` in dark mode) — reads more intentional than flat gray-900 on a page that
+        // otherwise leans on the accent hue for depth (shadows, focus rings).
+        ink: '#0c0b22',
       },
       // Elevation scale: a card sits *above* the page via shadow, not just an outlined border.
       // `-dark` variants are tuned separately (lighter shadow + faint white hairline) rather than
@@ -43,6 +47,14 @@ module.exports = {
         'card-dark': '0 1px 3px 0 rgb(0 0 0 / 0.3), 0 0 0 1px rgb(255 255 255 / 0.04)',
         'raised-dark': '0 4px 16px -2px rgb(0 0 0 / 0.4), 0 0 0 1px rgb(255 255 255 / 0.06)',
         'overlay-dark': '0 20px 40px -8px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(255 255 255 / 0.08)',
+        // Floating header bar: accent-tinted instead of neutral black, and deepens on scroll
+        // (see components/Header.tsx's useScrolled) rather than staying static.
+        nav: '0 10px 20px -8px rgb(79 70 229 / 0.06), 0 0 0 1px rgb(15 15 35 / 0.04)',
+        'nav-dark': '0 10px 20px -8px rgb(129 140 248 / 0.10), 0 0 0 1px rgb(255 255 255 / 0.05)',
+        'nav-scrolled':
+          '0 20px 25px -5px rgb(79 70 229 / 0.12), 0 8px 10px -6px rgb(79 70 229 / 0.08), 0 0 0 1px rgb(15 15 35 / 0.05)',
+        'nav-scrolled-dark':
+          '0 20px 25px -5px rgb(129 140 248 / 0.18), 0 0 0 1px rgb(255 255 255 / 0.07)',
       },
       // Semantic radius aliases so components pick a role (control vs. card vs. overlay) instead
       // of an arbitrary rounded-md/rounded-lg per component (today's inconsistency).
