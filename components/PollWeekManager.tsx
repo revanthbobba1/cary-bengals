@@ -184,7 +184,7 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
   return (
     <div className="space-y-8">
       {openWeeks.length > 1 && (
-        <div className="rounded-md bg-yellow-50 p-4 text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400">
+        <div className="rounded-control bg-yellow-50 p-4 text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400">
           <strong>{openWeeks.length} weeks are open at once</strong> (Week
           {openWeeks.map((w) => ` ${w.week_number}`).join(', ')}). Members only see one at a time —
           whichever has the nearest deadline
@@ -194,12 +194,12 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
 
       <form
         onSubmit={handleCreateWeek}
-        className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow space-y-4"
+        className="space-y-4 rounded-card border border-gray-200 bg-white p-6 shadow-card dark:border-gray-800 dark:bg-gray-900 dark:shadow-card-dark"
       >
-        <h2 className="text-xl font-semibold">Create New Poll Week</h2>
+        <h2 className="text-xl font-semibold text-ink dark:text-gray-100">Create New Poll Week</h2>
 
         {error && (
-          <div className="rounded-md bg-red-50 p-4 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">
+          <div className="rounded-control bg-red-50 p-4 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">
             {error}
           </div>
         )}
@@ -214,7 +214,7 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
               type="number"
               value={seasonYear}
               onChange={(e) => setSeasonYear(parseInt(e.target.value))}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded p-2 bg-white dark:bg-gray-700"
+              className="w-full rounded-control border border-gray-200 bg-white p-2 text-gray-900 shadow-card transition-shadow duration-150 ease-out-expo focus:border-accent-500 focus:shadow-raised focus:outline-none focus:ring-1 focus:ring-accent-500 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:shadow-card-dark"
             />
           </div>
 
@@ -228,7 +228,7 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
               value={weekNumber}
               onChange={(e) => setWeekNumber(parseInt(e.target.value))}
               min={1}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded p-2 bg-white dark:bg-gray-700"
+              className="w-full rounded-control border border-gray-200 bg-white p-2 text-gray-900 shadow-card transition-shadow duration-150 ease-out-expo focus:border-accent-500 focus:shadow-raised focus:outline-none focus:ring-1 focus:ring-accent-500 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:shadow-card-dark"
             />
           </div>
 
@@ -243,7 +243,7 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
               onChange={(e) => setDeadline(e.target.value)}
               min={toDatetimeLocal(nowIso)}
               required
-              className="w-full border border-gray-300 dark:border-gray-600 rounded p-2 bg-white dark:bg-gray-700"
+              className="w-full rounded-control border border-gray-200 bg-white p-2 text-gray-900 shadow-card transition-shadow duration-150 ease-out-expo focus:border-accent-500 focus:shadow-raised focus:outline-none focus:ring-1 focus:ring-accent-500 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:shadow-card-dark"
             />
           </div>
         </div>
@@ -251,15 +251,15 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
         <button
           type="submit"
           disabled={loading}
-          className="rounded-md bg-primary-500 px-4 py-2 text-white font-medium hover:bg-primary-600 disabled:opacity-50"
+          className="rounded-full bg-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_6px_16px_-4px_rgba(249,115,22,0.4)] transition-all duration-150 ease-out-expo hover:-translate-y-px hover:bg-primary-600 hover:shadow-[0_8px_20px_-4px_rgba(249,115,22,0.5)] active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50"
         >
           {loading ? 'Creating...' : 'Create Poll Week'}
         </button>
       </form>
 
-      <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">Existing Poll Weeks</h2>
+      <div className="rounded-card border border-gray-200 bg-white p-6 shadow-card dark:border-gray-800 dark:bg-gray-900 dark:shadow-card-dark">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-ink dark:text-gray-100">Existing Poll Weeks</h2>
           {availableYears.length > 1 && (
             <div>
               <label
@@ -280,7 +280,7 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
                   setReopeningWeekId(null)
                   setReopenError(null)
                 }}
-                className="border border-gray-300 dark:border-gray-600 rounded p-2 bg-white dark:bg-gray-700"
+                className="rounded-control border border-gray-200 bg-white p-2 text-gray-900 shadow-card transition-shadow duration-150 ease-out-expo focus:border-accent-500 focus:shadow-raised focus:outline-none focus:ring-1 focus:ring-accent-500 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:shadow-card-dark"
               >
                 {availableYears.map((year) => (
                   <option key={year} value={year}>
@@ -326,7 +326,7 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
                           type="datetime-local"
                           value={editDeadline}
                           onChange={(e) => setEditDeadline(e.target.value)}
-                          className="border border-gray-300 dark:border-gray-600 rounded p-1 bg-white dark:bg-gray-700"
+                          className="rounded-control border border-gray-200 bg-white p-1 text-gray-900 shadow-card transition-shadow duration-150 ease-out-expo focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:shadow-card-dark"
                         />
                       ) : (
                         formatDeadline(week.deadline)
@@ -357,7 +357,7 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
                               value={reopenDeadline}
                               onChange={(e) => setReopenDeadline(e.target.value)}
                               min={toDatetimeLocal(nowIso)}
-                              className="border border-gray-300 dark:border-gray-600 rounded p-1 bg-white dark:bg-gray-700"
+                              className="rounded-control border border-gray-200 bg-white p-1 text-gray-900 shadow-card transition-shadow duration-150 ease-out-expo focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:shadow-card-dark"
                             />
                             <button
                               type="button"

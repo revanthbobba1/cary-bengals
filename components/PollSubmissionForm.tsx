@@ -96,7 +96,7 @@ export default function PollSubmissionForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
-        <div className="rounded-md bg-red-50 p-4 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">
+        <div className="rounded-control bg-red-50 p-4 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">
           {error}
         </div>
       )}
@@ -121,8 +121,7 @@ export default function PollSubmissionForm({
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-md bg-primary-500 px-4 py-2 text-white font-medium
-          hover:bg-primary-600 disabled:opacity-50"
+        className="w-full rounded-full bg-primary-500 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_6px_16px_-4px_rgba(249,115,22,0.4)] transition-all duration-150 ease-out-expo hover:-translate-y-px hover:bg-primary-600 hover:shadow-[0_8px_20px_-4px_rgba(249,115,22,0.5)] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
       >
         {loading
           ? 'Submitting...'
@@ -181,8 +180,9 @@ function RankingRow({ ranking, index, isLast, teamData, onMove }: RankingRowProp
         zIndex: 1,
       }}
       transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-      className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3
-        dark:border-gray-700 dark:bg-gray-800"
+      className="flex items-center gap-3 rounded-card border border-gray-200 bg-white p-3 shadow-card
+        transition-shadow duration-150 ease-out-expo hover:shadow-raised
+        dark:border-gray-800 dark:bg-gray-900 dark:shadow-card-dark dark:hover:shadow-raised-dark"
     >
       {/* Rank badge - animates its number as position changes */}
       <div
@@ -209,9 +209,9 @@ function RankingRow({ ranking, index, isLast, teamData, onMove }: RankingRowProp
           onClick={() => onMove(ranking.team_id, -1)}
           disabled={index === 0}
           aria-label={`Move ${ranking.team_name} up`}
-          className="flex h-9 w-9 items-center justify-center rounded text-gray-400
-            hover:bg-gray-200 hover:text-gray-700 disabled:pointer-events-none
-            disabled:opacity-25 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+          className="flex h-9 w-9 items-center justify-center rounded-control text-gray-400
+            transition-all duration-150 ease-out-expo hover:bg-gray-100 hover:text-ink active:scale-90 disabled:pointer-events-none
+            disabled:opacity-25 dark:hover:bg-gray-800 dark:hover:text-gray-100"
         >
           <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
             <path
@@ -226,9 +226,9 @@ function RankingRow({ ranking, index, isLast, teamData, onMove }: RankingRowProp
           onClick={() => onMove(ranking.team_id, 1)}
           disabled={isLast}
           aria-label={`Move ${ranking.team_name} down`}
-          className="flex h-9 w-9 items-center justify-center rounded text-gray-400
-            hover:bg-gray-200 hover:text-gray-700 disabled:pointer-events-none
-            disabled:opacity-25 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+          className="flex h-9 w-9 items-center justify-center rounded-control text-gray-400
+            transition-all duration-150 ease-out-expo hover:bg-gray-100 hover:text-ink active:scale-90 disabled:pointer-events-none
+            disabled:opacity-25 dark:hover:bg-gray-800 dark:hover:text-gray-100"
         >
           <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
             <path
@@ -244,8 +244,8 @@ function RankingRow({ ranking, index, isLast, teamData, onMove }: RankingRowProp
       <div
         onPointerDown={(e) => dragControls.start(e)}
         className="flex flex-shrink-0 cursor-grab touch-none items-center justify-center
-          rounded p-2 text-gray-400 active:cursor-grabbing hover:bg-gray-200
-          hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+          rounded-control p-2 text-gray-400 transition-colors duration-150 ease-out-expo active:cursor-grabbing hover:bg-gray-100
+          hover:text-ink dark:hover:bg-gray-800 dark:hover:text-gray-100"
         aria-hidden="true"
       >
         <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">

@@ -17,23 +17,23 @@ export default function AuthorLayout({ children, content }: Props) {
         <Image
           src={avatar}
           alt="avatar"
-          width={160}
-          height={160}
-          className="h-40 w-40 rounded-full"
+          width={208}
+          height={208}
+          className="h-52 w-52 rounded-full"
         />
       )}
-      <h3 className="pb-1 pt-4 text-xl font-bold tracking-tight text-ink dark:text-gray-100">
+      <h3 className="pb-1.5 pt-5 text-2xl font-bold tracking-tight text-ink dark:text-gray-100">
         {name}
       </h3>
-      <div className="text-sm text-gray-500 dark:text-gray-400">{team}</div>
-      <div className="text-sm text-gray-500 dark:text-gray-400">{company}</div>
-      <div className="flex items-center gap-1 pt-4">
-        <SocialIcon kind="mail" href={`mailto:${email}`} size={5} />
-        <SocialIcon kind="github" href={github} size={5} />
-        <SocialIcon kind="linkedin" href={linkedin} size={5} />
-        <SocialIcon kind="twitter" href={twitter} size={5} />
+      <div className="text-base text-gray-500 dark:text-gray-400">{team}</div>
+      <div className="text-base text-gray-500 dark:text-gray-400">{company}</div>
+      <div className="flex items-center gap-2 pt-5">
+        <SocialIcon kind="mail" href={`mailto:${email}`} size={6} />
+        <SocialIcon kind="github" href={github} size={6} />
+        <SocialIcon kind="linkedin" href={linkedin} size={6} />
+        <SocialIcon kind="twitter" href={twitter} size={6} />
       </div>
-      <div className="prose w-full pt-6 text-center text-sm dark:prose-invert">{children}</div>
+      <div className="prose w-full pt-6 text-center dark:prose-invert">{children}</div>
     </div>
   )
 }

@@ -7,7 +7,8 @@ interface Props {
   showManage: boolean
 }
 
-const linkClasses = 'rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap'
+const linkClasses =
+  'rounded-full px-3.5 py-1.5 text-sm font-medium transition-all duration-150 ease-out-expo whitespace-nowrap'
 
 /**
  * Shared in-app navigation for the admin area, used on /admin, /admin/poll,
@@ -30,7 +31,7 @@ export default function AdminSubNav({ active, showManage }: Props) {
         className={`${linkClasses} ${
           active === 'dashboard'
             ? 'bg-primary-500 text-white'
-            : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
+            : 'text-gray-600 hover:bg-gray-100 hover:text-ink dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100'
         }`}
       >
         Dashboard
@@ -41,7 +42,7 @@ export default function AdminSubNav({ active, showManage }: Props) {
         className={`${linkClasses} ${
           active === 'poll'
             ? 'bg-primary-500 text-white'
-            : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
+            : 'text-gray-600 hover:bg-gray-100 hover:text-ink dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100'
         }`}
       >
         Submit Rankings
