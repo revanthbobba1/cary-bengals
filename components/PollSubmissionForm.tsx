@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Reorder, useDragControls } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -45,6 +45,24 @@ export default function PollSubmissionForm({
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Plain CSS :hover fires on whatever's under the cursor, including sibling rows/buttons
+  // dragged over mid-reorder — this suppresses their hover styles while any row is dragging,
+  // so only the actively-dragged tile's whileDrag animation is visible. Set from the drag
+  // handle's onPointerDown rather than Reorder.Item's onDragStart/onDragEnd: those don't fire
+  // reliably when the drag is initiated externally via dragControls.start() (the handle
+  // pattern used here), so a window pointerup/pointercancel listener closes it out instead.
+  const [isDragging, setIsDragging] = useState(false)
+
+  useEffect(() => {
+    if (!isDragging) return
+    const stopDragging = () => setIsDragging(false)
+    window.addEventListener('pointerup', stopDragging)
+    window.addEventListener('pointercancel', stopDragging)
+    return () => {
+      window.removeEventListener('pointerup', stopDragging)
+      window.removeEventListener('pointercancel', stopDragging)
+    }
+  }, [isDragging])
 
   // Re-derive the `rank` field (1-based) from array position after a reorder,
   // whether that reorder came from a drag gesture or a keyboard move.
@@ -106,7 +124,15 @@ export default function PollSubmissionForm({
         Drag teams by the handle to reorder, or use the arrow buttons.
       </p>
 
-      <Reorder.Group axis="y" values={rankings} onReorder={handleReorder} className="space-y-2">
+      {/* select-none: without it, dragging the pointer over sibling rows' text triggers the
+          browser's native text-selection highlight (a click-drag over text always does this
+          unless suppressed) — visually indistinguishable from an unwanted hover effect. */}
+      <Reorder.Group
+        axis="y"
+        values={rankings}
+        onReorder={handleReorder}
+        className="space-y-2 select-none"
+      >
         {rankings.map((ranking, index) => (
           <RankingRow
             key={ranking.team_id}
@@ -115,6 +141,8 @@ export default function PollSubmissionForm({
             isLast={index === rankings.length - 1}
             teamData={teamRecords[ranking.team_id]}
             onMove={moveItem}
+            isDragging={isDragging}
+            onDragHandleDown={() => setIsDragging(true)}
           />
         ))}
       </Reorder.Group>
@@ -165,10 +193,23 @@ interface RankingRowProps {
   isLast: boolean
   teamData?: { record: string | null; prevRank: number }
   onMove: (teamId: string, direction: -1 | 1) => void
+  isDragging: boolean
+  onDragHandleDown: () => void
 }
 
-function RankingRow({ ranking, index, isLast, teamData, onMove }: RankingRowProps) {
+function RankingRow({
+  ranking,
+  index,
+  isLast,
+  teamData,
+  onMove,
+  isDragging,
+  onDragHandleDown,
+}: RankingRowProps) {
   const dragControls = useDragControls()
+  const interactiveHover = isDragging
+    ? ''
+    : 'hover:bg-gray-100 hover:text-ink dark:hover:bg-gray-800 dark:hover:text-gray-100'
 
   return (
     <Reorder.Item
@@ -181,9 +222,9 @@ function RankingRow({ ranking, index, isLast, teamData, onMove }: RankingRowProp
         zIndex: 1,
       }}
       transition={springSnappy}
-      className="flex items-center gap-3 rounded-card border border-gray-200 bg-white p-3 shadow-card
-        transition-shadow duration-150 ease-out-expo hover:shadow-raised
-        dark:border-gray-800 dark:bg-gray-900 dark:shadow-card-dark dark:hover:shadow-raised-dark"
+      className={`flex items-center gap-3 rounded-card border border-gray-200 bg-white p-3 shadow-card
+        transition-shadow duration-150 ease-out-expo
+        dark:border-gray-800 dark:bg-gray-900 dark:shadow-card-dark ${isDragging ? '' : 'hover:shadow-raised dark:hover:shadow-raised-dark'}`}
     >
       {/* Rank badge - animates its number as position changes */}
       <div
@@ -210,9 +251,9 @@ function RankingRow({ ranking, index, isLast, teamData, onMove }: RankingRowProp
           onClick={() => onMove(ranking.team_id, -1)}
           disabled={index === 0}
           aria-label={`Move ${ranking.team_name} up`}
-          className="flex h-9 w-9 items-center justify-center rounded-control text-gray-400
-            transition-all duration-150 ease-out-expo hover:bg-gray-100 hover:text-ink active:scale-90 disabled:pointer-events-none
-            disabled:opacity-25 dark:hover:bg-gray-800 dark:hover:text-gray-100"
+          className={`flex h-9 w-9 items-center justify-center rounded-control text-gray-400
+            transition-all duration-150 ease-out-expo active:scale-90 disabled:pointer-events-none
+            disabled:opacity-25 ${interactiveHover}`}
         >
           <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
             <path
@@ -227,9 +268,9 @@ function RankingRow({ ranking, index, isLast, teamData, onMove }: RankingRowProp
           onClick={() => onMove(ranking.team_id, 1)}
           disabled={isLast}
           aria-label={`Move ${ranking.team_name} down`}
-          className="flex h-9 w-9 items-center justify-center rounded-control text-gray-400
-            transition-all duration-150 ease-out-expo hover:bg-gray-100 hover:text-ink active:scale-90 disabled:pointer-events-none
-            disabled:opacity-25 dark:hover:bg-gray-800 dark:hover:text-gray-100"
+          className={`flex h-9 w-9 items-center justify-center rounded-control text-gray-400
+            transition-all duration-150 ease-out-expo active:scale-90 disabled:pointer-events-none
+            disabled:opacity-25 ${interactiveHover}`}
         >
           <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
             <path
@@ -243,10 +284,12 @@ function RankingRow({ ranking, index, isLast, teamData, onMove }: RankingRowProp
 
       {/* Drag handle */}
       <div
-        onPointerDown={(e) => dragControls.start(e)}
-        className="flex flex-shrink-0 cursor-grab touch-none items-center justify-center
-          rounded-control p-2 text-gray-400 transition-colors duration-150 ease-out-expo active:cursor-grabbing hover:bg-gray-100
-          hover:text-ink dark:hover:bg-gray-800 dark:hover:text-gray-100"
+        onPointerDown={(e) => {
+          onDragHandleDown()
+          dragControls.start(e)
+        }}
+        className={`flex flex-shrink-0 cursor-grab touch-none items-center justify-center
+          rounded-control p-2 text-gray-400 transition-colors duration-150 ease-out-expo active:cursor-grabbing ${interactiveHover}`}
         aria-hidden="true"
       >
         <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">

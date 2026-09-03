@@ -58,6 +58,9 @@ For current feature status and open issues, see `../../docs/POLL_SYSTEM_PLAN.md`
 | `022_friendlier_closed_week_message.sql` | `CREATE OR REPLACE` on `submit_poll_ballot` (`020`) to raise the actionable "refresh the page" message directly, instead of a generic one the client had to pattern-match and override — one source of truth for the message instead of two copies that could drift. |
 | `023_lock_poll_week_row_on_submit.sql` | `CREATE OR REPLACE` on `submit_poll_ballot` closing a TOCTOU gap: the open/closed check ran once via the non-locking `poll_week_is_open()`, then `DELETE`/`INSERT` ran unconditionally with no re-check and no RLS backstop (`SECURITY DEFINER`, and `021` dropped the member write policies). Now locks the `poll_weeks` row (`SELECT ... FOR UPDATE`) so a concurrent lock (auto-lock cron, `019`, or a manual lock) can't commit between the check and the writes. |
 
+| `024_widen_rank_check_constraint.sql` | Relaxes the hardcoded `rank <= 12` CHECK to a generous static bound and moves the real "matches this season's team count" validation into `submit_poll_ballot` itself, so the roster can grow without a schema change. |
+| `025_auto_grant_admin_role.sql` | `BEFORE INSERT` trigger on `auth.users` that grants every new signup `admin` automatically (promoting a legacy singular `role` string into the `roles` array first, if present) — closes the gap `011`/`013` left, where only users existing *at the time* were backfilled and every invite since had to be fixed by hand. Also backfills the one account that slipped through before the trigger existed. |
+
 ## Still outstanding
 
 None currently tracked — see `docs/POLL_SYSTEM_PLAN.md` §6 for the remaining non-migration backlog
