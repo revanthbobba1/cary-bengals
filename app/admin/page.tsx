@@ -40,46 +40,50 @@ export default async function AdminPage() {
 
   const showManageLink = isCommissioner(user)
 
+  // Shared by both the personal card and the commissioner list below — both need "how many
+  // teams make up this season's full roster" to tell a genuinely current submission apart
+  // from a stale one left over from before the roster grew (see migration 024). Compares
+  // against the season's actual team count rather than a hardcoded 12 — matches
+  // get_poll_week_submission_status (017), which already does this correctly. `null` means
+  // the count is genuinely unknown (query failed), not that the roster is empty — treated
+  // as "can't tell" everywhere below rather than silently defaulting to 0, which would
+  // misreport a transient DB error as "the roster changed" or falsely mark a non-submitter
+  // as having submitted.
+  let resolvedTeamCount: number | null = null
+  if (openWeek) {
+    const { count: teamCount, error: teamCountError } = await supabase
+      .from('teams')
+      .select('id', { count: 'exact', head: true })
+      .eq('season_year', openWeek.season_year)
+
+    if (teamCountError) {
+      console.error('Failed to load team count:', teamCountError)
+    } else {
+      resolvedTeamCount = teamCount ?? 0
+    }
+  }
+
   let submissionStatus: {
     week: PollWeek
     hasSubmitted: boolean
     submittedAt?: string
     submissionCount: number
-    teamCount: number
+    teamCount: number | null
   } | null = null
 
   if (openWeek && user) {
-    // Compares against the season's actual team count rather than a hardcoded 12 — matches
-    // get_poll_week_submission_status (017), which already does this correctly. The hardcoded
-    // version broke the moment a 13th team was added to the league (see migration 024).
-    const [
-      { data: userSubmissions, error: submissionError },
-      { count: teamCount, error: teamCountError },
-    ] = await Promise.all([
-      supabase
-        .from('poll_submissions')
-        .select('submitted_at, rank')
-        .eq('poll_week_id', openWeek.id)
-        .eq('user_id', user.id),
-      supabase
-        .from('teams')
-        .select('id', { count: 'exact', head: true })
-        .eq('season_year', openWeek.season_year),
-    ])
+    const { data: userSubmissions, error: submissionError } = await supabase
+      .from('poll_submissions')
+      .select('submitted_at, rank')
+      .eq('poll_week_id', openWeek.id)
+      .eq('user_id', user.id)
 
     if (submissionError) {
       console.error('Failed to load submission status:', submissionError)
     }
-    if (teamCountError) {
-      console.error('Failed to load team count:', teamCountError)
-    }
 
     // Matches get_poll_week_submission_status's (017) floor-of-1 threshold, so a genuinely
-    // empty roster doesn't trivially read as "submitted" via 0 >= 0. A failed team-count query
-    // is treated as unknown rather than defaulting to 0, which would falsely mark a real
-    // non-submitter as having submitted.
-    const resolvedTeamCount = teamCountError ? null : (teamCount ?? 0)
-
+    // empty roster doesn't trivially read as "submitted" via 0 >= 0.
     submissionStatus = {
       week: openWeek,
       hasSubmitted:
@@ -88,7 +92,7 @@ export default async function AdminPage() {
         userSubmissions.length >= Math.max(resolvedTeamCount, 1),
       submittedAt: userSubmissions?.[0]?.submitted_at,
       submissionCount: userSubmissions?.length || 0,
-      teamCount: resolvedTeamCount ?? 0,
+      teamCount: resolvedTeamCount,
     }
   }
 
@@ -150,7 +154,13 @@ export default async function AdminPage() {
                   Deadline: {formatDeadline(submissionStatus.week.deadline)}
                 </p>
 
-                {submissionStatus.hasSubmitted ? (
+                {submissionStatus.teamCount === null ? (
+                  <div className="mb-6 rounded-control bg-gray-50 p-4 dark:bg-gray-800/40">
+                    <p className="text-gray-600 dark:text-gray-400 font-medium">
+                      Couldn't verify your submission status — try refreshing the page.
+                    </p>
+                  </div>
+                ) : submissionStatus.hasSubmitted ? (
                   <div className="mb-6 rounded-control bg-green-50 p-4 dark:bg-green-900/20">
                     <p className="text-green-700 dark:text-green-400 font-medium">
                       ✓ You have submitted your rankings
@@ -163,9 +173,9 @@ export default async function AdminPage() {
                   </div>
                 ) : submissionStatus.submissionCount > 0 ? (
                   // The RPC always writes a complete ballot (submit_poll_ballot rejects a
-                  // count mismatch), so a stored count below the current team count only
-                  // happens when the roster grew after this member last submitted — a stale
-                  // ballot, not a partial one.
+                  // count mismatch), so a stored count below the current (known) team count
+                  // only happens when the roster grew after this member last submitted — a
+                  // stale ballot, not a partial one.
                   <div className="mb-6 rounded-control bg-yellow-50 p-4 dark:bg-yellow-900/20">
                     <p className="text-yellow-700 dark:text-yellow-400 font-medium">
                       ⚠ Your rankings need updating ({submissionStatus.submissionCount}/
@@ -233,11 +243,15 @@ export default async function AdminPage() {
                       <span>{getDisplayName(row.full_name, row.email, 'Unknown member')}</span>
                       {row.has_submitted ? (
                         <span className="text-green-600 dark:text-green-400">✓ Submitted</span>
-                      ) : (
-                        <span className="text-gray-400">
-                          Not submitted
-                          {row.submission_count > 0 && ` (partial: ${row.submission_count})`}
+                      ) : row.submission_count > 0 && resolvedTeamCount !== null ? (
+                        // Same "stale, not partial" reasoning as the personal card above —
+                        // get_poll_week_submission_status (017) uses the identical
+                        // count >= team_count threshold for has_submitted.
+                        <span className="text-yellow-600 dark:text-yellow-400">
+                          Needs update ({row.submission_count}/{resolvedTeamCount})
                         </span>
+                      ) : (
+                        <span className="text-gray-400">Not submitted</span>
                       )}
                     </li>
                   ))}
