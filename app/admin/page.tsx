@@ -153,8 +153,7 @@ export default async function AdminPage() {
                 {submissionStatus.hasSubmitted ? (
                   <div className="mb-6 rounded-control bg-green-50 p-4 dark:bg-green-900/20">
                     <p className="text-green-700 dark:text-green-400 font-medium">
-                      ✓ You have submitted your rankings ({submissionStatus.submissionCount}/
-                      {submissionStatus.teamCount} teams)
+                      ✓ You have submitted your rankings
                     </p>
                     {submissionStatus.submittedAt && (
                       <p className="text-sm text-green-600 dark:text-green-500 mt-1">
@@ -162,12 +161,22 @@ export default async function AdminPage() {
                       </p>
                     )}
                   </div>
+                ) : submissionStatus.submissionCount > 0 ? (
+                  // The RPC always writes a complete ballot (submit_poll_ballot rejects a
+                  // count mismatch), so a stored count below the current team count only
+                  // happens when the roster grew after this member last submitted — a stale
+                  // ballot, not a partial one.
+                  <div className="mb-6 rounded-control bg-yellow-50 p-4 dark:bg-yellow-900/20">
+                    <p className="text-yellow-700 dark:text-yellow-400 font-medium">
+                      ⚠ Your rankings need updating ({submissionStatus.submissionCount}/
+                      {submissionStatus.teamCount} teams ranked) — the roster has changed since you
+                      last submitted
+                    </p>
+                  </div>
                 ) : (
                   <div className="mb-6 rounded-control bg-yellow-50 p-4 dark:bg-yellow-900/20">
                     <p className="text-yellow-700 dark:text-yellow-400 font-medium">
                       ⚠ You have not submitted your rankings yet
-                      {submissionStatus.submissionCount > 0 &&
-                        ` (Partial: ${submissionStatus.submissionCount}/${submissionStatus.teamCount} teams)`}
                     </p>
                   </div>
                 )}
