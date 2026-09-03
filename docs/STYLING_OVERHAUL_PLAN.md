@@ -197,14 +197,22 @@ refinement, not a pipeline rebuild):
   that's an infra addition outside this plan's non-goals (§6) and `next/image` already handles
   runtime optimization once source files are right-sized.
 
-### Phase 3 — Admin & poll interactive surfaces
-`PollWeekManager.tsx`, `app/admin/page.tsx`, `PollSubmissionForm.tsx`. Extend the motion language
-already established by the ranking list's drag-and-drop to the rest of these surfaces: animated
-list insert/remove where poll weeks or status rows appear, loading skeletons instead of blank
-gaps during `router.refresh()`, and — the most concrete, most worth calling out separately —
-**replace `alert()`-based error handling** (`handleUpdateDeadline`, `handleToggleLock` in
-`PollWeekManager.tsx`) with an in-app toast/notification component. This alone is a significant
-"feels modern" signal, independent of anything else in this plan.
+### Phase 3 — Admin & poll interactive surfaces ✅ done (2026-09-02, PR #49)
+`PollWeekManager.tsx`, `app/admin/page.tsx`, `PollSubmissionForm.tsx`, `CommissionerPollClient.tsx`.
+
+**What shipped:**
+- Hand-built toast/notification component (`ToastProvider.tsx`, `useToast.ts`, per §7.4's
+  decision) replacing `alert()`-based error handling in `PollWeekManager.tsx`
+  (`handleUpdateDeadline`, `handleToggleLock`, `handleReopen`) with success + error toasts;
+  `PollSubmissionForm.tsx` gets a success toast on ballot submission too.
+- Loading skeleton (`PollTableSkeleton` in `CommissionerPollClient.tsx`) replacing a plain
+  "Loading..." text, matching the real table's column shape.
+- Highlight-in fade/color animation on newly created poll-week rows in `PollWeekManager.tsx`,
+  scoped to genuinely new rows (not replayed on every unrelated refresh) via a `useRef`-tracked
+  set of already-seen week IDs, written in a `useEffect` after commit (StrictMode-safe).
+- The ranking list's existing drag-and-drop text-selection fix was independently improved in the
+  same window (PR #46, ahead of this phase's own branch) — `select-none` hoisted to the parent
+  `Reorder.Group` plus an `isDragging`-conditional hover-shadow suppression.
 
 ### Phase 4 — Page transitions & polish pass
 Route-level transitions (Next.js `template.tsx` + Framer Motion `AnimatePresence`, or the
