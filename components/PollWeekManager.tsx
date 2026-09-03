@@ -1,9 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { motion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { formatDeadline } from '@/lib/formatDeadline'
+import { useToast } from '@/lib/hooks/useToast'
+import { easeOut } from '@/lib/motion'
 import type { PollWeek } from '@/lib/types/poll'
 
 interface Props {
@@ -36,7 +39,22 @@ function isClosed(week: PollWeek, now: Date) {
 export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
   const router = useRouter()
   const supabase = createClient()
+  const toast = useToast()
   const now = new Date(nowIso)
+
+  // Tracks which week IDs have already been rendered, so only a genuinely new row (one that
+  // just appeared via router.refresh() after handleCreateWeek) plays the highlight-in animation
+  // — not every row on every unrelated refresh (locking a week, editing a deadline, etc.).
+  // Ref, not state: this only needs to affect the next render's animation choice, not trigger one.
+  // Read during render, written in an effect after commit — mutating it inline during the .map()
+  // below would corrupt itself under StrictMode's double-invoked render (the discarded first pass
+  // would mark the new row as already-seen before the real pass ever runs), silently killing the
+  // animation in local dev while still appearing to work in a production build.
+  const seenWeekIds = useRef<Set<string>>(new Set(existingWeeks.map((w) => w.id)))
+
+  useEffect(() => {
+    existingWeeks.forEach((w) => seenWeekIds.current.add(w.id))
+  }, [existingWeeks])
 
   const [seasonYear, setSeasonYear] = useState(new Date(nowIso).getFullYear())
   const [weekNumber, setWeekNumber] = useState(1)
@@ -91,6 +109,7 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
       setSelectedYear(seasonYear)
       setWeekNumber((prev) => prev + 1)
       setDeadline('')
+      toast.success(`Week ${weekNumber} created.`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create poll week')
     } finally {
@@ -133,8 +152,9 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
       }
       setEditingWeekId(null)
       router.refresh()
+      toast.success('Deadline updated.')
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to update deadline')
+      toast.error(err instanceof Error ? err.message : 'Failed to update deadline')
     }
   }
 
@@ -149,8 +169,9 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
       if (error) throw error
       if (!data || data.length === 0) throw new Error('Update was not applied')
       router.refresh()
+      toast.success(currentlyLocked ? 'Week unlocked.' : 'Week locked.')
     } catch (err) {
-      alert('Failed to update lock status')
+      toast.error('Failed to update lock status.')
     }
   }
 
@@ -176,8 +197,10 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
       if (!data || data.length === 0) throw new Error('Update was not applied')
       setReopeningWeekId(null)
       router.refresh()
+      toast.success('Week reopened.')
     } catch (err) {
       setReopenError('Failed to reopen this week.')
+      toast.error('Failed to reopen this week.')
     }
   }
 
@@ -316,9 +339,21 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
               {weeksForSelectedYear.map((week) => {
                 const closed = isClosed(week, now)
                 const needsReopen = week.is_locked && new Date(week.deadline) <= now
+                const isNew = !seenWeekIds.current.has(week.id)
 
                 return (
-                  <tr key={week.id} className="border-b border-gray-100 dark:border-gray-800">
+                  <motion.tr
+                    key={week.id}
+                    initial={
+                      isNew ? { opacity: 0, backgroundColor: 'rgba(99,102,241,0.15)' } : false
+                    }
+                    animate={{ opacity: 1, backgroundColor: 'rgba(99,102,241,0)' }}
+                    transition={{
+                      opacity: { duration: 0.3, ease: easeOut.ease },
+                      backgroundColor: { duration: 1.2, ease: easeOut.ease },
+                    }}
+                    className="border-b border-gray-100 dark:border-gray-800"
+                  >
                     <td className="p-2">{week.week_number}</td>
                     <td className="p-2">
                       {editingWeekId === week.id ? (
@@ -445,7 +480,7 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
                         </div>
                       )}
                     </td>
-                  </tr>
+                  </motion.tr>
                 )
               })}
             </tbody>

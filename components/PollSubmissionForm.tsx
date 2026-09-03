@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import type { Team, PollWeek, PollSubmission } from '@/lib/types/poll'
 import { springSnappy } from '@/lib/motion'
+import { useToast } from '@/lib/hooks/useToast'
 
 interface Props {
   pollWeek: PollWeek
@@ -22,6 +23,7 @@ export default function PollSubmissionForm({
 }: Props) {
   const router = useRouter()
   const supabase = createClient()
+  const toast = useToast()
 
   // Initialize rankings from existing submission (in saved order), then append
   // any team not yet ranked (covers partial submissions and teams added after
@@ -104,6 +106,7 @@ export default function PollSubmissionForm({
 
       if (submitError) throw submitError
 
+      toast.success(existingSubmission.length > 0 ? 'Rankings updated.' : 'Rankings submitted.')
       router.push('/admin')
       router.refresh()
     } catch (err) {
