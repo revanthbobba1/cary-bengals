@@ -172,19 +172,27 @@ keyboard nav. Highest visibility per unit of effort, since this renders on every
 `AuthorLayout.tsx`. Shadow/elevation instead of flat borders, hover lift + image scale on cards,
 smoother pagination/list transitions.
 
-**Images, folded into this phase** (audited 2026-08-18 — every image already renders through
-`next/image` via `components/Image.tsx`, no raw `<img>` tags, so this is refinement, not a
-pipeline rebuild):
-- Source files are oversized for their display size — several avatars are 500–900KB PNGs shown at
-  38–192px (`joseph.png` 911K, `alvin.png` 674K, `carter.jpeg` 662K, `amogh.png` 579K); press
-  thumbnails run up to 1.2MB. Resize/compress at the source and convert to `.webp` (none exist
-  today) rather than relying on `next/image`'s runtime transform alone to absorb oversized
-  originals.
-- Add `placeholder="blur"` (`next/image`'s built-in blur-up) to `Card.tsx` thumbnails and
-  `AuthorLayout.tsx`/`PostLayout.tsx` avatars — cheap "feels considered" win, directly in the
-  spirit of this plan's motion/polish goals.
-- Replace the generic `alt="avatar"` in `PostLayout.tsx:63` and `AuthorLayout.tsx:20` with the
-  actual author's name.
+**Images, folded into this phase** ✅ done (2026-08-23) — audited 2026-08-18 (every image already
+renders through `next/image` via `components/Image.tsx`, no raw `<img>` tags, so this was
+refinement, not a pipeline rebuild):
+- Source files were oversized for their display size — several avatars were 500–900KB PNGs shown
+  at 38–208px; press thumbnails ran up to 1.2MB. Resized (avatars to a 420px max dimension, 2x
+  retina for the 208px League Members display size; thumbnails to a 1088px max width, 2x retina
+  for the 544px `Card.tsx` display width) and converted PNG → JPEG at quality 82 — photos and
+  screenshots compress far better as JPEG than PNG, and neither use case needs real transparency
+  (the circular avatar crop is CSS, not image alpha). `players/` + `thumbnails/` combined:
+  ~5.9MB → ~1.1MB. **Not** converted to `.webp` as originally planned here: `brew install webp`
+  needs Xcode Command Line Tools, not available in the environment this shipped from, and
+  `next/image`'s built-in optimizer already serves WebP/AVIF to supporting browsers at runtime
+  regardless of source format (no `formats` override in `next.config.js`) — so static
+  pre-conversion would have been a much smaller win than fixing the actually-oversized sources.
+- Added `placeholder="blur"` (`next/image`'s built-in blur-up) to `Card.tsx` thumbnails and
+  `AuthorLayout.tsx`/`PostLayout.tsx` avatars. Since these are referenced by dynamic string paths
+  (MDX `avatar:` frontmatter, `projectsData.ts` `imgSrc`) rather than static imports, `next/image`
+  can't auto-generate the blur data — generated tiny base64 placeholders from the actual source
+  images instead, in `lib/blurPlaceholders.ts`.
+- Replaced the generic `alt="avatar"` in `PostLayout.tsx` and `AuthorLayout.tsx` with the actual
+  author's name.
 - Storage stays in-repo (`public/static/images/`) — decided against moving to a bucket/CDN, since
   that's an infra addition outside this plan's non-goals (§6) and `next/image` already handles
   runtime optimization once source files are right-sized.
