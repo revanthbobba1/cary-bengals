@@ -178,6 +178,18 @@ rejects a non-commissioner-context call), joins `auth.users` (filtered to accoun
 `app/admin/page.tsx` as a commissioner-only list below the existing Poll section, only rendered
 when a week is open.
 
+### Known, accepted edge cases (not fixed — documented per the 99%-not-99.99% standard)
+
+- **Commissioner's `FOR ALL` override policy bypasses `submit_poll_ballot`'s team-count check.**
+  `submit_poll_ballot` (`024`) validates rankings match the season's actual team count, but the
+  commissioner's `"Commissioner can manage all submissions"` policy (`010`, `FOR ALL`, no
+  `WITH CHECK`) still lets a raw PostgREST call insert a `poll_submissions` row with any rank up
+  to the schema's generic bound, skipping that check. Only exploitable by the commissioner
+  themselves via a hand-crafted API call (not through the app UI), and the worst outcome is
+  self-inflicted bad data they'd have to deliberately construct and could just as easily fix by
+  resubmitting. Flagged in PR #46's review (2026-09-02); not worth the structural cost of a
+  table-level constraint or trigger to close a gap only the trusted commissioner can even reach.
+
 ## 4. Completed ✅ (this update: commissioner role)
 
 - [x] **Commissioner role** — `supabase/migrations/010_add_commissioner_role.sql` introduces a

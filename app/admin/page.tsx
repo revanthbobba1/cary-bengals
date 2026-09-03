@@ -52,29 +52,43 @@ export default async function AdminPage() {
     // Compares against the season's actual team count rather than a hardcoded 12 — matches
     // get_poll_week_submission_status (017), which already does this correctly. The hardcoded
     // version broke the moment a 13th team was added to the league (see migration 024).
-    const [{ data: userSubmissions, error: submissionError }, { count: teamCount }] =
-      await Promise.all([
-        supabase
-          .from('poll_submissions')
-          .select('submitted_at, rank')
-          .eq('poll_week_id', openWeek.id)
-          .eq('user_id', user.id),
-        supabase
-          .from('teams')
-          .select('id', { count: 'exact', head: true })
-          .eq('season_year', openWeek.season_year),
-      ])
+    const [
+      { data: userSubmissions, error: submissionError },
+      { count: teamCount, error: teamCountError },
+    ] = await Promise.all([
+      supabase
+        .from('poll_submissions')
+        .select('submitted_at, rank')
+        .eq('poll_week_id', openWeek.id)
+        .eq('user_id', user.id),
+      supabase
+        .from('teams')
+        .select('id', { count: 'exact', head: true })
+        .eq('season_year', openWeek.season_year),
+    ])
 
     if (submissionError) {
       console.error('Failed to load submission status:', submissionError)
     }
+    if (teamCountError) {
+      console.error('Failed to load team count:', teamCountError)
+    }
+
+    // Matches get_poll_week_submission_status's (017) floor-of-1 threshold, so a genuinely
+    // empty roster doesn't trivially read as "submitted" via 0 >= 0. A failed team-count query
+    // is treated as unknown rather than defaulting to 0, which would falsely mark a real
+    // non-submitter as having submitted.
+    const resolvedTeamCount = teamCountError ? null : (teamCount ?? 0)
 
     submissionStatus = {
       week: openWeek,
-      hasSubmitted: !!userSubmissions && userSubmissions.length === (teamCount ?? 0),
+      hasSubmitted:
+        !!userSubmissions &&
+        resolvedTeamCount !== null &&
+        userSubmissions.length >= Math.max(resolvedTeamCount, 1),
       submittedAt: userSubmissions?.[0]?.submitted_at,
       submissionCount: userSubmissions?.length || 0,
-      teamCount: teamCount ?? 0,
+      teamCount: resolvedTeamCount ?? 0,
     }
   }
 

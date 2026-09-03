@@ -60,6 +60,7 @@ For current feature status and open issues, see `../../docs/POLL_SYSTEM_PLAN.md`
 
 | `024_widen_rank_check_constraint.sql` | Relaxes the hardcoded `rank <= 12` CHECK to a generous static bound and moves the real "matches this season's team count" validation into `submit_poll_ballot` itself, so the roster can grow without a schema change. |
 | `025_auto_grant_admin_role.sql` | `BEFORE INSERT` trigger on `auth.users` that grants every new signup `admin` automatically (promoting a legacy singular `role` string into the `roles` array first, if present) — closes the gap `011`/`013` left, where only users existing *at the time* were backfilled and every invite since had to be fixed by hand. Also backfills the one account that slipped through before the trigger existed. |
+| `026_gate_admin_grant_on_invite.sql` | Adds a `WHEN (NEW.invited_at IS NOT NULL)` guard to `025`'s trigger, so it only fires for Dashboard-invited accounts, not any future self-service signup (e.g. if the Supabase project's "allow signups" setting were ever toggled on) — enforces the invite-only design intent at the database level instead of relying solely on that external setting. |
 
 ## Still outstanding
 
