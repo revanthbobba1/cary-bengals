@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -46,7 +46,15 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
   // just appeared via router.refresh() after handleCreateWeek) plays the highlight-in animation
   // — not every row on every unrelated refresh (locking a week, editing a deadline, etc.).
   // Ref, not state: this only needs to affect the next render's animation choice, not trigger one.
+  // Read during render, written in an effect after commit — mutating it inline during the .map()
+  // below would corrupt itself under StrictMode's double-invoked render (the discarded first pass
+  // would mark the new row as already-seen before the real pass ever runs), silently killing the
+  // animation in local dev while still appearing to work in a production build.
   const seenWeekIds = useRef<Set<string>>(new Set(existingWeeks.map((w) => w.id)))
+
+  useEffect(() => {
+    existingWeeks.forEach((w) => seenWeekIds.current.add(w.id))
+  }, [existingWeeks])
 
   const [seasonYear, setSeasonYear] = useState(new Date(nowIso).getFullYear())
   const [weekNumber, setWeekNumber] = useState(1)
@@ -192,6 +200,7 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
       toast.success('Week reopened.')
     } catch (err) {
       setReopenError('Failed to reopen this week.')
+      toast.error('Failed to reopen this week.')
     }
   }
 
@@ -331,7 +340,6 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
                 const closed = isClosed(week, now)
                 const needsReopen = week.is_locked && new Date(week.deadline) <= now
                 const isNew = !seenWeekIds.current.has(week.id)
-                seenWeekIds.current.add(week.id)
 
                 return (
                   <motion.tr
