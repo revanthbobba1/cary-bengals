@@ -6,7 +6,7 @@ source of truth for where this feature stands. See `POLL_MIGRATION_GUIDE.md` for
 deployment instructions and `supabase/migrations/README.md` for an index of what each migration
 file does — this doc is about scope, status, and roadmap.
 
-Last reviewed: 2026-08-19
+Last reviewed: 2026-09-02
 
 ## 1. Goal
 
@@ -33,15 +33,12 @@ designed, with the deviations below — mostly driven by things that surfaced du
 
 ## 3. Known Issues (Backlog)
 
-### ✅ P0 — Submissions not persisting (fix applied 2026-08-16, live verification pending)
-**Not fully closed out yet.** The fix below is applied to production and verified correct by
-direct inspection of the live RLS policies and data, but the actual bug only manifests from a
-**non-commissioner** account — the commissioner bypasses it entirely via a separate `FOR ALL`
-policy — so it hasn't been confirmed working end-to-end through the real UI yet. A second league
-member is setting up an account; once they can log in, have them check `/admin` and `/admin/poll`
-show their real submission status (not "not submitted" for a week they've actually ranked) and
-that editing an existing ballot works. Don't mark the poll feature as fully done until that
-passes — see item 1 in §6.
+### ✅ P0 — Submissions not persisting (fix applied 2026-08-16, verified live 2026-09-02)
+**Fully closed out.** A second league member logged in and confirmed, from a genuine
+non-commissioner account: `/admin` and `/admin/poll` show correct real submission status, the
+Commissioner section correctly does not appear (role gating working as intended — that account
+has `admin` only, not `commissioner`), submitting rankings persists via `submit_poll_ballot`, and
+editing an existing ballot works. This was the last gating item for the poll feature.
 
 Root cause found via a full RLS/state-space audit, and it was never actually about inserts
 failing. **There was no SELECT policy letting a member read their own submissions.** Migration
@@ -181,6 +178,18 @@ rejects a non-commissioner-context call), joins `auth.users` (filtered to accoun
 `app/admin/page.tsx` as a commissioner-only list below the existing Poll section, only rendered
 when a week is open.
 
+### Known, accepted edge cases (not fixed — documented per the 99%-not-99.99% standard)
+
+- **Commissioner's `FOR ALL` override policy bypasses `submit_poll_ballot`'s team-count check.**
+  `submit_poll_ballot` (`024`) validates rankings match the season's actual team count, but the
+  commissioner's `"Commissioner can manage all submissions"` policy (`010`, `FOR ALL`, no
+  `WITH CHECK`) still lets a raw PostgREST call insert a `poll_submissions` row with any rank up
+  to the schema's generic bound, skipping that check. Only exploitable by the commissioner
+  themselves via a hand-crafted API call (not through the app UI), and the worst outcome is
+  self-inflicted bad data they'd have to deliberately construct and could just as easily fix by
+  resubmitting. Flagged in PR #46's review (2026-09-02); not worth the structural cost of a
+  table-level constraint or trigger to close a gap only the trusted commissioner can even reach.
+
 ## 4. Completed ✅ (this update: commissioner role)
 
 - [x] **Commissioner role** — `supabase/migrations/010_add_commissioner_role.sql` introduces a
@@ -246,8 +255,8 @@ the P0 submission bug is fixed vs. what depends on real submission data existing
    `docs/ESPN_INTEGRATION_PLAN.md`; Phase 0 needs the user's input (league ID, public/private).
 2. ~~Mobile-optimized ranking UI~~ — done, see §4 (drag-and-drop via Framer Motion).
 
-**Blocked until non-commissioner verification lands** (need to confirm real members can actually
-submit before building on top of that data):
+**Now unblocked** (non-commissioner verification passed 2026-09-02 — real members can submit,
+safe to build on top of that data):
 3. **Detailed ballot breakdowns** — page showing each member's individual ranking, not just the aggregate.
 4. **Email reminders** — notify members who haven't submitted before deadline.
 5. **Historical trends chart** — visualize a team's rank across the season.
@@ -255,11 +264,8 @@ submit before building on top of that data):
 
 ## 6. Next Session Priorities
 
-1. **Gating item — don't mark the poll feature complete until this passes.** Verify the P0 fix
-   end-to-end from a **non-commissioner** account (the bug it fixes is invisible from the
-   commissioner account — see §3). A second league member is setting up an account for this. By
-   deliberate choice, PR #39 doesn't wait on this verification before merging — this is the
-   deferred follow-up, not a merge blocker.
+1. ~~Gating item — verify the P0 fix end-to-end from a non-commissioner account~~ — done
+   2026-09-02, see the resolved note in §3.
 2. ~~Optional: `submit_poll_ballot` RPC~~ — done, see the resolved note under the poll week UX
    item in §3.
 3. ~~Optional: fix the `formatDeadline`/`toDatetimeLocal` timezone-dependent hydration mismatch~~

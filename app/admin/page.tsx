@@ -45,25 +45,50 @@ export default async function AdminPage() {
     hasSubmitted: boolean
     submittedAt?: string
     submissionCount: number
+    teamCount: number
   } | null = null
 
   if (openWeek && user) {
-    // Check if current user has submitted
-    const { data: userSubmissions, error: submissionError } = await supabase
-      .from('poll_submissions')
-      .select('submitted_at, rank')
-      .eq('poll_week_id', openWeek.id)
-      .eq('user_id', user.id)
+    // Compares against the season's actual team count rather than a hardcoded 12 — matches
+    // get_poll_week_submission_status (017), which already does this correctly. The hardcoded
+    // version broke the moment a 13th team was added to the league (see migration 024).
+    const [
+      { data: userSubmissions, error: submissionError },
+      { count: teamCount, error: teamCountError },
+    ] = await Promise.all([
+      supabase
+        .from('poll_submissions')
+        .select('submitted_at, rank')
+        .eq('poll_week_id', openWeek.id)
+        .eq('user_id', user.id),
+      supabase
+        .from('teams')
+        .select('id', { count: 'exact', head: true })
+        .eq('season_year', openWeek.season_year),
+    ])
 
     if (submissionError) {
       console.error('Failed to load submission status:', submissionError)
     }
+    if (teamCountError) {
+      console.error('Failed to load team count:', teamCountError)
+    }
+
+    // Matches get_poll_week_submission_status's (017) floor-of-1 threshold, so a genuinely
+    // empty roster doesn't trivially read as "submitted" via 0 >= 0. A failed team-count query
+    // is treated as unknown rather than defaulting to 0, which would falsely mark a real
+    // non-submitter as having submitted.
+    const resolvedTeamCount = teamCountError ? null : (teamCount ?? 0)
 
     submissionStatus = {
       week: openWeek,
-      hasSubmitted: !!userSubmissions && userSubmissions.length === 12, // Should have 12 submissions
+      hasSubmitted:
+        !!userSubmissions &&
+        resolvedTeamCount !== null &&
+        userSubmissions.length >= Math.max(resolvedTeamCount, 1),
       submittedAt: userSubmissions?.[0]?.submitted_at,
       submissionCount: userSubmissions?.length || 0,
+      teamCount: resolvedTeamCount ?? 0,
     }
   }
 
@@ -128,8 +153,8 @@ export default async function AdminPage() {
                 {submissionStatus.hasSubmitted ? (
                   <div className="mb-6 rounded-control bg-green-50 p-4 dark:bg-green-900/20">
                     <p className="text-green-700 dark:text-green-400 font-medium">
-                      ✓ You have submitted your rankings ({submissionStatus.submissionCount}/12
-                      teams)
+                      ✓ You have submitted your rankings ({submissionStatus.submissionCount}/
+                      {submissionStatus.teamCount} teams)
                     </p>
                     {submissionStatus.submittedAt && (
                       <p className="text-sm text-green-600 dark:text-green-500 mt-1">
@@ -142,7 +167,7 @@ export default async function AdminPage() {
                     <p className="text-yellow-700 dark:text-yellow-400 font-medium">
                       ⚠ You have not submitted your rankings yet
                       {submissionStatus.submissionCount > 0 &&
-                        ` (Partial: ${submissionStatus.submissionCount}/12 teams)`}
+                        ` (Partial: ${submissionStatus.submissionCount}/${submissionStatus.teamCount} teams)`}
                     </p>
                   </div>
                 )}
