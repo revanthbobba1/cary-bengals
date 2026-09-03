@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -23,6 +23,26 @@ function LoginForm() {
   const searchParams = useSearchParams()
   const supabase = createClient()
   const redirectTo = safeRedirectPath(searchParams.get('redirectTo'))
+
+  useEffect(() => {
+    // Supabase rejects some OAuth failures (e.g. a blocked signup) before ever
+    // reaching our server-side callback route, and reports them via a URL hash
+    // fragment instead of a query param since it's a client-side-only redirect.
+    const hashError = new URLSearchParams(window.location.hash.slice(1)).get('error')
+    const queryError = searchParams.get('error')
+
+    if (hashError || queryError) {
+      setError('Unable to sign in with that account')
+      // Rewrite the URL bar directly instead of router.replace(): the Next.js
+      // router treats a query-string change as a real navigation and remounts
+      // this component, wiping the error state we just set.
+      const url = new URL(window.location.href)
+      url.hash = ''
+      url.searchParams.delete('error')
+      window.history.replaceState(null, '', url.pathname + url.search)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
