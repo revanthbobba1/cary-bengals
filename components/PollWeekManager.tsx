@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { formatDeadline } from '@/lib/formatDeadline'
@@ -40,6 +40,7 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
   const router = useRouter()
   const supabase = createClient()
   const toast = useToast()
+  const reduceMotion = useReducedMotion()
   const now = new Date(nowIso)
 
   // Tracks which week IDs have already been rendered, so only a genuinely new row (one that
@@ -274,7 +275,7 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
         <button
           type="submit"
           disabled={loading}
-          className="rounded-full bg-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_6px_16px_-4px_rgba(249,115,22,0.4)] transition-all duration-150 ease-out-expo hover:-translate-y-px hover:bg-primary-600 hover:shadow-[0_8px_20px_-4px_rgba(249,115,22,0.5)] active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50"
+          className="rounded-full bg-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_6px_16px_-4px_rgba(249,115,22,0.4)] transition-all duration-150 ease-out-expo hover:-translate-y-px hover:bg-primary-600 hover:shadow-[0_8px_20px_-4px_rgba(249,115,22,0.5)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50"
         >
           {loading ? 'Creating...' : 'Create Poll Week'}
         </button>
@@ -345,7 +346,9 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
                   <motion.tr
                     key={week.id}
                     initial={
-                      isNew ? { opacity: 0, backgroundColor: 'rgba(99,102,241,0.15)' } : false
+                      isNew && !reduceMotion
+                        ? { opacity: 0, backgroundColor: 'rgba(99,102,241,0.15)' }
+                        : false
                     }
                     animate={{ opacity: 1, backgroundColor: 'rgba(99,102,241,0)' }}
                     transition={{
@@ -397,7 +400,7 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
                             <button
                               type="button"
                               onClick={() => handleReopen(week.id, reopenDeadline)}
-                              className="text-sm text-primary-600 hover:underline"
+                              className="text-sm text-primary-600 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2"
                             >
                               Reopen
                             </button>
@@ -407,7 +410,7 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
                                 setReopeningWeekId(null)
                                 setReopenError(null)
                               }}
-                              className="text-sm text-gray-500 hover:underline"
+                              className="text-sm text-gray-500 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2"
                             >
                               Cancel
                             </button>
@@ -420,14 +423,14 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
                             onClick={() =>
                               handleUpdateDeadline(week.id, editDeadline, week.is_locked)
                             }
-                            className="text-sm text-primary-600 hover:underline"
+                            className="text-sm text-primary-600 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2"
                           >
                             Save
                           </button>
                           <button
                             type="button"
                             onClick={() => setEditingWeekId(null)}
-                            className="text-sm text-gray-500 hover:underline"
+                            className="text-sm text-gray-500 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2"
                           >
                             Cancel
                           </button>
@@ -442,7 +445,7 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
                                 setReopenDeadline('')
                                 setReopenError(null)
                               }}
-                              className="text-sm font-medium text-primary-600 hover:underline"
+                              className="text-sm font-medium text-primary-600 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2"
                             >
                               Reopen
                             </button>
@@ -459,7 +462,7 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
                                 setEditingWeekId(week.id)
                                 setEditDeadline(toDatetimeLocal(week.deadline))
                               }}
-                              className="text-sm text-primary-600 hover:underline"
+                              className="text-sm text-primary-600 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2"
                             >
                               Edit deadline
                             </button>
@@ -472,7 +475,7 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
                             <button
                               type="button"
                               onClick={() => handleToggleLock(week.id, week.is_locked)}
-                              className="text-sm text-primary-600 hover:underline"
+                              className="text-sm text-primary-600 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2"
                             >
                               {week.is_locked ? 'Unlock' : 'Lock'}
                             </button>
