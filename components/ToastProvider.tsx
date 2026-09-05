@@ -85,7 +85,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               <button
                 onClick={() => dismiss(t.id)}
                 aria-label="Dismiss notification"
-                className="flex-shrink-0 rounded-control p-1 opacity-60 transition-opacity duration-150 ease-out-expo hover:opacity-100"
+                className="flex-shrink-0 rounded-control p-1 opacity-60 transition-all duration-150 ease-out-expo hover:opacity-100 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2 active:scale-90"
               >
                 <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                   <path

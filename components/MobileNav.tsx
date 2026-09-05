@@ -30,7 +30,7 @@ const MobileNav = () => {
   }
 
   const linkClasses =
-    'text-2xl font-bold tracking-tight text-ink transition-all duration-300 ease-out-expo dark:text-gray-100'
+    'inline-block rounded text-2xl font-bold tracking-tight text-ink transition-all duration-300 ease-out-expo hover:text-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2 active:scale-[0.97] dark:text-gray-100 dark:hover:text-primary-400'
 
   // Portaled to <body> — a sheet nested inside the header would have its `fixed` positioning
   // confined to the header's own box, since the header's `backdrop-blur` creates a new
@@ -43,7 +43,7 @@ const MobileNav = () => {
     >
       <div className="flex justify-end">
         <button
-          className="mr-8 mt-11 flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 transition-transform duration-150 ease-out-expo active:scale-90 dark:text-gray-400"
+          className="mr-8 mt-11 flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 transition-transform duration-150 ease-out-expo focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2 active:scale-90 dark:text-gray-400"
           aria-label="Toggle Menu"
           onClick={onToggleNav}
         >
@@ -111,7 +111,7 @@ const MobileNav = () => {
           >
             <Link
               href="/login"
-              className="inline-flex items-center rounded-full bg-primary-500 px-7 py-3.5 text-lg font-semibold text-white shadow-[0_8px_20px_-4px_rgba(249,115,22,0.4)] transition-all duration-150 ease-out-expo hover:-translate-y-px hover:bg-primary-600 active:scale-[0.97]"
+              className="inline-flex items-center rounded-full bg-primary-500 px-7 py-3.5 text-lg font-semibold text-white shadow-[0_8px_20px_-4px_rgba(249,115,22,0.4)] transition-all duration-150 ease-out-expo hover:-translate-y-px hover:bg-primary-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2 active:scale-[0.97]"
               onClick={onToggleNav}
             >
               Login
@@ -127,7 +127,7 @@ const MobileNav = () => {
       <button
         aria-label="Toggle Menu"
         onClick={onToggleNav}
-        className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 transition-transform duration-150 ease-out-expo active:scale-90 dark:text-gray-400 xl:hidden"
+        className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 transition-transform duration-150 ease-out-expo focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2 active:scale-90 dark:text-gray-400 xl:hidden"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"

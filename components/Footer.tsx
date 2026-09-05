@@ -8,7 +8,7 @@ import SocialIcon from '@/components/social-icons'
 import { useAuth } from '@/lib/hooks/useAuth'
 
 const footLinkClasses =
-  'group inline-flex w-fit items-center text-sm font-medium text-gray-700 transition-colors duration-150 ease-out-expo hover:text-accent-500 dark:text-gray-300 dark:hover:text-accent-400'
+  'group inline-flex w-fit items-center rounded text-sm font-medium text-gray-700 transition-colors duration-150 ease-out-expo hover:text-accent-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2 dark:text-gray-300 dark:hover:text-accent-400'
 
 function FootLink({
   href,

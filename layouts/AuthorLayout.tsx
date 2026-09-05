@@ -13,7 +13,7 @@ export default function AuthorLayout({ children, content }: Props) {
   const { name, avatar, team, company, email, twitter, linkedin, github } = content
 
   return (
-    <div className="flex h-full w-full min-h-[420px] flex-col items-center rounded-card border border-gray-200 bg-white p-8 shadow-card transition-all duration-200 ease-out-expo hover:-translate-y-1 hover:shadow-raised dark:border-gray-800 dark:bg-gray-900 dark:shadow-card-dark dark:hover:shadow-raised-dark">
+    <div className="flex h-full w-full min-h-[420px] flex-col items-center rounded-card border border-gray-200 bg-white p-8 shadow-card dark:border-gray-800 dark:bg-gray-900 dark:shadow-card-dark">
       {avatar && (
         <Image
           src={avatar}

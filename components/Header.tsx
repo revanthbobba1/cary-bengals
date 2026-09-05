@@ -33,7 +33,7 @@ const Header = () => {
       <Link
         href="/"
         aria-label={siteMetadata.headerTitle}
-        className="group flex items-center gap-2"
+        className="group flex items-center gap-2 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2"
       >
         <span className="inline-block h-7 w-7 origin-center transition-transform duration-300 ease-out-expo [&>svg]:h-full [&>svg]:w-full group-hover:-rotate-3 group-hover:scale-105 group-active:scale-95">
           <Logo />
@@ -56,7 +56,7 @@ const Header = () => {
               <Link
                 key={link.title}
                 href={link.href}
-                className={`relative hidden whitespace-nowrap py-1.5 text-sm font-medium transition-colors duration-150 ease-out-expo after:absolute after:-bottom-[7px] after:left-1/2 after:h-1 after:w-1 after:-translate-x-1/2 after:rounded-full after:transition-colors after:duration-200 after:ease-out-expo xl:block ${
+                className={`relative hidden whitespace-nowrap rounded py-1.5 text-sm font-medium transition-colors duration-150 ease-out-expo after:absolute after:-bottom-[7px] after:left-1/2 after:h-1 after:w-1 after:-translate-x-1/2 after:rounded-full after:transition-colors after:duration-200 after:ease-out-expo focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2 xl:block ${
                   active
                     ? 'text-ink after:bg-accent-500 dark:text-gray-100 dark:after:bg-accent-400'
                     : 'text-gray-600 after:bg-transparent hover:text-ink dark:text-gray-400 dark:hover:text-gray-100'

@@ -20,7 +20,7 @@ interface ListLayoutProps {
 }
 
 const pillNavClasses =
-  'inline-flex items-center rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition-all duration-150 ease-out-expo hover:border-gray-300 hover:bg-gray-50 hover:text-ink dark:border-gray-800 dark:text-gray-400 dark:hover:border-gray-700 dark:hover:bg-gray-900 dark:hover:text-gray-100'
+  'inline-flex items-center rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition-all duration-150 ease-out-expo hover:border-gray-300 hover:bg-gray-50 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2 active:scale-[0.97] dark:border-gray-800 dark:text-gray-400 dark:hover:border-gray-700 dark:hover:bg-gray-900 dark:hover:text-gray-100'
 
 function Pagination({ totalPages, currentPage }: PaginationProps) {
   const pathname = usePathname()
@@ -119,7 +119,7 @@ export default function ListLayout({
             >
               <Link
                 href={`/${path}`}
-                className="group -mx-4 block rounded-card px-4 py-10 transition-colors duration-200 ease-out-expo hover:bg-gray-50 dark:hover:bg-gray-900/60"
+                className="group -mx-4 block rounded-card px-4 py-10 transition-all duration-200 ease-out-expo hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2 active:scale-[0.99] dark:hover:bg-gray-900/60"
               >
                 <article className="space-y-2 xl:grid xl:grid-cols-4 xl:items-baseline xl:space-y-0">
                   <dl>

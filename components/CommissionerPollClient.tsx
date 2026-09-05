@@ -129,7 +129,7 @@ export default function CommissionerPollClient({
             </label>
             <select
               id="year-select"
-              className="rounded-control border border-gray-200 bg-white p-2 pr-10 text-gray-900 shadow-card transition-shadow duration-150 ease-out-expo appearance-none focus:border-accent-500 focus:shadow-raised focus:outline-none focus:ring-1 focus:ring-accent-500 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:shadow-card-dark"
+              className="rounded-control border border-gray-200 bg-white p-2 pr-10 text-gray-900 shadow-card transition-shadow duration-150 ease-out-expo appearance-none hover:border-gray-300 focus:border-accent-500 focus:shadow-raised focus:outline-none focus:ring-1 focus:ring-accent-500 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:shadow-card-dark dark:hover:border-gray-600"
               style={{
                 backgroundImage:
                   "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>\")",
@@ -152,7 +152,7 @@ export default function CommissionerPollClient({
             </label>
             <select
               id="week-select"
-              className="rounded-control border border-gray-200 bg-white p-2 pr-10 text-gray-900 shadow-card transition-shadow duration-150 ease-out-expo appearance-none focus:border-accent-500 focus:shadow-raised focus:outline-none focus:ring-1 focus:ring-accent-500 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:shadow-card-dark"
+              className="rounded-control border border-gray-200 bg-white p-2 pr-10 text-gray-900 shadow-card transition-shadow duration-150 ease-out-expo appearance-none hover:border-gray-300 focus:border-accent-500 focus:shadow-raised focus:outline-none focus:ring-1 focus:ring-accent-500 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:shadow-card-dark dark:hover:border-gray-600"
               style={{
                 backgroundImage:
                   "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>\")",

@@ -8,7 +8,7 @@ interface Props {
 }
 
 const linkClasses =
-  'rounded-full px-3.5 py-1.5 text-sm font-medium transition-all duration-150 ease-out-expo whitespace-nowrap'
+  'rounded-full px-3.5 py-1.5 text-sm font-medium transition-all duration-150 ease-out-expo whitespace-nowrap focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2 active:scale-[0.97]'
 
 /**
  * Shared in-app navigation for the admin area, used on /admin, /admin/poll,

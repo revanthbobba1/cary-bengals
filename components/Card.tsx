@@ -49,7 +49,11 @@ const Card = ({ title, description, imgSrc, href }) => {
   return (
     <div className="max-w-[544px] p-4 md:w-1/2">
       {href ? (
-        <Link href={href} aria-label={`Link to ${title}`} className="block h-full">
+        <Link
+          href={href}
+          aria-label={`Link to ${title}`}
+          className="block h-full rounded-card transition-transform duration-150 ease-out-expo focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2 active:scale-[0.99]"
+        >
           {content}
         </Link>
       ) : (
