@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { inputClasses, labelClasses } from '@/lib/authFormClasses'
 
 function safeRedirectPath(value: string | null): string {
   if (value && value.startsWith('/') && !value.startsWith('//') && !value.includes('@')) {
@@ -10,9 +11,6 @@ function safeRedirectPath(value: string | null): string {
   }
   return '/admin'
 }
-
-const inputClasses =
-  'mt-1 block w-full rounded-control border border-gray-200 px-3 py-2 shadow-card transition-shadow duration-150 ease-out-expo focus:border-accent-500 focus:shadow-raised focus:outline-none focus:ring-1 focus:ring-accent-500 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:shadow-card-dark dark:focus:border-accent-400 dark:focus:ring-accent-400'
 
 function LoginForm() {
   const [email, setEmail] = useState('')
@@ -98,10 +96,7 @@ function LoginForm() {
 
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
+              <label htmlFor="email" className={labelClasses}>
                 Email
               </label>
               <input
@@ -116,10 +111,7 @@ function LoginForm() {
             </div>
 
             <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
+              <label htmlFor="password" className={labelClasses}>
                 Password
               </label>
               <input
