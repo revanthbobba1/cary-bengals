@@ -161,16 +161,35 @@ so later phases aren't inventing one-off values per component.
   built-in `useReducedMotion()` hook is enough at this app's scale — components that animate call
   it directly rather than routing through a custom layer.
 
-### Phase 1 — Navigation & layout shell
+### Phase 1 — Navigation & layout shell ✅ done (2026-08-23, PR #44)
 `Header.tsx`, `Footer.tsx`, `MobileNav.tsx`, `SectionContainer.tsx`. Add hover/active states to
 nav links, an active-route indicator, a smoother mobile nav open/close (currently instant —
 candidate for a slide + backdrop-blur transition), and consistent focus-visible rings for
 keyboard nav. Highest visibility per unit of effort, since this renders on every single page.
 
-### Phase 2 — Content surfaces
+**What shipped:** floating, inset, sticky pill header (Linear/Raycast-style) with a segmented
+dot active-state, animated theme toggle, hover/press feedback on icon buttons, and a pill-shaped
+Login CTA; footer expanded from icons-and-a-line into brand/League/Account columns with
+hover-arrow links; mobile nav gets a staggered link entrance on open and the same pill Login
+treatment. Also fixed three real bugs found while testing live: SVGR stripping the logo's
+`viewBox`, the sticky header only staying stuck for ~50px of scroll, and the nav container being
+too narrow for its content at some breakpoints.
+
+### Phase 2 — Content surfaces ✅ done (2026-08-23, PR #44 + image pass)
 `Card.tsx`, `PostLayout.tsx`/`PostSimple.tsx`/`PostBanner.tsx`, `ListLayout.tsx`,
 `AuthorLayout.tsx`. Shadow/elevation instead of flat borders, hover lift + image scale on cards,
 smoother pagination/list transitions.
+
+**What shipped:** pill-shaped search input and full-row hover targets on the homepage feed and
+`/newsfeed` list, pill Prev/Next pagination; real elevation (Phase 0 card/raised shadow tokens),
+hover lift, and image zoom-on-hover on Press Conferences cards and the League Members grid
+(previously had no card container at all); hover-lift Previous/Next Article cards and an
+arrow-hover "Back to the blog" link on post pages; the login page restyled as a floating card;
+real elevation on the scroll-to-top/comment buttons; the public poll page and admin/poll surfaces
+brought into the same design language (card containers, styled dropdowns/inputs with accent
+focus rings, hover table rows). Also fixed the 404 page's off-palette CTA button. Image
+optimization (resize/compress, blur placeholders, real alt text) folded in separately, done
+2026-08-23 — see below.
 
 **Images, folded into this phase** ✅ done (2026-08-23) — audited 2026-08-18 (every image already
 renders through `next/image` via `components/Image.tsx`, no raw `<img>` tags, so this was
@@ -214,11 +233,51 @@ refinement, not a pipeline rebuild):
   same window (PR #46, ahead of this phase's own branch) — `select-none` hoisted to the parent
   `Reorder.Group` plus an `isDragging`-conditional hover-shadow suppression.
 
-### Phase 4 — Page transitions & polish pass
+### Phase 4 — Page transitions & polish pass ✅ done (2026-09-05)
 Route-level transitions (Next.js `template.tsx` + Framer Motion `AnimatePresence`, or the
 View Transitions API if browser support is judged sufficient by the time this phase starts),
 button press states, a final consistency pass across everything shipped in Phases 1–3, and a
 `prefers-reduced-motion` audit across all motion added in this plan.
+
+**What shipped:**
+- Route-level fade transition (`components/PageTransition.tsx`, wired into `app/layout.tsx` around
+  `{children}` only — `Header`/`Footer` stay outside it) — a persistent `AnimatePresence` keyed on
+  `usePathname()`, not a `template.tsx`: `template.tsx` gets a fresh instance per navigation, so an
+  `AnimatePresence` inside it can never see both the outgoing and incoming page at once to animate
+  between them. Plain opacity fade (no `y` translate — pages here vary too much in height for a
+  slide to read as intentional), reusing `easeOut` from `lib/motion.ts`. Reduced motion is a full
+  no-op (`initial={false}`, `exit={undefined}`), not just a faster fade — a full-page swap is a
+  bigger visual event than a toast. View Transitions API was skipped for a concrete reason, not
+  just browser support: Next 13.5's App Router has no router-events hook to wrap
+  `document.startViewTransition()` around.
+- Button press states and focus-visible rings standardized and filled in across ~20 files (nav,
+  footer, cards, post prev/next links across all three post layouts, list pagination, admin
+  sub-nav, poll ballot arrow buttons, toast dismiss, etc.) — three consistent categories: icon
+  buttons (`active:scale-90`), pill CTAs/button-shaped links (`active:scale-[0.97]`), plain text
+  links (focus-visible only, no scale). Every category also gets the accent focus-visible outline
+  that previously existed in only 3 places in the whole app.
+- `app/set-password/page.tsx` brought up to the same conventions as `app/login/page.tsx` (it had
+  never received the Phase 1–3 treatment at all — still on `rounded-md`/`shadow-sm` and a
+  `primary`-colored focus ring). Shared `inputClasses`/`labelClasses` extracted to
+  `lib/authFormClasses.ts` so the two auth pages stop duplicating them.
+- Reduced-motion audit: `PollWeekManager.tsx`'s new-row highlight now checks `useReducedMotion()`
+  (previously the only unguarded motion in the app besides drag mechanics). Drag-to-reorder in
+  `PollSubmissionForm.tsx` is deliberately left unguarded for pointer drag itself (direct
+  manipulation, not decorative/autoplaying motion), but the `Reorder.Item` layout-reflow transition
+  is now `{ duration: 0 }` under reduced motion so a keyboard-triggered (arrow button) reorder
+  snaps instantly instead of springing.
+- Verified live in-browser: transitions across height-mismatched routes (including a real post,
+  `/admin`, and the auth-gated `/admin/poll/manage`), no phantom enter-fade on hard load, no
+  console errors, and keyboard-only tab-through confirms focus-visible fires only on real keyboard
+  focus (not mouse clicks) across the header, homepage post list, footer, and the poll ballot's
+  arrow buttons. `prefers-reduced-motion` itself couldn't be emulated live in this environment (no
+  OS/DevTools media-emulation access available) — verified by code review instead, following the
+  same pattern already proven in `ToastProvider.tsx`.
+- Found and ruled out of scope: rapid-fire nav-link clicking (several links clicked faster than
+  each transition settles) can desync the visible content from the URL/active-nav-state. Confirmed
+  via a live A/B test that this reproduces identically with `PageTransition` entirely removed —
+  it's a pre-existing Next.js 13.5 App Router client-navigation race, not something this phase
+  introduced or that a transition-timing fix could address.
 
 ## 5. Technical Approach
 
