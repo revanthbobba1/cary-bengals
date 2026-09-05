@@ -188,17 +188,22 @@ undetected for weeks because all testing was done as the commissioner, who bypas
 **Therefore:** every policy for both tables ships in **one** migration, and acceptance explicitly
 requires testing as (a) anonymous, (b) a plain `admin` member, (c) the commissioner.
 
-| Role                     | articles / article_matchups                         |
-| ------------------------ | --------------------------------------------------- |
-| `anon`, `authenticated`  | SELECT where `status = 'published'`                 |
-| `writer` (new, additive) | INSERT; SELECT/UPDATE/DELETE own rows in any status |
-| `commissioner`           | FOR ALL                                             |
+| Role                    | articles / article_matchups                         |
+| ----------------------- | --------------------------------------------------- |
+| `anon`, `authenticated` | SELECT where `status = 'published'`                 |
+| `admin`                 | INSERT; SELECT/UPDATE/DELETE own rows in any status |
+| `commissioner`          | FOR ALL                                             |
 
-`writer` is a new additive role assigned the same way `commissioner` is (Supabase Dashboard →
-App Metadata), read through the existing `hasRole()` in `lib/supabase/roles.ts`. Adding a role
-rather than reusing `admin` means an ordinary member browsing `/admin` for the poll can't
-accidentally publish; adding it rather than reusing `commissioner` means article-writing can be
-delegated (Rishi writes most of these) without handing over poll administration.
+**No new role.** Every account already carries `admin` (see the root `CLAUDE.md`), so every league
+member can write and publish a preview or recap. A `writer` role was considered and rejected as
+unnecessary ceremony for a twelve-person league where everyone is trusted — the realistic failure
+mode is nobody writing recaps, not somebody publishing one they shouldn't.
+
+Note the consequence, since it is a real (accepted) tradeoff: `/admin` is the poll-submission
+surface every member visits weekly, so every member will now also see the article editor there.
+The commissioner's `FOR ALL` policy remains the backstop — only they can edit or delete
+_someone else's_ article. Members writing over each other is additionally constrained by
+`UNIQUE (season_year, week_number, kind)`: two people cannot both create a Week 5 preview.
 
 Publishing runs through a `SECURITY DEFINER` RPC (`publish_article`) rather than a bare UPDATE, for
 the same reason `submit_poll_ballot` exists (`020`): setting `status`, stamping `published_at`, and
@@ -397,7 +402,7 @@ any editor UI is built on top of the model.
 | **1 — Backfill**  | `scripts/import-articles.mjs`, seed migration, hand-fix pass, parity report                                                                                                                                                          | Nothing user-visible; DB now holds all 19 articles                                             |
 | **2 — Read path** | DB-backed `/newsfeed` + `/newsfeed/[...slug]`, `react-markdown`, home feed / sitemap / RSS route / search-index route re-pointed. **Delete** the MDX files, the Contentlayer `Blog` type, `scripts/rss.mjs`, `/newsfeed/page/[page]` | Site now served from Supabase; §2.3's pagination, double-`<h1>`, and stale-metadata bugs fixed |
 | **3 — Editor**    | `/admin/articles` list + editor, drag-reorder matchups, draft/publish, paste-import, `AdminSubNav` generalization, `revalidatePath` on publish                                                                                       | **The actual goal: publishing without a deploy**                                               |
-| **4 — Redesign**  | Hub season pills + week-paired grid; article scoreboard strip, matchup cards, sticky TOC, preview↔recap link, poll cross-link                                                                                                       | The presentation payoff                                                                        |
+| **4 — Redesign**  | Hub season pills + week-paired grid; article scoreboard strip, matchup cards, sticky TOC, preview↔recap link, poll cross-link                                                                                                        | The presentation payoff                                                                        |
 
 Phases 2 and 4 could merge, but keeping them apart means the risky part (cutting over the data
 source) lands with the _old_ design intact, so any regression is unambiguously a data problem and
@@ -417,14 +422,15 @@ improvement.
   (authoring) while delivering almost none of goal 2 (presentation) — and would have preserved
   every formatting inconsistency catalogued in §2.2 rather than eliminating the class.
 
+- **Every `admin` can write, no new role (§3.3) — decided 2026-09-05.** All twelve members already
+  have `admin` for poll submissions; article authoring rides on it. Accepted tradeoff: the article
+  editor is visible to every member on `/admin`.
+
 ### 7.2 Still open
 
 Flagged rather than assumed, because each one changes the work:
 
-1. **Who can write (§3.3).** Recommended: a new additive `writer` role. Alternative: let every
-   `admin` (i.e. every member) write, which is simpler but means anyone poking at `/admin` for the
-   poll can publish to the front page.
-2. **Keep existing URLs?** Recommended yes, via stored slugs — it preserves shared links and Giscus
+1. **Keep existing URLs?** Recommended yes, via stored slugs — it preserves shared links and Giscus
    threads. The alternative (`/previews-recaps/2025/week-1`) is cleaner but orphans both.
-3. **Does `/newsfeed` keep its name?** The nav already says "Previews & Recaps" while the route says
+2. **Does `/newsfeed` keep its name?** The nav already says "Previews & Recaps" while the route says
    `newsfeed` and the metadata says "Blog". Worth settling on one name across all three.
