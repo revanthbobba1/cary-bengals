@@ -188,22 +188,40 @@ undetected for weeks because all testing was done as the commissioner, who bypas
 **Therefore:** every policy for both tables ships in **one** migration, and acceptance explicitly
 requires testing as (a) anonymous, (b) a plain `admin` member, (c) the commissioner.
 
-| Role                    | articles / article_matchups                         |
-| ----------------------- | --------------------------------------------------- |
-| `anon`, `authenticated` | SELECT where `status = 'published'`                 |
-| `admin`                 | INSERT; SELECT/UPDATE/DELETE own rows in any status |
-| `commissioner`          | FOR ALL                                             |
+| Role                    | articles / article_matchups                                    |
+| ----------------------- | -------------------------------------------------------------- |
+| `anon`, `authenticated` | SELECT where `status = 'published'`                            |
+| `admin`                 | SELECT/UPDATE/DELETE where `author_id = auth.uid()`. No INSERT |
+| `commissioner`          | FOR ALL                                                        |
 
-**No new role.** Every account already carries `admin` (see the root `CLAUDE.md`), so every league
-member can write and publish a preview or recap. A `writer` role was considered and rejected as
-unnecessary ceremony for a twelve-person league where everyone is trusted — the realistic failure
-mode is nobody writing recaps, not somebody publishing one they shouldn't.
+**No new role, and writeups are assignment-gated.** Every account already carries `admin` (see the
+root `CLAUDE.md`), so authoring rides on that rather than adding a `writer` role — rejected as
+ceremony for a twelve-person league where everyone is trusted.
 
-Note the consequence, since it is a real (accepted) tradeoff: `/admin` is the poll-submission
-surface every member visits weekly, so every member will now also see the article editor there.
-The commissioner's `FOR ALL` policy remains the backstop — only they can edit or delete
-_someone else's_ article. Members writing over each other is additionally constrained by
-`UNIQUE (season_year, week_number, kind)`: two people cannot both create a Week 5 preview.
+Instead, the commissioner assigns each week's writeup. **An assignment is not a new concept: it is
+an empty draft with a name on it.** The commissioner creates the `articles` row (season, week,
+kind, `status = 'draft'`, `author_id` set to the assignee); that member then sees the editor and
+fills it in. Only the commissioner can create rows, which is the single meaningful RLS difference —
+`admin`'s "own rows" clause was always going to be `author_id = auth.uid()` anyway.
+
+Consequences, all of them wanted:
+
+- **The editor only appears for the person who owes one.** `/admin` is the poll surface every
+  member visits weekly; the article card renders only when a draft is assigned to the viewer,
+  exactly like the poll card renders only when a week is open. Members not on duty see nothing new.
+- **`author_id` doubles as the byline**, which is correct here: the assignee is the writer. A
+  separate `assigned_to` column would only earn its keep if writeups were routinely reassigned
+  mid-week or ghost-written, neither of which happens.
+- **`UNIQUE (season_year, week_number, kind)` makes assignment exclusive** — once Week 5's recap is
+  assigned, a second one cannot be created.
+- **It models who is on recap duty**, which the league currently tracks only in the group chat.
+  Paired with the hub's "No recap posted" placeholder (§4.1), 2025's ten-previews-zero-recaps gap
+  stops being invisible and becomes an outstanding item with a name attached.
+
+**The failure mode to know about:** if the commissioner never assigns a week, nobody sees an editor
+and nobody can write it. The commissioner's `FOR ALL` policy is the escape hatch — they can create
+or reassign any article at any time, including to themselves — so nothing is ever permanently
+blocked, but the flow does depend on the assignment happening. Accepted deliberately.
 
 Publishing runs through a `SECURITY DEFINER` RPC (`publish_article`) rather than a bare UPDATE, for
 the same reason `submit_poll_ballot` exists (`020`): setting `status`, stamping `published_at`, and
@@ -344,11 +362,21 @@ the week" callout is one `ORDER BY` away.
 
 ### 4.3 Admin editor (`/admin/articles`)
 
+- **Assignment (commissioner only)** — pick season / week / kind + member, which creates the draft
+  shell (§3.3). Structurally the same form as `PollWeekManager`'s create-week form, and it belongs
+  in the same commissioner-only section pattern `/admin` already established. The commissioner's
+  view of `/admin/articles` doubles as the duty roster: who owes what, and which weeks are
+  unassigned.
+- **The member's view** — `/admin` shows an article card only when a draft is assigned to the
+  viewer, mirroring the existing poll-status card ("you have not submitted your rankings yet").
+  One query: is there a draft where `author_id = auth.uid()`.
 - `/admin/articles` — list, filtered by season, drafts pinned to the top with a status badge.
   Added to `AdminSubNav` (which currently hardcodes three poll sections and needs a small
   generalization).
-- `/admin/articles/new` and `/admin/articles/[id]/edit` — one form:
-  - Season / week / kind, with the title auto-suggested (`2025 Week 1 Preview`) and overridable.
+- `/admin/articles/[id]/edit` — one form (no `/new`: rows are created by assignment, not by the
+  writer):
+  - Season / week / kind are fixed by the assignment; the title is auto-suggested
+    (`2025 Week 1 Preview`) and overridable.
   - Summary + optional intro/outro.
   - A **repeatable matchup list**, reorderable by drag — `framer-motion` is already used for exactly
     this in `PollSubmissionForm.tsx`, so it's an established pattern, not a new dependency.
@@ -401,7 +429,7 @@ any editor UI is built on top of the model.
 | **0 — Schema**    | Migration (tables, enums, indexes, **all** RLS policies, `publish_article` RPC), `lib/types/article.ts`, `writer` role, `lib/supabase/public.ts`                                                                                     | Nothing user-visible                                                                           |
 | **1 — Backfill**  | `scripts/import-articles.mjs`, seed migration, hand-fix pass, parity report                                                                                                                                                          | Nothing user-visible; DB now holds all 19 articles                                             |
 | **2 — Read path** | DB-backed `/newsfeed` + `/newsfeed/[...slug]`, `react-markdown`, home feed / sitemap / RSS route / search-index route re-pointed. **Delete** the MDX files, the Contentlayer `Blog` type, `scripts/rss.mjs`, `/newsfeed/page/[page]` | Site now served from Supabase; §2.3's pagination, double-`<h1>`, and stale-metadata bugs fixed |
-| **3 — Editor**    | `/admin/articles` list + editor, drag-reorder matchups, draft/publish, paste-import, `AdminSubNav` generalization, `revalidatePath` on publish                                                                                       | **The actual goal: publishing without a deploy**                                               |
+| **3 — Editor**    | Commissioner assignment form; `/admin` assigned-draft card; `/admin/articles` list + editor, drag-reorder matchups, draft/publish, paste-import, `AdminSubNav` generalization, `revalidatePath` on publish                           | **The actual goal: publishing without a deploy**                                               |
 | **4 — Redesign**  | Hub season pills + week-paired grid; article scoreboard strip, matchup cards, sticky TOC, preview↔recap link, poll cross-link                                                                                                        | The presentation payoff                                                                        |
 
 Phases 2 and 4 could merge, but keeping them apart means the risky part (cutting over the data
@@ -422,9 +450,13 @@ improvement.
   (authoring) while delivering almost none of goal 2 (presentation) — and would have preserved
   every formatting inconsistency catalogued in §2.2 rather than eliminating the class.
 
-- **Every `admin` can write, no new role (§3.3) — decided 2026-09-05.** All twelve members already
-  have `admin` for poll submissions; article authoring rides on it. Accepted tradeoff: the article
-  editor is visible to every member on `/admin`.
+- **No new role; authoring rides on `admin` (§3.3) — decided 2026-09-05.** All twelve members
+  already have `admin` for poll submissions.
+- **Writeups are assignment-gated (§3.3) — decided 2026-09-05.** The commissioner creates each
+  week's draft with an `author_id`; only that member sees the editor. Chosen over leaving the
+  editor open to all admins because it costs almost nothing (an assignment is just an empty draft)
+  and models who is on recap duty. Accepted failure mode: an unassigned week has no writer until
+  the commissioner assigns it.
 
 ### 7.2 Still open
 
