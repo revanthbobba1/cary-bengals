@@ -11,6 +11,7 @@ import siteMetadata from '@/data/siteMetadata'
 import { ThemeProviders } from './theme-providers'
 import AuthListener from '@/components/AuthListener'
 import { ToastProvider } from '@/components/ToastProvider'
+import PageTransition from '@/components/PageTransition'
 import { Metadata } from 'next'
 
 const space_grotesk = Space_Grotesk({
@@ -87,7 +88,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Header />
               <SectionContainer>
                 <div className="flex min-h-screen flex-col justify-between font-sans">
-                  <main className="mb-auto">{children}</main>
+                  <main className="mb-auto">
+                    <PageTransition>{children}</PageTransition>
+                  </main>
                   <Footer />
                 </div>
               </SectionContainer>
