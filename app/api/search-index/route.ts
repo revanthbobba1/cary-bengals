@@ -3,7 +3,13 @@ import { getPublishedArticlesForSearchIndex } from '@/lib/supabase/articles'
 export const revalidate = 300
 
 export async function GET() {
-  const articles = await getPublishedArticlesForSearchIndex()
+  let articles: Awaited<ReturnType<typeof getPublishedArticlesForSearchIndex>>
+  try {
+    articles = await getPublishedArticlesForSearchIndex()
+  } catch (error) {
+    console.error('Failed to load published articles for the search index:', error)
+    return new Response('Failed to generate search index', { status: 500 })
+  }
 
   const documents = articles.map((article) => {
     const keywords = [

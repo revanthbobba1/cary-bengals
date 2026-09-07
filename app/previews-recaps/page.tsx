@@ -7,7 +7,14 @@ export const revalidate = 300
 export const metadata = genPageMetadata({ title: 'Previews & Recaps' })
 
 export default async function PreviewsRecapsPage() {
-  const articles = await getPublishedArticles()
+  let articles: Awaited<ReturnType<typeof getPublishedArticles>> = []
+  let loadError = false
+  try {
+    articles = await getPublishedArticles()
+  } catch (error) {
+    console.error('Failed to load published articles:', error)
+    loadError = true
+  }
 
   return (
     <div>
@@ -16,7 +23,13 @@ export default async function PreviewsRecapsPage() {
           Previews & Recaps
         </h1>
       </div>
-      <PreviewsRecapsList articles={articles} />
+      {loadError ? (
+        <p className="text-gray-500 dark:text-gray-400">
+          Couldn&apos;t load articles right now — try refreshing the page.
+        </p>
+      ) : (
+        <PreviewsRecapsList articles={articles} />
+      )}
     </div>
   )
 }

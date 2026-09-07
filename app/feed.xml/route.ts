@@ -32,7 +32,14 @@ const generateRss = (posts: PublishedArticleSummary[]) => `
 `
 
 export async function GET() {
-  const posts = await getPublishedArticles()
+  let posts: Awaited<ReturnType<typeof getPublishedArticles>>
+  try {
+    posts = await getPublishedArticles()
+  } catch (error) {
+    console.error('Failed to load published articles for the RSS feed:', error)
+    return new Response('Failed to generate RSS feed', { status: 500 })
+  }
+
   return new Response(generateRss(posts), {
     headers: { 'Content-Type': 'application/xml' },
   })

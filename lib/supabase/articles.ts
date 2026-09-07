@@ -4,7 +4,10 @@ import type { Article, ArticleWithMatchups } from '@/lib/types/article'
 export type PublishedArticleSummary = Pick<
   Article,
   'id' | 'slug' | 'title' | 'summary' | 'season_year' | 'week_number' | 'kind' | 'published_at'
->
+> & {
+  /** Away/home team names from this article's matchups -- not rendered, only for search matching. */
+  matchupTeamNames: string[]
+}
 
 /**
  * All published articles, newest first. Shared by the list page, the home feed, the sitemap, and
@@ -15,12 +18,17 @@ export async function getPublishedArticles(): Promise<PublishedArticleSummary[]>
   const supabase = createPublicClient()
   const { data, error } = await supabase
     .from('articles')
-    .select('id, slug, title, summary, season_year, week_number, kind, published_at')
+    .select(
+      'id, slug, title, summary, season_year, week_number, kind, published_at, article_matchups(away_team_name, home_team_name)'
+    )
     .eq('status', 'published')
     .order('published_at', { ascending: false })
 
   if (error) throw error
-  return data ?? []
+  return (data ?? []).map(({ article_matchups: matchups, ...article }) => ({
+    ...article,
+    matchupTeamNames: (matchups ?? []).flatMap((m) => [m.away_team_name, m.home_team_name]),
+  }))
 }
 
 /** One published article with its matchups, in display order. Null if not found or not published. */

@@ -8,7 +8,9 @@ export default function PreviewsRecapsList({ articles }: { articles: PublishedAr
   const [searchValue, setSearchValue] = useState('')
 
   const filteredArticles = articles.filter((article) => {
-    const searchContent = article.title + (article.summary ?? '')
+    const searchContent = [article.title, article.summary, ...article.matchupTeamNames]
+      .filter(Boolean)
+      .join(' ')
     return searchContent.toLowerCase().includes(searchValue.toLowerCase())
   })
 

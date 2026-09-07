@@ -24,8 +24,15 @@ const postDateTemplate: Intl.DateTimeFormatOptions = {
 }
 
 export async function generateStaticParams() {
-  const articles = await getPublishedArticles()
-  return articles.map((a) => ({ slug: a.slug.split('/') }))
+  try {
+    const articles = await getPublishedArticles()
+    return articles.map((a) => ({ slug: a.slug.split('/') }))
+  } catch (error) {
+    // A transient Supabase outage during `next build` shouldn't fail the whole build --
+    // articles just render on-demand at request time instead (dynamicParams defaults to true).
+    console.error('Failed to load published articles for generateStaticParams:', error)
+    return []
+  }
 }
 
 export async function generateMetadata({
@@ -34,7 +41,13 @@ export async function generateMetadata({
   params: { slug: string[] }
 }): Promise<Metadata | undefined> {
   const slug = decodeURI(params.slug.join('/'))
-  const article = await getArticleBySlug(slug)
+  let article: Awaited<ReturnType<typeof getArticleBySlug>>
+  try {
+    article = await getArticleBySlug(slug)
+  } catch (error) {
+    console.error(`Failed to load article "${slug}" for generateMetadata:`, error)
+    return
+  }
   if (!article) return
 
   const author = allAuthors.find((a) => a.slug === article.author_slug)
@@ -68,7 +81,21 @@ export async function generateMetadata({
 
 export default async function ArticlePage({ params }: { params: { slug: string[] } }) {
   const slug = decodeURI(params.slug.join('/'))
-  const article = await getArticleBySlug(slug)
+
+  let article: Awaited<ReturnType<typeof getArticleBySlug>>
+  try {
+    article = await getArticleBySlug(slug)
+  } catch (error) {
+    console.error(`Failed to load article "${slug}":`, error)
+    return (
+      <div className="mt-24 text-center">
+        <PageTitle>Couldn&apos;t load this article</PageTitle>
+        <p className="mt-4 text-gray-500 dark:text-gray-400">
+          Something went wrong loading this page — try refreshing.
+        </p>
+      </div>
+    )
+  }
 
   if (!article) {
     return (
@@ -83,7 +110,12 @@ export default async function ArticlePage({ params }: { params: { slug: string[]
     )
   }
 
-  const allArticles = await getPublishedArticles()
+  let allArticles: Awaited<ReturnType<typeof getPublishedArticles>> = []
+  try {
+    allArticles = await getPublishedArticles()
+  } catch (error) {
+    console.error('Failed to load published articles for prev/next navigation:', error)
+  }
   const articleIndex = allArticles.findIndex((a) => a.slug === slug)
   const prev = articleIndex >= 0 ? allArticles[articleIndex + 1] : undefined
   const next = articleIndex > 0 ? allArticles[articleIndex - 1] : undefined
