@@ -62,6 +62,13 @@ module.exports = () => {
   return plugins.reduce((acc, next) => next(acc), {
     reactStrictMode: true,
     pageExtensions: ['ts', 'tsx', 'js', 'jsx', 'md', 'mdx'],
+    // Server Actions (app/admin/articles/[id]/edit/actions.ts) are stable from Next.js 14 on but
+    // still experimental in 13.5 -- this app's admin publish/unpublish flow is the first thing in
+    // the codebase that needs revalidatePath(), which only a Server Action or Route Handler can
+    // call.
+    experimental: {
+      serverActions: true,
+    },
     eslint: {
       dirs: ['app', 'components', 'layouts', 'scripts'],
     },
