@@ -2,11 +2,11 @@ import Link from '@/components/Link'
 import siteMetadata from '@/data/siteMetadata'
 import { formatDate } from 'pliny/utils/formatDate'
 import NewsletterForm from 'pliny/ui/NewsletterForm'
+import { focusRingClasses } from '@/lib/focusRing'
 
 const MAX_DISPLAY = 5
 
-const arrowLinkClasses =
-  'group inline-flex items-center rounded text-base font-medium leading-6 text-primary-500 transition-colors duration-150 ease-out-expo hover:text-primary-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2 dark:hover:text-primary-400'
+const arrowLinkClasses = `group inline-flex items-center rounded text-base font-medium leading-6 text-primary-500 transition-colors duration-150 ease-out-expo hover:text-primary-600 ${focusRingClasses} dark:hover:text-primary-400`
 
 function ArrowLink({
   href,
@@ -49,7 +49,7 @@ export default function Home({ posts }) {
             >
               <Link
                 href={`/newsfeed/${slug}`}
-                className="group -mx-4 block rounded-card px-4 py-10 transition-all duration-200 ease-out-expo hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2 active:scale-[0.99] dark:hover:bg-gray-900/60"
+                className={`group -mx-4 block rounded-card px-4 py-10 transition-all duration-200 ease-out-expo hover:bg-gray-50 ${focusRingClasses} active:scale-[0.99] dark:hover:bg-gray-900/60`}
               >
                 <article>
                   <div className="space-y-2 xl:grid xl:grid-cols-4 xl:items-baseline xl:space-y-0">

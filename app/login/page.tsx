@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { inputClasses, labelClasses } from '@/lib/authFormClasses'
+import { focusRingClasses } from '@/lib/focusRing'
 
 function safeRedirectPath(value: string | null): string {
   if (value && value.startsWith('/') && !value.startsWith('//') && !value.includes('@')) {
@@ -127,7 +128,7 @@ function LoginForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-full bg-primary-500 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_6px_16px_-4px_rgba(249,115,22,0.4)] transition-all duration-150 ease-out-expo hover:-translate-y-px hover:bg-primary-600 hover:shadow-[0_8px_20px_-4px_rgba(249,115,22,0.5)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
+              className={`w-full rounded-full bg-primary-500 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_6px_16px_-4px_rgba(249,115,22,0.4)] transition-all duration-150 ease-out-expo hover:-translate-y-px hover:bg-primary-600 hover:shadow-[0_8px_20px_-4px_rgba(249,115,22,0.5)] ${focusRingClasses} active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50`}
             >
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
@@ -147,7 +148,7 @@ function LoginForm() {
           <button
             type="button"
             onClick={handleGoogleLogin}
-            className="flex w-full items-center justify-center gap-3 rounded-full border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-card transition-all duration-150 ease-out-expo hover:-translate-y-px hover:shadow-raised focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2 active:scale-[0.98] dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:shadow-card-dark dark:hover:shadow-raised-dark"
+            className={`flex w-full items-center justify-center gap-3 rounded-full border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-card transition-all duration-150 ease-out-expo hover:-translate-y-px hover:shadow-raised ${focusRingClasses} active:scale-[0.98] dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:shadow-card-dark dark:hover:shadow-raised-dark`}
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path

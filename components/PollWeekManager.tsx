@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { formatDeadline } from '@/lib/formatDeadline'
 import { useToast } from '@/lib/hooks/useToast'
 import { easeOut } from '@/lib/motion'
+import { focusRingClasses } from '@/lib/focusRing'
 import type { PollWeek } from '@/lib/types/poll'
 
 interface Props {
@@ -275,7 +276,7 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
         <button
           type="submit"
           disabled={loading}
-          className="rounded-full bg-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_6px_16px_-4px_rgba(249,115,22,0.4)] transition-all duration-150 ease-out-expo hover:-translate-y-px hover:bg-primary-600 hover:shadow-[0_8px_20px_-4px_rgba(249,115,22,0.5)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50"
+          className={`rounded-full bg-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_6px_16px_-4px_rgba(249,115,22,0.4)] transition-all duration-150 ease-out-expo hover:-translate-y-px hover:bg-primary-600 hover:shadow-[0_8px_20px_-4px_rgba(249,115,22,0.5)] ${focusRingClasses} active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50`}
         >
           {loading ? 'Creating...' : 'Create Poll Week'}
         </button>
@@ -400,7 +401,7 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
                             <button
                               type="button"
                               onClick={() => handleReopen(week.id, reopenDeadline)}
-                              className="text-sm text-primary-600 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2"
+                              className={`text-sm text-primary-600 hover:underline ${focusRingClasses}`}
                             >
                               Reopen
                             </button>
@@ -410,7 +411,7 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
                                 setReopeningWeekId(null)
                                 setReopenError(null)
                               }}
-                              className="text-sm text-gray-500 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2"
+                              className={`text-sm text-gray-500 hover:underline ${focusRingClasses}`}
                             >
                               Cancel
                             </button>
@@ -423,14 +424,14 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
                             onClick={() =>
                               handleUpdateDeadline(week.id, editDeadline, week.is_locked)
                             }
-                            className="text-sm text-primary-600 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2"
+                            className={`text-sm text-primary-600 hover:underline ${focusRingClasses}`}
                           >
                             Save
                           </button>
                           <button
                             type="button"
                             onClick={() => setEditingWeekId(null)}
-                            className="text-sm text-gray-500 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2"
+                            className={`text-sm text-gray-500 hover:underline ${focusRingClasses}`}
                           >
                             Cancel
                           </button>
@@ -445,7 +446,7 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
                                 setReopenDeadline('')
                                 setReopenError(null)
                               }}
-                              className="text-sm font-medium text-primary-600 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2"
+                              className={`text-sm font-medium text-primary-600 hover:underline ${focusRingClasses}`}
                             >
                               Reopen
                             </button>
@@ -462,7 +463,7 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
                                 setEditingWeekId(week.id)
                                 setEditDeadline(toDatetimeLocal(week.deadline))
                               }}
-                              className="text-sm text-primary-600 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2"
+                              className={`text-sm text-primary-600 hover:underline ${focusRingClasses}`}
                             >
                               Edit deadline
                             </button>
@@ -475,7 +476,7 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
                             <button
                               type="button"
                               onClick={() => handleToggleLock(week.id, week.is_locked)}
-                              className="text-sm text-primary-600 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2"
+                              className={`text-sm text-primary-600 hover:underline ${focusRingClasses}`}
                             >
                               {week.is_locked ? 'Unlock' : 'Lock'}
                             </button>

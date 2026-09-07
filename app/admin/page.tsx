@@ -5,6 +5,7 @@ import { formatDeadline } from '@/lib/formatDeadline'
 import type { PollWeek, SubmissionStatus } from '@/lib/types/poll'
 import Link from 'next/link'
 import AdminSubNav from '@/components/AdminSubNav'
+import { focusRingClasses } from '@/lib/focusRing'
 
 // Real name is only available when a user logged in via Google OAuth; email/password
 // accounts created via Dashboard invite have no name set. Email is always present, so
@@ -193,7 +194,7 @@ export default async function AdminPage() {
 
                 <Link
                   href="/admin/poll"
-                  className="inline-flex items-center rounded-full bg-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_6px_16px_-4px_rgba(249,115,22,0.4)] transition-all duration-150 ease-out-expo hover:-translate-y-px hover:bg-primary-600 hover:shadow-[0_8px_20px_-4px_rgba(249,115,22,0.5)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2 active:scale-[0.97]"
+                  className={`inline-flex items-center rounded-full bg-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_6px_16px_-4px_rgba(249,115,22,0.4)] transition-all duration-150 ease-out-expo hover:-translate-y-px hover:bg-primary-600 hover:shadow-[0_8px_20px_-4px_rgba(249,115,22,0.5)] ${focusRingClasses} active:scale-[0.97]`}
                 >
                   {submissionStatus.hasSubmitted ? 'Edit Your Rankings' : 'Submit Rankings'}
                 </Link>

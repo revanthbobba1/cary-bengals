@@ -6,9 +6,9 @@ import headerNavLinks from '@/data/headerNavLinks'
 import Logo from '@/data/logo.svg'
 import SocialIcon from '@/components/social-icons'
 import { useAuth } from '@/lib/hooks/useAuth'
+import { focusRingClasses } from '@/lib/focusRing'
 
-const footLinkClasses =
-  'group inline-flex w-fit items-center rounded text-sm font-medium text-gray-700 transition-colors duration-150 ease-out-expo hover:text-accent-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2 dark:text-gray-300 dark:hover:text-accent-400'
+const footLinkClasses = `group inline-flex w-fit items-center rounded text-sm font-medium text-gray-700 transition-colors duration-150 ease-out-expo hover:text-accent-500 ${focusRingClasses} dark:text-gray-300 dark:hover:text-accent-400`
 
 function FootLink({
   href,

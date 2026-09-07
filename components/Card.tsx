@@ -1,6 +1,7 @@
 import Image from './Image'
 import Link from './Link'
 import { getBlurProps } from '@/lib/blurPlaceholders'
+import { focusRingClasses } from '@/lib/focusRing'
 
 const Card = ({ title, description, imgSrc, href }) => {
   const content = (
@@ -52,7 +53,7 @@ const Card = ({ title, description, imgSrc, href }) => {
         <Link
           href={href}
           aria-label={`Link to ${title}`}
-          className="block h-full rounded-card transition-transform duration-150 ease-out-expo focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2 active:scale-[0.99]"
+          className={`block h-full rounded-card transition-transform duration-150 ease-out-expo ${focusRingClasses} active:scale-[0.99]`}
         >
           {content}
         </Link>

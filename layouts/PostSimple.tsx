@@ -8,6 +8,7 @@ import PageTitle from '@/components/PageTitle'
 import SectionContainer from '@/components/SectionContainer'
 import siteMetadata from '@/data/siteMetadata'
 import ScrollTopAndComment from '@/components/ScrollTopAndComment'
+import { focusRingClasses } from '@/lib/focusRing'
 
 interface LayoutProps {
   content: CoreContent<Blog>
@@ -53,7 +54,7 @@ export default function PostLayout({ content, next, prev, children }: LayoutProp
                 {prev && prev.path && (
                   <Link
                     href={`/${prev.path}`}
-                    className="group block flex-1 rounded-control border border-gray-200 bg-white p-4 shadow-card transition-all duration-150 ease-out-expo hover:-translate-y-0.5 hover:shadow-raised focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2 active:scale-[0.99] dark:border-gray-800 dark:bg-gray-900 dark:shadow-card-dark dark:hover:shadow-raised-dark"
+                    className={`group block flex-1 rounded-control border border-gray-200 bg-white p-4 shadow-card transition-all duration-150 ease-out-expo hover:-translate-y-0.5 hover:shadow-raised ${focusRingClasses} active:scale-[0.99] dark:border-gray-800 dark:bg-gray-900 dark:shadow-card-dark dark:hover:shadow-raised-dark`}
                     aria-label={`Previous post: ${prev.title}`}
                   >
                     <h2 className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -67,7 +68,7 @@ export default function PostLayout({ content, next, prev, children }: LayoutProp
                 {next && next.path && (
                   <Link
                     href={`/${next.path}`}
-                    className="group block flex-1 rounded-control border border-gray-200 bg-white p-4 text-right shadow-card transition-all duration-150 ease-out-expo hover:-translate-y-0.5 hover:shadow-raised focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2 active:scale-[0.99] dark:border-gray-800 dark:bg-gray-900 dark:shadow-card-dark dark:hover:shadow-raised-dark"
+                    className={`group block flex-1 rounded-control border border-gray-200 bg-white p-4 text-right shadow-card transition-all duration-150 ease-out-expo hover:-translate-y-0.5 hover:shadow-raised ${focusRingClasses} active:scale-[0.99] dark:border-gray-800 dark:bg-gray-900 dark:shadow-card-dark dark:hover:shadow-raised-dark`}
                     aria-label={`Next post: ${next.title}`}
                   >
                     <h2 className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">

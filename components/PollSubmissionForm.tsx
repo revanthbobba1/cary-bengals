@@ -224,6 +224,7 @@ function RankingRow({
         scale: 1.03,
         boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.25), 0 8px 10px -6px rgb(0 0 0 / 0.15)',
         zIndex: 1,
+        transition: springSnappy,
       }}
       transition={reduceMotion ? { duration: 0 } : springSnappy}
       className={`flex items-center gap-3 rounded-card border border-gray-200 bg-white p-3 shadow-card
