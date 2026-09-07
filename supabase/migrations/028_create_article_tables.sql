@@ -193,11 +193,39 @@ CREATE POLICY "Authors can view own article matchups"
 --     publish_article() below, which validates the article is actually complete;
 --   * an author CAN set a published article back to 'draft' (the Unpublish action), then edit it.
 -- RLS cannot compare OLD to NEW, so this pair of clauses is how the transition is constrained.
+-- It does NOT constrain season_year/week_number/kind/slug though -- WITH CHECK only sees the new
+-- row, not whether those columns moved from their old values. The trigger below covers that gap.
 CREATE POLICY "Authors can update own articles"
   ON articles FOR UPDATE
   TO authenticated
   USING (author_id = auth.uid())
   WITH CHECK (author_id = auth.uid() AND status = 'draft');
+
+-- The one thing WITH CHECK genuinely cannot express: "unchanged from OLD". Without this, an
+-- author editing their own draft could quietly rewrite week_number/kind to a week they were never
+-- assigned, or rewrite slug and orphan the article's Giscus comment thread. Only the commissioner
+-- (who reassigns via the FOR ALL policy) may move these columns.
+CREATE OR REPLACE FUNCTION public.enforce_article_assignment_fields()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = ''
+AS $$
+BEGIN
+  IF NOT public.jwt_has_role('commissioner') THEN
+    IF NEW.season_year IS DISTINCT FROM OLD.season_year
+       OR NEW.week_number IS DISTINCT FROM OLD.week_number
+       OR NEW.kind IS DISTINCT FROM OLD.kind
+       OR NEW.slug IS DISTINCT FROM OLD.slug THEN
+      RAISE EXCEPTION 'Only the commissioner can change an article''s season, week, kind, or slug';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER articles_enforce_assignment_fields
+  BEFORE UPDATE ON articles
+  FOR EACH ROW EXECUTE FUNCTION public.enforce_article_assignment_fields();
 
 -- Deleting is limited to drafts: a published article is league history, and removing one is a
 -- commissioner action.
@@ -311,6 +339,10 @@ EXCEPTION
   WHEN unique_violation THEN
     -- UNIQUE (season_year, week_number, kind) — the exclusivity that makes assignment meaningful.
     RAISE EXCEPTION 'That week already has a % assigned', p_kind::text;
+  WHEN check_violation THEN
+    -- CHECK (week_number BETWEEN 1 AND 30) — surface the same friendly style instead of a raw
+    -- Postgres constraint-violation message.
+    RAISE EXCEPTION 'Invalid week number';
 END;
 $$;
 
@@ -326,6 +358,7 @@ AS $$
 DECLARE
   v_article public.articles;
   v_matchup_count integer;
+  v_empty_body_count integer;
 BEGIN
   -- FOR UPDATE locks the row so a concurrent reassignment or delete can't commit between this
   -- check and the write below (the TOCTOU gap 023 closed on the poll side).
@@ -335,21 +368,23 @@ BEGIN
     RAISE EXCEPTION 'Article not found';
   END IF;
 
-  IF v_article.author_id IS DISTINCT FROM auth.uid() AND NOT public.jwt_has_role('commissioner') THEN
+  -- auth.uid() IS NULL must be checked explicitly: IS DISTINCT FROM treats two NULLs as NOT
+  -- distinct, so an orphaned draft (author_id NULLed by ON DELETE SET NULL) would otherwise let an
+  -- unauthenticated caller sail through this check. Same guard submit_poll_ballot (020) uses.
+  IF (auth.uid() IS NULL OR v_article.author_id IS DISTINCT FROM auth.uid())
+     AND NOT public.jwt_has_role('commissioner') THEN
     RAISE EXCEPTION 'This article is assigned to someone else';
   END IF;
 
-  SELECT count(*) INTO v_matchup_count
+  SELECT count(*), count(*) FILTER (WHERE btrim(body) = '')
+  INTO v_matchup_count, v_empty_body_count
   FROM public.article_matchups WHERE article_id = p_article_id;
 
   IF v_matchup_count = 0 THEN
     RAISE EXCEPTION 'Add at least one matchup before publishing';
   END IF;
 
-  IF EXISTS (
-    SELECT 1 FROM public.article_matchups
-    WHERE article_id = p_article_id AND btrim(body) = ''
-  ) THEN
+  IF v_empty_body_count > 0 THEN
     RAISE EXCEPTION 'Every matchup needs a writeup before publishing';
   END IF;
 
