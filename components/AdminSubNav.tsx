@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { focusRingClasses } from '@/lib/focusRing'
 
 type AdminSection = 'dashboard' | 'poll' | 'manage'
 
@@ -7,8 +8,7 @@ interface Props {
   showManage: boolean
 }
 
-const linkClasses =
-  'rounded-full px-3.5 py-1.5 text-sm font-medium transition-all duration-150 ease-out-expo whitespace-nowrap'
+const linkClasses = `rounded-full px-3.5 py-1.5 text-sm font-medium transition-all duration-150 ease-out-expo whitespace-nowrap ${focusRingClasses} active:scale-[0.97]`
 
 /**
  * Shared in-app navigation for the admin area, used on /admin, /admin/poll,

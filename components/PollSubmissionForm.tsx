@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Reorder, useDragControls } from 'framer-motion'
+import { Reorder, useDragControls, useReducedMotion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import type { Team, PollWeek, PollSubmission } from '@/lib/types/poll'
@@ -210,6 +210,7 @@ function RankingRow({
   onDragHandleDown,
 }: RankingRowProps) {
   const dragControls = useDragControls()
+  const reduceMotion = useReducedMotion()
   const interactiveHover = isDragging
     ? ''
     : 'hover:bg-gray-100 hover:text-ink dark:hover:bg-gray-800 dark:hover:text-gray-100'
@@ -223,8 +224,9 @@ function RankingRow({
         scale: 1.03,
         boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.25), 0 8px 10px -6px rgb(0 0 0 / 0.15)',
         zIndex: 1,
+        transition: springSnappy,
       }}
-      transition={springSnappy}
+      transition={reduceMotion ? { duration: 0 } : springSnappy}
       className={`flex items-center gap-3 rounded-card border border-gray-200 bg-white p-3 shadow-card
         transition-shadow duration-150 ease-out-expo
         dark:border-gray-800 dark:bg-gray-900 dark:shadow-card-dark ${isDragging ? '' : 'hover:shadow-raised dark:hover:shadow-raised-dark'}`}
@@ -255,8 +257,9 @@ function RankingRow({
           disabled={index === 0}
           aria-label={`Move ${ranking.team_name} up`}
           className={`flex h-9 w-9 items-center justify-center rounded-control text-gray-400
-            transition-all duration-150 ease-out-expo active:scale-90 disabled:pointer-events-none
-            disabled:opacity-25 ${interactiveHover}`}
+            transition-all duration-150 ease-out-expo active:scale-90 focus-visible:outline
+            focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2
+            disabled:pointer-events-none disabled:opacity-25 ${interactiveHover}`}
         >
           <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
             <path
@@ -272,8 +275,9 @@ function RankingRow({
           disabled={isLast}
           aria-label={`Move ${ranking.team_name} down`}
           className={`flex h-9 w-9 items-center justify-center rounded-control text-gray-400
-            transition-all duration-150 ease-out-expo active:scale-90 disabled:pointer-events-none
-            disabled:opacity-25 ${interactiveHover}`}
+            transition-all duration-150 ease-out-expo active:scale-90 focus-visible:outline
+            focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2
+            disabled:pointer-events-none disabled:opacity-25 ${interactiveHover}`}
         >
           <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
             <path

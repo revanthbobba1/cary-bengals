@@ -2,6 +2,7 @@
 
 import siteMetadata from '@/data/siteMetadata'
 import { useEffect, useState } from 'react'
+import { focusRingClasses } from '@/lib/focusRing'
 
 const ScrollTopAndComment = () => {
   const [show, setShow] = useState(false)
@@ -30,7 +31,7 @@ const ScrollTopAndComment = () => {
         <button
           aria-label="Scroll To Comment"
           onClick={handleScrollToComment}
-          className="rounded-full border border-gray-200 bg-white p-2.5 text-gray-500 shadow-card transition-all duration-150 ease-out-expo hover:-translate-y-0.5 hover:text-ink hover:shadow-raised active:scale-90 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:shadow-card-dark dark:hover:text-gray-100 dark:hover:shadow-raised-dark"
+          className={`rounded-full border border-gray-200 bg-white p-2.5 text-gray-500 shadow-card transition-all duration-150 ease-out-expo hover:-translate-y-0.5 hover:text-ink hover:shadow-raised ${focusRingClasses} active:scale-90 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:shadow-card-dark dark:hover:text-gray-100 dark:hover:shadow-raised-dark`}
         >
           <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
             <path

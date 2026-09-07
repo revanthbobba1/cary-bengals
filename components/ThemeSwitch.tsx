@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useTheme } from 'next-themes'
+import { focusRingClasses } from '@/lib/focusRing'
 
 const ThemeSwitch = () => {
   const [mounted, setMounted] = useState(false)
@@ -18,7 +19,7 @@ const ThemeSwitch = () => {
     <button
       aria-label="Toggle Dark Mode"
       onClick={() => setTheme(theme === 'dark' || resolvedTheme === 'dark' ? 'light' : 'dark')}
-      className="group flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 transition-all duration-150 ease-out-expo hover:bg-black/5 hover:text-ink active:scale-[0.93] dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-gray-100"
+      className={`group flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 transition-all duration-150 ease-out-expo hover:bg-black/5 hover:text-ink ${focusRingClasses} active:scale-90 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-gray-100`}
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"

@@ -1,6 +1,7 @@
 import { AlgoliaButton } from 'pliny/search/AlgoliaButton'
 import { KBarButton } from 'pliny/search/KBarButton'
 import siteMetadata from '@/data/siteMetadata'
+import { focusRingClasses } from '@/lib/focusRing'
 
 const SearchButton = () => {
   if (
@@ -13,7 +14,7 @@ const SearchButton = () => {
     return (
       <SearchButtonWrapper
         aria-label="Search"
-        className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 transition-all duration-150 ease-out-expo hover:bg-black/5 hover:text-ink active:scale-[0.93] dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-gray-100"
+        className={`flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 transition-all duration-150 ease-out-expo hover:bg-black/5 hover:text-ink ${focusRingClasses} active:scale-90 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-gray-100`}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
