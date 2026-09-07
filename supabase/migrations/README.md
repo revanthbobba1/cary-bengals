@@ -11,6 +11,14 @@ changes nothing about how they run.
 For current feature status and open issues, see `../../docs/POLL_SYSTEM_PLAN.md` (poll) and
 `../../docs/PREVIEWS_RECAPS_PLAN.md` (previews & recaps).
 
+## Testing RLS before merge
+
+`010` shipped with a real RLS gap that went undetected for months because every manual test was
+done as the commissioner, who bypasses RLS via a `FOR ALL` policy. `../tests/` holds
+`BEGIN; ... ROLLBACK;`-wrapped scripts that exercise every other role too, by forging
+`request.jwt.claims` rather than needing separate real accounts — see `../tests/verify_028.sql`
+for the pattern to copy for any future migration that adds RLS policies.
+
 ## Schema
 
 | File | What it does |
