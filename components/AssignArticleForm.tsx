@@ -41,6 +41,14 @@ export default function AssignArticleForm({ members, defaultSeasonYear }: Props)
     e.preventDefault()
     setError(null)
 
+    if (!Number.isInteger(seasonYear)) {
+      setError('Season Year must be a whole number.')
+      return
+    }
+    if (!Number.isInteger(weekNumber) || weekNumber < 1) {
+      setError('Week Number must be a whole number of at least 1.')
+      return
+    }
     if (!authorId) {
       setError('Choose a member to assign this week to.')
       return

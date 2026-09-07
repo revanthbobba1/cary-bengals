@@ -107,9 +107,14 @@ export default function ArticlesList({ articles, members }: Props) {
                   </td>
                   {showAssignee && (
                     <td className="p-2">
-                      {assignee
-                        ? getDisplayName(assignee.full_name, assignee.email, 'Unknown member')
-                        : 'Unassigned'}
+                      {!article.author_id
+                        ? 'Unassigned'
+                        : assignee
+                          ? getDisplayName(assignee.full_name, assignee.email, 'Unknown member')
+                          : // author_id is set but not in the current member list -- their admin
+                            // role was likely revoked since assignment, or list_league_members()
+                            // failed to load. Distinct from a genuinely unassigned article.
+                            'Assigned member no longer found'}
                     </td>
                   )}
                 </tr>

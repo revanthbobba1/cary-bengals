@@ -31,7 +31,10 @@ export default async function AdminArticlesPage() {
   if (!showManageLink) {
     query = query.eq('author_id', user.id)
   }
-  const { data: articles } = await query
+  const { data: articles, error: articlesError } = await query
+  if (articlesError) {
+    console.error('Failed to load articles:', articlesError)
+  }
 
   let members: { id: string; email: string; full_name: string | null }[] = []
   if (showManageLink) {
