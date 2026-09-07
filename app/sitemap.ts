@@ -1,18 +1,19 @@
 import { MetadataRoute } from 'next'
-import { allBlogs } from 'contentlayer/generated'
+import { getPublishedArticles } from '@/lib/supabase/articles'
 import siteMetadata from '@/data/siteMetadata'
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = siteMetadata.siteUrl
-  const blogRoutes = allBlogs.map((post) => ({
-    url: `${siteUrl}/${post.path}`,
-    lastModified: post.lastmod || post.date,
+  const articles = await getPublishedArticles()
+  const articleRoutes = articles.map((article) => ({
+    url: `${siteUrl}/previews-recaps/${article.slug}`,
+    lastModified: article.published_at ?? undefined,
   }))
 
-  const routes = ['', 'newsfeed', 'league-members', 'conferences', 'poll'].map((route) => ({
+  const routes = ['', 'previews-recaps', 'league-members', 'conferences', 'poll'].map((route) => ({
     url: `${siteUrl}/${route}`,
     lastModified: new Date().toISOString().split('T')[0],
   }))
 
-  return [...routes, ...blogRoutes]
+  return [...routes, ...articleRoutes]
 }

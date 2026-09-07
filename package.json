@@ -5,8 +5,8 @@
   "scripts": {
     "start": "next dev",
     "dev": "cross-env INIT_CWD=$PWD next dev",
-    "build": "cross-env INIT_CWD=$PWD next build && cross-env NODE_OPTIONS='--experimental-json-modules' node ./scripts/postbuild.mjs",
-    "build:netlify": "cross-env INIT_CWD=$PWD next build && cross-env NODE_OPTIONS='--experimental-json-modules' node ./scripts/postbuild.mjs",
+    "build": "cross-env INIT_CWD=$PWD next build",
+    "build:netlify": "cross-env INIT_CWD=$PWD next build",
     "serve": "next start",
     "analyze": "cross-env ANALYZE=true next build",
     "lint": "next lint --fix --dir pages --dir app --dir components --dir lib --dir layouts --dir scripts"
@@ -31,6 +31,7 @@
     "postcss": "^8.4.24",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "react-markdown": "^8",
     "reading-time": "1.5.0",
     "rehype-autolink-headings": "^6.1.0",
     "rehype-citation": "^1.0.2",

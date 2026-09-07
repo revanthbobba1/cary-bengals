@@ -428,7 +428,7 @@ any editor UI is built on top of the model.
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
 | **0 — Schema**    | Migration (tables, enums, indexes, **all** RLS policies, `publish_article` RPC), `lib/types/article.ts`, `writer` role, `lib/supabase/public.ts`                                                                                     | Nothing user-visible                                                                           |
 | **1 — Backfill**  | `scripts/import-articles.mjs`, seed migration, hand-fix pass, parity report                                                                                                                                                          | Nothing user-visible; DB now holds all 19 articles                                             |
-| **2 — Read path** | DB-backed `/newsfeed` + `/newsfeed/[...slug]`, `react-markdown`, home feed / sitemap / RSS route / search-index route re-pointed. **Delete** the MDX files, the Contentlayer `Blog` type, `scripts/rss.mjs`, `/newsfeed/page/[page]` | Site now served from Supabase; §2.3's pagination, double-`<h1>`, and stale-metadata bugs fixed |
+| **2 — Read path** ✅ | DB-backed `/previews-recaps` + `/previews-recaps/[...slug]` (renamed from `/newsfeed`, see §7.2), `react-markdown`, home feed / sitemap / RSS route / search-index route re-pointed. **Deleted** the MDX files, the Contentlayer `Blog` type, `scripts/rss.mjs`, `scripts/postbuild.mjs`, `/newsfeed/page/[page]` and the now-dead `ListLayout`/`PostLayout`/`PostSimple`/`PostBanner` | Site now served from Supabase; §2.3's pagination, double-`<h1>`, and stale-metadata bugs fixed. Search now also matches matchup team names and body text (closing another §2.3 gap) |
 | **3 — Editor**    | Commissioner assignment form; `/admin` assigned-draft card; `/admin/articles` list + editor, drag-reorder matchups, draft/publish, paste-import, `AdminSubNav` generalization, `revalidatePath` on publish                           | **The actual goal: publishing without a deploy**                                               |
 | **4 — Redesign**  | Hub season pills + week-paired grid; article scoreboard strip, matchup cards, sticky TOC, preview↔recap link, poll cross-link                                                                                                        | The presentation payoff                                                                        |
 
@@ -458,11 +458,18 @@ improvement.
   and models who is on recap duty. Accepted failure mode: an unassigned week has no writer until
   the commissioner assigns it.
 
+- **URLs renamed and slugs normalized (§4 above) — decided 2026-09-07, reversing this plan's
+  original recommendation.** `/newsfeed` → `/previews-recaps`; slugs went from spelled-out week
+  numbers (`week-one-preview`) to digits (`week-1-preview`). The original "keep existing URLs"
+  recommendation assumed something was live to preserve; verified before reversing it that there
+  are **zero GitHub Discussions** on this repo and **no Giscus env vars configured anywhere** (not
+  even `.env.local`), so no comment thread has ever existed to orphan, and there's no evidence of
+  external backlinks to this private 12-person league site. `article_slug()` (028) was updated in
+  `030_normalize_article_slugs.sql` to match, and `/newsfeed` now 404s with no redirect — not worth
+  building one given nothing live depends on the old paths.
+- **`/newsfeed` renamed to `/previews-recaps` everywhere — decided 2026-09-07.** Route, nav, and
+  metadata all now agree, closing the three-way inconsistency this section originally flagged.
+
 ### 7.2 Still open
 
-Flagged rather than assumed, because each one changes the work:
-
-1. **Keep existing URLs?** Recommended yes, via stored slugs — it preserves shared links and Giscus
-   threads. The alternative (`/previews-recaps/2025/week-1`) is cleaner but orphans both.
-2. **Does `/newsfeed` keep its name?** The nav already says "Previews & Recaps" while the route says
-   `newsfeed` and the metadata says "Blog". Worth settling on one name across all three.
+None currently — both items above were resolved during Phase 2.

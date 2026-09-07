@@ -1,9 +1,7 @@
-import { sortPosts, allCoreContent } from 'pliny/utils/contentlayer'
-import { allBlogs } from 'contentlayer/generated'
+import { getPublishedArticles } from '@/lib/supabase/articles'
 import Main from './Main'
 
 export default async function Page() {
-  const sortedPosts = sortPosts(allBlogs)
-  const posts = allCoreContent(sortedPosts)
+  const posts = await getPublishedArticles()
   return <Main posts={posts} />
 }
