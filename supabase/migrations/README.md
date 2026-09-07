@@ -77,6 +77,7 @@ for the pattern to copy for any future migration that adds RLS policies.
 | File | What it does |
 |---|---|
 | `028_create_article_tables.sql` | Phase 0 of `../../docs/PREVIEWS_RECAPS_PLAN.md`: `articles` + `article_matchups`, replacing the flat MDX files in `data/newsfeed/`. Matchups are rows rather than a markdown blob because the content is already rigidly structured (5-6 matchup sections per article, identical shape across all 19 files) — that's what makes the scoreboard UI, season filtering, and eventual ESPN autofill possible. Ships **all** RLS for both tables in this one file, deliberately: `010` split the poll's policies across migrations and silently dropped members' SELECT for weeks. Writeups are assignment-gated — there is no `authenticated` INSERT policy at all, so only the commissioner (`FOR ALL`) can create an article, and an "assignment" is just an empty draft with `author_id` set. Also adds `assign_article()`, `publish_article()` (validates completeness + stamps `published_at` atomically, the same reasoning as `020`), `article_slug()`, and the first real `updated_at` trigger in this schema. |
+| `031_list_league_members.sql` | Phase 3a: `list_league_members()` — `SECURITY DEFINER` function powering the commissioner's "assign an article" member dropdown, since `auth.users` isn't exposed to PostgREST. Same pattern as `017`/`018`. (Numbered 031, not 029/030, because those are taken by the in-review Phase 1/2 branches — reconcile numbering on merge if needed.) |
 
 ## Still outstanding
 

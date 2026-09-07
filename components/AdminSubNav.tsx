@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { focusRingClasses } from '@/lib/focusRing'
 
-type AdminSection = 'dashboard' | 'poll' | 'manage'
+type AdminSection = 'dashboard' | 'poll' | 'manage' | 'articles'
 
 interface Props {
   active: AdminSection
@@ -12,12 +12,15 @@ const linkClasses = `rounded-full px-3.5 py-1.5 text-sm font-medium transition-a
 
 /**
  * Shared in-app navigation for the admin area, used on /admin, /admin/poll,
- * and /admin/poll/manage so a user never has to fall back to the browser's
- * back/forward buttons to move between them.
+ * /admin/poll/manage, and /admin/articles so a user never has to fall back to
+ * the browser's back/forward buttons to move between them.
  *
  * "Manage Poll Weeks" is pushed to the right and kept visually distinct
  * (only rendered for commissioners) to reinforce that it's a different kind
  * of action than the member-facing "Dashboard" / "Submit Rankings" links.
+ * "Articles" has no commissioner-only counterpart -- /admin/articles is a
+ * single route for everyone, since RLS already scopes what each role's query
+ * returns (see that page for details), so this link is always shown.
  */
 export default function AdminSubNav({ active, showManage }: Props) {
   return (
@@ -46,6 +49,17 @@ export default function AdminSubNav({ active, showManage }: Props) {
         }`}
       >
         Submit Rankings
+      </Link>
+      <Link
+        href="/admin/articles"
+        aria-current={active === 'articles' ? 'page' : undefined}
+        className={`${linkClasses} ${
+          active === 'articles'
+            ? 'bg-primary-500 text-white'
+            : 'text-gray-600 hover:bg-gray-100 hover:text-ink dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100'
+        }`}
+      >
+        Articles
       </Link>
       {showManage && (
         <Link

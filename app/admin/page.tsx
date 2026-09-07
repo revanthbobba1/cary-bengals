@@ -2,21 +2,12 @@ import { genPageMetadata } from 'app/seo'
 import { createClient } from '@/lib/supabase/server'
 import { isCommissioner } from '@/lib/supabase/roles'
 import { formatDeadline } from '@/lib/formatDeadline'
+import { getDisplayName } from '@/lib/displayName'
 import type { PollWeek, SubmissionStatus } from '@/lib/types/poll'
+import type { Article } from '@/lib/types/article'
 import Link from 'next/link'
 import AdminSubNav from '@/components/AdminSubNav'
 import { focusRingClasses } from '@/lib/focusRing'
-
-// Real name is only available when a user logged in via Google OAuth; email/password
-// accounts created via Dashboard invite have no name set. Email is always present, so
-// it's the reliable fallback (local part only) before finally falling back to a fixed string.
-function getDisplayName(
-  fullName: string | null | undefined,
-  email: string | null | undefined,
-  fallback: string
-): string {
-  return fullName || email?.split('@')[0] || fallback
-}
 
 export const metadata = genPageMetadata({ title: 'Admin Dashboard' })
 
@@ -116,6 +107,27 @@ export default async function AdminPage() {
     }
   }
 
+  // "Do I have a draft assigned?" -- explicitly filtered to this user's own rows even
+  // though RLS would already restrict a plain admin to them: the commissioner's FOR ALL
+  // policy sees every draft in the league, and this card means "assigned to *you*", not
+  // "everything outstanding" (that duty-roster view is /admin/articles, not this card).
+  let myDrafts: Article[] = []
+  if (user) {
+    const { data: draftRows, error: draftsError } = await supabase
+      .from('articles')
+      .select('*')
+      .eq('status', 'draft')
+      .eq('author_id', user.id)
+      .order('season_year', { ascending: false })
+      .order('week_number', { ascending: false })
+
+    if (draftsError) {
+      console.error('Failed to load assigned drafts:', draftsError)
+    } else {
+      myDrafts = draftRows ?? []
+    }
+  }
+
   return (
     <div>
       <div className="space-y-2 pb-8 pt-6 md:space-y-5">
@@ -203,6 +215,45 @@ export default async function AdminPage() {
               <>
                 <h3 className="text-xl font-bold mb-4">Poll Status</h3>
                 <p className="text-gray-600 dark:text-gray-400">No active poll at this time.</p>
+              </>
+            )}
+          </div>
+        </section>
+
+        <section aria-labelledby="articles-section-heading">
+          <h2
+            id="articles-section-heading"
+            className="mb-4 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"
+          >
+            Articles
+          </h2>
+
+          <div className="rounded-card border border-gray-200 bg-white p-6 shadow-card dark:border-gray-800 dark:bg-gray-900 dark:shadow-card-dark">
+            {myDrafts.length > 0 ? (
+              <>
+                <h3 className="text-xl font-bold mb-4">
+                  {myDrafts.length === 1
+                    ? 'You have a draft assigned'
+                    : `You have ${myDrafts.length} drafts assigned`}
+                </h3>
+                <ul className="mb-6 space-y-1 text-gray-600 dark:text-gray-400">
+                  {myDrafts.map((article) => (
+                    <li key={article.id}>
+                      {article.season_year} Week {article.week_number} {article.kind}
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href="/admin/articles"
+                  className={`inline-flex items-center rounded-full bg-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_6px_16px_-4px_rgba(249,115,22,0.4)] transition-all duration-150 ease-out-expo hover:-translate-y-px hover:bg-primary-600 hover:shadow-[0_8px_20px_-4px_rgba(249,115,22,0.5)] ${focusRingClasses} active:scale-[0.97]`}
+                >
+                  View Your Articles
+                </Link>
+              </>
+            ) : (
+              <>
+                <h3 className="text-xl font-bold mb-4">Articles</h3>
+                <p className="text-gray-600 dark:text-gray-400">No article assigned right now.</p>
               </>
             )}
           </div>
