@@ -3275,6 +3275,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/prop-types@npm:^15.0.0":
+  version: 15.7.15
+  resolution: "@types/prop-types@npm:15.7.15"
+  checksum: 31aa2f59b28f24da6fb4f1d70807dae2aedfce090ec63eaf9ea01727a9533ef6eaf017de5bff99fbccad7d1c9e644f52c6c2ba30869465dd22b1a7221c29f356
+  languageName: node
+  linkType: hard
+
 "@types/react@npm:^18.2.14":
   version: 18.3.7
   resolution: "@types/react@npm:18.3.7"
@@ -4075,6 +4082,7 @@ __metadata:
     prettier-plugin-tailwindcss: ^0.4.1
     react: 18.2.0
     react-dom: 18.2.0
+    react-markdown: ^8
     reading-time: 1.5.0
     rehype-autolink-headings: ^6.1.0
     rehype-citation: ^1.0.2
@@ -9396,7 +9404,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prop-types@npm:^15.8.1":
+"prop-types@npm:^15.0.0, prop-types@npm:^15.8.1":
   version: 15.8.1
   resolution: "prop-types@npm:15.8.1"
   dependencies:
@@ -9482,6 +9490,39 @@ __metadata:
   version: 16.13.1
   resolution: "react-is@npm:16.13.1"
   checksum: f7a19ac3496de32ca9ae12aa030f00f14a3d45374f1ceca0af707c831b2a6098ef0d6bdae51bd437b0a306d7f01d4677fcc8de7c0d331eb47ad0f46130e53c5f
+  languageName: node
+  linkType: hard
+
+"react-is@npm:^18.0.0":
+  version: 18.3.1
+  resolution: "react-is@npm:18.3.1"
+  checksum: e20fe84c86ff172fc8d898251b7cc2c43645d108bf96d0b8edf39b98f9a2cae97b40520ee7ed8ee0085ccc94736c4886294456033304151c3f94978cec03df21
+  languageName: node
+  linkType: hard
+
+"react-markdown@npm:^8":
+  version: 8.0.7
+  resolution: "react-markdown@npm:8.0.7"
+  dependencies:
+    "@types/hast": ^2.0.0
+    "@types/prop-types": ^15.0.0
+    "@types/unist": ^2.0.0
+    comma-separated-tokens: ^2.0.0
+    hast-util-whitespace: ^2.0.0
+    prop-types: ^15.0.0
+    property-information: ^6.0.0
+    react-is: ^18.0.0
+    remark-parse: ^10.0.0
+    remark-rehype: ^10.0.0
+    space-separated-tokens: ^2.0.0
+    style-to-object: ^0.4.0
+    unified: ^10.0.0
+    unist-util-visit: ^4.0.0
+    vfile: ^5.0.0
+  peerDependencies:
+    "@types/react": ">=16"
+    react: ">=16"
+  checksum: 0f3e570975134a3382c3fe5189e04e742ae154941463bdfaab2293319da1f1585cb9b75b6f07d99f514c4d728d69cc1af3c96ab37df90003b3bcc210dd0001ba
   languageName: node
   linkType: hard
 
@@ -10800,7 +10841,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"style-to-object@npm:^0.4.1":
+"style-to-object@npm:^0.4.0, style-to-object@npm:^0.4.1":
   version: 0.4.4
   resolution: "style-to-object@npm:0.4.4"
   dependencies:

@@ -1,18 +1,27 @@
 import { MetadataRoute } from 'next'
-import { allBlogs } from 'contentlayer/generated'
+import { getPublishedArticles } from '@/lib/supabase/articles'
 import siteMetadata from '@/data/siteMetadata'
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const siteUrl = siteMetadata.siteUrl
-  const blogRoutes = allBlogs.map((post) => ({
-    url: `${siteUrl}/${post.path}`,
-    lastModified: post.lastmod || post.date,
-  }))
+export const revalidate = 300
 
-  const routes = ['', 'newsfeed', 'league-members', 'conferences', 'poll'].map((route) => ({
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const siteUrl = siteMetadata.siteUrl
+
+  let articleRoutes: MetadataRoute.Sitemap = []
+  try {
+    const articles = await getPublishedArticles()
+    articleRoutes = articles.map((article) => ({
+      url: `${siteUrl}/previews-recaps/${article.slug}`,
+      lastModified: article.published_at ?? undefined,
+    }))
+  } catch (error) {
+    console.error('Failed to load published articles for the sitemap:', error)
+  }
+
+  const routes = ['', 'previews-recaps', 'league-members', 'conferences', 'poll'].map((route) => ({
     url: `${siteUrl}/${route}`,
     lastModified: new Date().toISOString().split('T')[0],
   }))
 
-  return [...routes, ...blogRoutes]
+  return [...routes, ...articleRoutes]
 }
