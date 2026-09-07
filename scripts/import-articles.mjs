@@ -546,6 +546,18 @@ function parseArticle(relPath) {
 
   const authorSlug = resolveAuthorSlug(frontmatter, warnings)
 
+  // All 19 files quote their frontmatter date ('2023-09-07'), so gray-matter/js-yaml hands back a
+  // plain string. An unquoted date would instead parse as a JS Date, and String(Date) produces a
+  // locale/timezone-dependent string, not an ISO date -- so guard against that explicitly rather
+  // than trusting every future file to quote it.
+  let publishedAt = frontmatter.date
+  if (publishedAt instanceof Date) {
+    warnings.push(
+      `frontmatter "date" parsed as a Date object (likely unquoted in the file) -- normalized to ${publishedAt.toISOString().slice(0, 10)}, please confirm`
+    )
+    publishedAt = publishedAt.toISOString().slice(0, 10)
+  }
+
   const article = {
     id: randomUUID(),
     seasonYear: identity.season,
@@ -557,7 +569,7 @@ function parseArticle(relPath) {
     introMarkdown: null,
     outroMarkdown,
     status: frontmatter.draft ? 'draft' : 'published',
-    publishedAt: frontmatter.date,
+    publishedAt,
     authorSlug,
   }
 

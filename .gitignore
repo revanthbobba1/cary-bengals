@@ -59,3 +59,4 @@ backend/routes/__pycache__
 
 # Supabase CLI local link state
 supabase/.temp
+review.md
