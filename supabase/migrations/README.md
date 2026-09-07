@@ -8,7 +8,8 @@ intent — deleting an "old" one can silently break what a fresh environment wou
 `002` below for a concrete example). This file is just a map to make 14+ files navigable; it
 changes nothing about how they run.
 
-For current feature status and open issues, see `../../docs/POLL_SYSTEM_PLAN.md`.
+For current feature status and open issues, see `../../docs/POLL_SYSTEM_PLAN.md` (poll) and
+`../../docs/PREVIEWS_RECAPS_PLAN.md` (previews & recaps).
 
 ## Schema
 
@@ -62,6 +63,12 @@ For current feature status and open issues, see `../../docs/POLL_SYSTEM_PLAN.md`
 | `025_auto_grant_admin_role.sql` | `BEFORE INSERT` trigger on `auth.users` that grants every new signup `admin` automatically (promoting a legacy singular `role` string into the `roles` array first, if present) — closes the gap `011`/`013` left, where only users existing *at the time* were backfilled and every invite since had to be fixed by hand. Also backfills the one account that slipped through before the trigger existed. |
 | `026_gate_admin_grant_on_invite.sql` | Adds a `WHEN (NEW.invited_at IS NOT NULL)` guard to `025`'s trigger, so it only fires for Dashboard-invited accounts, not any future self-service signup (e.g. if the Supabase project's "allow signups" setting were ever toggled on) — enforces the invite-only design intent at the database level instead of relying solely on that external setting. |
 | `027_fix_recalculate_trigger_search_path.sql` | Root-cause fix for poll submissions failing outright: `submit_poll_ballot` (020) runs with `SET search_path = ''`, which stays in effect for the statement-level triggers (016) its own INSERT/DELETE fire. Neither `trigger_recalculate_poll_results()` nor `recalculate_poll_results()` (004) schema-qualified their references, so every unqualified name inside them failed to resolve under the inherited empty search_path (`42883`, surfaced to PostgREST as a 404) — every submission has been hitting this since `020` first shipped. Gives both functions their own `SET search_path = ''` and fully schema-qualifies every reference so they no longer depend on inherited search_path at all. |
+
+## Previews & recaps
+
+| File | What it does |
+|---|---|
+| `028_create_article_tables.sql` | Phase 0 of `../../docs/PREVIEWS_RECAPS_PLAN.md`: `articles` + `article_matchups`, replacing the flat MDX files in `data/newsfeed/`. Matchups are rows rather than a markdown blob because the content is already rigidly structured (5-6 matchup sections per article, identical shape across all 19 files) — that's what makes the scoreboard UI, season filtering, and eventual ESPN autofill possible. Ships **all** RLS for both tables in this one file, deliberately: `010` split the poll's policies across migrations and silently dropped members' SELECT for weeks. Writeups are assignment-gated — there is no `authenticated` INSERT policy at all, so only the commissioner (`FOR ALL`) can create an article, and an "assignment" is just an empty draft with `author_id` set. Also adds `assign_article()`, `publish_article()` (validates completeness + stamps `published_at` atomically, the same reasoning as `020`), `article_slug()`, and the first real `updated_at` trigger in this schema. |
 
 ## Still outstanding
 
