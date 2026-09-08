@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { genPageMetadata } from 'app/seo'
 import { createClient } from '@/lib/supabase/server'
 import { isCommissioner } from '@/lib/supabase/roles'
+import AdminSubNav from '@/components/AdminSubNav'
 import ArticleEditor from '@/components/ArticleEditor'
 
 export const metadata = genPageMetadata({ title: 'Edit Article' })
@@ -25,8 +26,9 @@ export default async function EditArticlePage({ params }: { params: { id: string
     console.error('Failed to load article:', articleError)
   }
 
+  const showManageLink = isCommissioner(user)
   const isOwner = article?.author_id === user.id
-  const canEdit = isOwner || isCommissioner(user)
+  const canEdit = isOwner || showManageLink
 
   // Deliberately the same message whether the article doesn't exist or just isn't the viewer's
   // (RLS already prevents the query above from returning someone else's draft at all -- this
@@ -35,6 +37,7 @@ export default async function EditArticlePage({ params }: { params: { id: string
   if (!article || !canEdit) {
     return (
       <div className="py-12 max-w-4xl mx-auto">
+        <AdminSubNav active="articles" showManage={showManageLink} />
         <h1 className="text-2xl font-bold tracking-tight text-ink dark:text-gray-100 mb-2">
           Edit Article
         </h1>
@@ -49,11 +52,8 @@ export default async function EditArticlePage({ params }: { params: { id: string
 
   return (
     <div className="py-12 max-w-4xl mx-auto">
-      <ArticleEditor
-        article={articleFields}
-        matchups={matchups}
-        isCommissioner={isCommissioner(user)}
-      />
+      <AdminSubNav active="articles" showManage={showManageLink} />
+      <ArticleEditor article={articleFields} matchups={matchups} isCommissioner={showManageLink} />
     </div>
   )
 }
