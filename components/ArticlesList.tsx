@@ -1,8 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import Link from '@/components/Link'
 import type { Article } from '@/lib/types/article'
 import { getDisplayName } from '@/lib/displayName'
+import { focusRingClasses } from '@/lib/focusRing'
 
 interface LeagueMember {
   id: string
@@ -74,13 +76,14 @@ export default function ArticlesList({ articles, members }: Props) {
               <th className="text-left p-2">Kind</th>
               <th className="text-left p-2">Status</th>
               {showAssignee && <th className="text-left p-2">Assigned To</th>}
+              <th className="text-left p-2"></th>
             </tr>
           </thead>
           <tbody>
             {articlesForSelectedYear.length === 0 && (
               <tr>
                 <td
-                  colSpan={showAssignee ? 4 : 3}
+                  colSpan={showAssignee ? 5 : 4}
                   className="p-2 text-center text-gray-500 dark:text-gray-400"
                 >
                   {showAssignee
@@ -117,6 +120,14 @@ export default function ArticlesList({ articles, members }: Props) {
                             'Assigned member no longer found'}
                     </td>
                   )}
+                  <td className="p-2">
+                    <Link
+                      href={`/admin/articles/${article.id}/edit`}
+                      className={`rounded text-sm font-medium text-primary-500 hover:text-primary-600 ${focusRingClasses} dark:hover:text-primary-400`}
+                    >
+                      Edit
+                    </Link>
+                  </td>
                 </tr>
               )
             })}
