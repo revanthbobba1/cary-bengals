@@ -14,12 +14,16 @@ export default async function EditArticlePage({ params }: { params: { id: string
   } = await supabase.auth.getUser()
   if (!user) redirect(`/login?redirectTo=/admin/articles/${params.id}/edit`)
 
-  const { data: article } = await supabase
+  const { data: article, error: articleError } = await supabase
     .from('articles')
     .select('*, article_matchups(*)')
     .eq('id', params.id)
     .order('position', { foreignTable: 'article_matchups' })
     .maybeSingle()
+
+  if (articleError) {
+    console.error('Failed to load article:', articleError)
+  }
 
   const isOwner = article?.author_id === user.id
   const canEdit = isOwner || isCommissioner(user)

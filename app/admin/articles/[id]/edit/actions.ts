@@ -27,8 +27,18 @@ export async function unpublishArticleAction(
   slug: string
 ): Promise<{ error: string | null }> {
   const supabase = createClient()
-  const { error } = await supabase.from('articles').update({ status: 'draft' }).eq('id', articleId)
+  const { data, error } = await supabase
+    .from('articles')
+    .update({ status: 'draft' })
+    .eq('id', articleId)
+    .select('id')
   if (error) return { error: error.message }
+  // RLS silently filters a blocked update rather than erroring (same gotcha
+  // ArticleEditor's handleSaveDraft already guards against) -- without this check, an
+  // unauthorized caller invoking this action directly would see a false "success".
+  if (!data || data.length === 0) {
+    return { error: 'Could not unpublish -- you do not have permission to edit this article.' }
+  }
 
   revalidatePath('/previews-recaps')
   revalidatePath(`/previews-recaps/${slug}`)
