@@ -1,5 +1,4 @@
 import { defineDocumentType, ComputedFields, makeSource } from 'contentlayer/source-files'
-import { writeFileSync } from 'fs'
 import readingTime from 'reading-time'
 import GithubSlugger from 'github-slugger'
 import path from 'path'
@@ -19,8 +18,6 @@ import rehypeKatex from 'rehype-katex'
 import rehypeCitation from 'rehype-citation'
 import rehypePrismPlus from 'rehype-prism-plus'
 import rehypePresetMinify from 'rehype-preset-minify'
-import siteMetadata from './data/siteMetadata'
-import { allCoreContent, sortPosts } from 'pliny/utils/contentlayer.js'
 
 const root = process.cwd()
 const isProduction = process.env.NODE_ENV === 'production'
@@ -42,54 +39,6 @@ const computedFields: ComputedFields = {
   toc: { type: 'string', resolve: (doc) => extractTocHeadings(doc.body.raw) },
 }
 
-
-function createSearchIndex(allBlogs) {
-  if (
-    siteMetadata?.search?.provider === 'kbar' &&
-    siteMetadata.search.kbarConfig.searchDocumentsPath
-  ) {
-    writeFileSync(
-      `public/${siteMetadata.search.kbarConfig.searchDocumentsPath}`,
-      JSON.stringify(allCoreContent(sortPosts(allBlogs)))
-    )
-    console.log('Local search index generated...')
-  }
-}
-
-export const Blog = defineDocumentType(() => ({
-  name: 'Blog',
-  filePathPattern: 'newsfeed/**/*.mdx',
-  contentType: 'mdx',
-  fields: {
-    title: { type: 'string', required: true },
-    date: { type: 'date', required: true },
-    lastmod: { type: 'date' },
-    draft: { type: 'boolean' },
-    summary: { type: 'string' },
-    images: { type: 'json' },
-    authors: { type: 'list', of: { type: 'string' } },
-    layout: { type: 'string' },
-    bibliography: { type: 'string' },
-    canonicalUrl: { type: 'string' },
-  },
-  computedFields: {
-    ...computedFields,
-    structuredData: {
-      type: 'json',
-      resolve: (doc) => ({
-        '@context': 'https://schema.org',
-        '@type': 'BlogPosting',
-        headline: doc.title,
-        datePublished: doc.date,
-        dateModified: doc.lastmod || doc.date,
-        description: doc.summary,
-        image: doc.images ? doc.images[0] : siteMetadata.socialBanner,
-        url: `${siteMetadata.siteUrl}/${doc._raw.flattenedPath}`,
-      }),
-    },
-  },
-}))
-
 export const Authors = defineDocumentType(() => ({
   name: 'Authors',
   filePathPattern: 'authors/**/*.mdx',
@@ -110,7 +59,7 @@ export const Authors = defineDocumentType(() => ({
 
 export default makeSource({
   contentDirPath: 'data',
-  documentTypes: [Blog, Authors],
+  documentTypes: [Authors],
   mdx: {
     cwd: process.cwd(),
     remarkPlugins: [
@@ -128,9 +77,5 @@ export default makeSource({
       [rehypePrismPlus, { defaultLanguage: 'js', ignoreMissing: true }],
       rehypePresetMinify,
     ],
-  },
-  onSuccess: async (importData) => {
-    const { allBlogs } = await importData()
-    createSearchIndex(allBlogs)
   },
 })
