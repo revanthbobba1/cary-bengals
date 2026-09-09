@@ -32,6 +32,45 @@ export default async function AdminPage() {
 
   const showManageLink = isCommissioner(user)
 
+  // The four queries below are all independent of each other once openWeek/user/showManageLink
+  // are known (none reads another's result), so they're fired together instead of one-at-a-time
+  // -- sequential round trips to Supabase were the largest contributor to this page feeling slow,
+  // since each one pays the full network latency rather than all of them sharing it.
+  const [teamCountRes, userSubmissionsRes, leagueStatusRes, myDraftsRes] = await Promise.all([
+    openWeek
+      ? supabase
+          .from('teams')
+          .select('id', { count: 'exact', head: true })
+          .eq('season_year', openWeek.season_year)
+      : null,
+    openWeek && user
+      ? supabase
+          .from('poll_submissions')
+          .select('submitted_at, rank')
+          .eq('poll_week_id', openWeek.id)
+          .eq('user_id', user.id)
+      : null,
+    // League-wide "who has/hasn't submitted" — commissioner only. The RPC itself enforces the
+    // commissioner check server-side (SECURITY DEFINER function reading the JWT), this is just
+    // avoiding a pointless call for members who'd get an error back anyway.
+    openWeek && showManageLink
+      ? supabase.rpc('get_poll_week_submission_status', { p_poll_week_id: openWeek.id })
+      : null,
+    // "Do I have a draft assigned?" -- explicitly filtered to this user's own rows even
+    // though RLS would already restrict a plain admin to them: the commissioner's FOR ALL
+    // policy sees every draft in the league, and this card means "assigned to *you*", not
+    // "everything outstanding" (that duty-roster view is /admin/articles, not this card).
+    user
+      ? supabase
+          .from('articles')
+          .select('*')
+          .eq('status', 'draft')
+          .eq('author_id', user.id)
+          .order('season_year', { ascending: false })
+          .order('week_number', { ascending: false })
+      : null,
+  ])
+
   // Shared by both the personal card and the commissioner list below — both need "how many
   // teams make up this season's full roster" to tell a genuinely current submission apart
   // from a stale one left over from before the roster grew (see migration 024). Compares
@@ -42,16 +81,11 @@ export default async function AdminPage() {
   // misreport a transient DB error as "the roster changed" or falsely mark a non-submitter
   // as having submitted.
   let resolvedTeamCount: number | null = null
-  if (openWeek) {
-    const { count: teamCount, error: teamCountError } = await supabase
-      .from('teams')
-      .select('id', { count: 'exact', head: true })
-      .eq('season_year', openWeek.season_year)
-
-    if (teamCountError) {
-      console.error('Failed to load team count:', teamCountError)
+  if (teamCountRes) {
+    if (teamCountRes.error) {
+      console.error('Failed to load team count:', teamCountRes.error)
     } else {
-      resolvedTeamCount = teamCount ?? 0
+      resolvedTeamCount = teamCountRes.count ?? 0
     }
   }
 
@@ -64,14 +98,9 @@ export default async function AdminPage() {
   } | null = null
 
   if (openWeek && user) {
-    const { data: userSubmissions, error: submissionError } = await supabase
-      .from('poll_submissions')
-      .select('submitted_at, rank')
-      .eq('poll_week_id', openWeek.id)
-      .eq('user_id', user.id)
-
-    if (submissionError) {
-      console.error('Failed to load submission status:', submissionError)
+    const userSubmissions = userSubmissionsRes?.data
+    if (userSubmissionsRes?.error) {
+      console.error('Failed to load submission status:', userSubmissionsRes.error)
     }
 
     // Matches get_poll_week_submission_status's (017) floor-of-1 threshold, so a genuinely
@@ -88,43 +117,23 @@ export default async function AdminPage() {
     }
   }
 
-  // League-wide "who has/hasn't submitted" — commissioner only. The RPC itself enforces the
-  // commissioner check server-side (SECURITY DEFINER function reading the JWT), this is just
-  // avoiding a pointless call for members who'd get an error back anyway.
   let leagueStatus: SubmissionStatus[] | null = null
   let leagueStatusError = false
-  if (openWeek && showManageLink) {
-    const { data: statusRows, error: statusError } = await supabase.rpc(
-      'get_poll_week_submission_status',
-      { p_poll_week_id: openWeek.id }
-    )
-
-    if (statusError) {
-      console.error('Failed to load league submission status:', statusError)
+  if (leagueStatusRes) {
+    if (leagueStatusRes.error) {
+      console.error('Failed to load league submission status:', leagueStatusRes.error)
       leagueStatusError = true
     } else {
-      leagueStatus = statusRows
+      leagueStatus = leagueStatusRes.data
     }
   }
 
-  // "Do I have a draft assigned?" -- explicitly filtered to this user's own rows even
-  // though RLS would already restrict a plain admin to them: the commissioner's FOR ALL
-  // policy sees every draft in the league, and this card means "assigned to *you*", not
-  // "everything outstanding" (that duty-roster view is /admin/articles, not this card).
   let myDrafts: Article[] = []
-  if (user) {
-    const { data: draftRows, error: draftsError } = await supabase
-      .from('articles')
-      .select('*')
-      .eq('status', 'draft')
-      .eq('author_id', user.id)
-      .order('season_year', { ascending: false })
-      .order('week_number', { ascending: false })
-
-    if (draftsError) {
-      console.error('Failed to load assigned drafts:', draftsError)
+  if (myDraftsRes) {
+    if (myDraftsRes.error) {
+      console.error('Failed to load assigned drafts:', myDraftsRes.error)
     } else {
-      myDrafts = draftRows ?? []
+      myDrafts = myDraftsRes.data ?? []
     }
   }
 

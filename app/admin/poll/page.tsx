@@ -37,25 +37,36 @@ export default async function AdminPollPage() {
     )
   }
 
-  // Get teams for this season with their current records from last week's poll
-  const { data: teams } = await supabase
-    .from('teams')
-    .select('*')
-    .eq('season_year', openWeek.season_year)
-    .order('name')
+  // Teams, the prior-week-results lookup, and this user's existing submission are all
+  // independent of each other -- run them together instead of one sequential round trip
+  // apiece, which was the biggest contributor to this page feeling slow.
+  const [{ data: teams }, { data: existingSubmission }, { data: previousWeekResults }] =
+    await Promise.all([
+      // Get teams for this season with their current records from last week's poll
+      supabase.from('teams').select('*').eq('season_year', openWeek.season_year).order('name'),
+      // Check if user has already submitted
+      supabase
+        .from('poll_submissions')
+        .select('id, team_id, rank')
+        .eq('poll_week_id', openWeek.id)
+        .eq('user_id', user.id),
+      // Get team records from previous week's results (if available) -- a genuine two-step
+      // chain (need the previous week's id before its results), so this one branch still
+      // pays two sequential round trips, but no longer blocks the two queries above.
+      (async () => {
+        const prevWeekData = await supabase
+          .from('poll_weeks')
+          .select('id')
+          .eq('season_year', openWeek.season_year)
+          .eq('week_number', openWeek.week_number - 1)
+          .maybeSingle()
 
-  // Get team records from previous week's results (if available)
-  const prevWeekData = await supabase
-    .from('poll_weeks')
-    .select('id')
-    .eq('season_year', openWeek.season_year)
-    .eq('week_number', openWeek.week_number - 1)
-    .maybeSingle()
-
-  const { data: previousWeekResults } = await supabase
-    .from('poll_results')
-    .select('team_id, team_record, final_rank')
-    .eq('poll_week_id', prevWeekData?.data?.id || '')
+        return supabase
+          .from('poll_results')
+          .select('team_id, team_record, final_rank')
+          .eq('poll_week_id', prevWeekData?.data?.id || '')
+      })(),
+    ])
 
   // Create a plain object of team records (not Map - Maps don't serialize to client)
   const teamRecords = Object.fromEntries(
@@ -64,13 +75,6 @@ export default async function AdminPollPage() {
       { record: r.team_record, prevRank: r.final_rank },
     ]) || []
   )
-
-  // Check if user has already submitted
-  const { data: existingSubmission } = await supabase
-    .from('poll_submissions')
-    .select('id, team_id, rank')
-    .eq('poll_week_id', openWeek.id)
-    .eq('user_id', user.id)
 
   return (
     <div className="py-12 max-w-4xl mx-auto">
