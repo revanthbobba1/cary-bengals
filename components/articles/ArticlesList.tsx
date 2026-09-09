@@ -1,10 +1,11 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useTransition } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import ArticleCard from './ArticleCard'
 import ArticleGridCard from './ArticleGridCard'
 import { focusRingClasses } from '@/lib/focusRing'
+import { scrollBehavior } from '@/lib/motion'
 import type { PublishedArticleSummary } from '@/lib/supabase/articles'
 
 interface WeekGroup {
@@ -33,6 +34,8 @@ export default function ArticlesList({
   )
   const router = useRouter()
   const pathname = usePathname()
+  const [isPending, startTransition] = useTransition()
+  const [pendingSeason, setPendingSeason] = useState<number | null>(null)
 
   // The season lives in the URL rather than in component state, so it survives a Back from an
   // article (client component state does not) and so a filtered view can be linked to. `season`
@@ -40,13 +43,26 @@ export default function ArticlesList({
   // rather than correcting a bad value after the fact, also subsumes the old re-sync effect: a
   // season with no articles left, or one typed into the URL by hand, just renders as the newest
   // one instead of showing an empty grid until an effect fixes it.
-  const selectedSeason = seasons.includes(season) ? season : seasons[0]
+  const resolvedSeason = seasons.includes(season) ? season : seasons[0]
+
+  // Since `/articles` is now dynamic, updating the URL is a server round-trip that re-fetches the
+  // whole article list. Waiting for it would make a pill click feel dead -- no highlight, no grid
+  // change -- for as long as a cold function or a slow connection takes. Every season's articles
+  // are already on the client, so render the click immediately and let the URL catch up behind it.
+  // Reading the optimistic value only while the transition is pending means it can't go stale: it
+  // is ignored the moment the real `season` prop lands, including when that happens via Back.
+  const selectedSeason = isPending && pendingSeason !== null ? pendingSeason : resolvedSeason
 
   const selectSeason = (year: number) => {
+    setPendingSeason(year)
     // The newest season is the default, so it stays out of the URL and /articles keeps a clean URL.
     // `replace`, not `push`: flicking through pills shouldn't bury the previous page under a pile
     // of history entries, and Back from an article still returns to whichever season was showing.
-    router.replace(year === seasons[0] ? pathname : `${pathname}?season=${year}`, { scroll: false })
+    startTransition(() => {
+      router.replace(year === seasons[0] ? pathname : `${pathname}?season=${year}`, {
+        scroll: false,
+      })
+    })
   }
 
   const weekGroups = useMemo<WeekGroup[]>(() => {
@@ -147,7 +163,7 @@ export default function ArticlesList({
                     if (!e.target.value) return
                     document
                       .getElementById(`week-${e.target.value}`)
-                      ?.scrollIntoView({ behavior: 'smooth' })
+                      ?.scrollIntoView({ behavior: scrollBehavior() })
                   }}
                   className={selectClasses}
                 >
