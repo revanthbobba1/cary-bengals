@@ -3,6 +3,7 @@
 import siteMetadata from '@/data/siteMetadata'
 import { useEffect, useState } from 'react'
 import { focusRingClasses } from '@/lib/focusRing'
+import { scrollBehavior } from '@/lib/motion'
 
 const ScrollTopAndComment = () => {
   const [show, setShow] = useState(false)
@@ -18,10 +19,10 @@ const ScrollTopAndComment = () => {
   }, [])
 
   const handleScrollTop = () => {
-    window.scrollTo({ top: 0 })
+    window.scrollTo({ top: 0, behavior: scrollBehavior() })
   }
   const handleScrollToComment = () => {
-    document.getElementById('comment')?.scrollIntoView()
+    document.getElementById('comment')?.scrollIntoView({ behavior: scrollBehavior() })
   }
   return (
     <div

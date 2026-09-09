@@ -12,6 +12,7 @@ import { ThemeProviders } from './theme-providers'
 import AuthListener from '@/components/AuthListener'
 import { ToastProvider } from '@/components/ToastProvider'
 import PageTransition from '@/components/PageTransition'
+import SmoothHashScroll from '@/components/SmoothHashScroll'
 import { Metadata } from 'next'
 
 const space_grotesk = Space_Grotesk({
@@ -62,11 +63,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html
-      lang={siteMetadata.language}
-      className={`${space_grotesk.variable} scroll-smooth`}
-      suppressHydrationWarning
-    >
+    <html lang={siteMetadata.language} className={space_grotesk.variable} suppressHydrationWarning>
       <link rel="apple-touch-icon" sizes="76x76" href="/static/favicons/apple-touch-icon.png" />
       <link rel="icon" type="image/png" sizes="32x32" href="/static/favicons/favicon-32x32.png" />
       <link rel="icon" type="image/png" sizes="16x16" href="/static/favicons/favicon-16x16.png" />
@@ -80,6 +77,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProviders>
           <ToastProvider>
             <AuthListener />
+            <SmoothHashScroll />
             <Analytics analyticsConfig={siteMetadata.analytics as AnalyticsConfig} />
             <SearchProvider searchConfig={siteMetadata.search as SearchConfig}>
               {/* Header lives outside SectionContainer (own wider container) and outside any
