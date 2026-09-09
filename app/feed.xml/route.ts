@@ -6,9 +6,9 @@ export const revalidate = 300
 
 const generateRssItem = (post: PublishedArticleSummary) => `
   <item>
-    <guid>${siteMetadata.siteUrl}/previews-recaps/${post.slug}</guid>
+    <guid>${siteMetadata.siteUrl}/articles/${post.slug}</guid>
     <title>${escape(post.title)}</title>
-    <link>${siteMetadata.siteUrl}/previews-recaps/${post.slug}</link>
+    <link>${siteMetadata.siteUrl}/articles/${post.slug}</link>
     ${post.summary ? `<description>${escape(post.summary)}</description>` : ''}
     <pubDate>${new Date(post.published_at ?? Date.now()).toUTCString()}</pubDate>
     <author>${siteMetadata.email} (${siteMetadata.author})</author>
@@ -19,7 +19,7 @@ const generateRss = (posts: PublishedArticleSummary[]) => `
   <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
     <channel>
       <title>${escape(siteMetadata.title)}</title>
-      <link>${siteMetadata.siteUrl}/previews-recaps</link>
+      <link>${siteMetadata.siteUrl}/articles</link>
       <description>${escape(siteMetadata.description)}</description>
       <language>${siteMetadata.language}</language>
       <managingEditor>${siteMetadata.email} (${siteMetadata.author})</managingEditor>
