@@ -6,7 +6,7 @@ authoring + rendering pipeline, and for redesigning the surfaces that display th
 `ESPN_INTEGRATION_PLAN.md` for the data source that eventually feeds this, and
 `STYLING_OVERHAUL_PLAN.md` for the visual language the redesign must land inside.
 
-Last reviewed: 2026-09-05
+Last reviewed: 2026-09-08
 
 ## 1. Goal
 
@@ -429,8 +429,8 @@ any editor UI is built on top of the model.
 | **0 — Schema**    | Migration (tables, enums, indexes, **all** RLS policies, `publish_article` RPC), `lib/types/article.ts`, `writer` role, `lib/supabase/public.ts`                                                                                     | Nothing user-visible                                                                           |
 | **1 — Backfill**  | `scripts/import-articles.mjs`, seed migration, hand-fix pass, parity report                                                                                                                                                          | Nothing user-visible; DB now holds all 19 articles                                             |
 | **2 — Read path** ✅ | DB-backed `/previews-recaps` + `/previews-recaps/[...slug]` (renamed from `/newsfeed`, see §7.2), `react-markdown`, home feed / sitemap / RSS route / search-index route re-pointed. **Deleted** the MDX files, the Contentlayer `Blog` type, `scripts/rss.mjs`, `scripts/postbuild.mjs`, `/newsfeed/page/[page]` and the now-dead `ListLayout`/`PostLayout`/`PostSimple`/`PostBanner` | Site now served from Supabase; §2.3's pagination, double-`<h1>`, and stale-metadata bugs fixed. Search now also matches matchup team names and body text (closing another §2.3 gap) |
-| **3 — Editor**    | Commissioner assignment form; `/admin` assigned-draft card; `/admin/articles` list + editor, drag-reorder matchups, draft/publish, paste-import, `AdminSubNav` generalization, `revalidatePath` on publish                           | **The actual goal: publishing without a deploy**                                               |
-| **4 — Redesign**  | Hub season pills + week-paired grid; article scoreboard strip, matchup cards, sticky TOC, preview↔recap link, poll cross-link                                                                                                        | The presentation payoff                                                                        |
+| **3 — Editor** ✅  | Commissioner assignment form; `/admin` assigned-draft card; `/admin/articles` list + editor, drag-reorder matchups, draft/publish, `AdminSubNav` generalization, `revalidatePath` on publish. Paste-import **descoped** (see §7.1); team-name picker, record autofill, and "copy last week's slots" shipped instead as Phase 4a | **The actual goal: publishing without a deploy**                                               |
+| **4 — Redesign** ✅ | Editor QoL (4a); hub season pills + flexible per-week grid + `/articles` rename (4b-i); article scoreboard strip, matchup cards, sticky TOC, poll cross-link (4b-ii). Preview↔recap link and within-season-only prev/next **not built** (see §7.2) | The presentation payoff                                                                        |
 
 Phases 2 and 4 could merge, but keeping them apart means the risky part (cutting over the data
 source) lands with the _old_ design intact, so any regression is unambiguously a data problem and
@@ -479,6 +479,27 @@ improvement.
   applies to why this is safe — no live comment threads or backlinks to a private league site — so
   no redirect from `/previews-recaps` either.
 
+- **Paste-markdown import (§4.3's mitigation #1) descoped — decided 2026-09-08.** Admins will
+  either type directly into the form or paste plain prose from notes/Slack, not a formatted
+  document meant for a parser — a formatting-based importer has no real audience here. Mitigations
+  #2 ("copy last week's matchups," reworked to slot-labels-only after a domain-reality check — see
+  below) and the team-name picker + record autofill shipped instead, covering the actual
+  ergonomics complaint (manual typing) without building an importer nobody would use.
+- **"Copy last week's matchups" reworked to "copy last week's slots" — decided 2026-09-08.** The
+  plan's original mitigation #2 assumed team pairings repeat week to week; they don't in this
+  league's schedule, so copying matchups verbatim would insert wrong data. What repeats is the
+  broadcast slot structure (TNF, SNF, MNF, etc.) — that's what's copied; team names are picked
+  fresh via the new picker.
+
 ### 7.2 Still open
 
-None currently — both items above were resolved during Phase 2.
+- **"Preview-as-rendered" in the editor (§4.3) was never built.** A writer currently can't see the
+  formatted article before publishing — only Save Draft / Publish / Unpublish exist. Since drafts
+  are private (RLS-gated to the assigned writer + commissioner) and the real article template is
+  now a shared, structured renderer (not markdown-through-Contentlayer), this is buildable as a
+  read-only render of the draft through the same components the live article page uses. Not
+  scheduled; flagging so it doesn't get lost.
+- **Preview ↔ recap cross-link and within-season-only prev/next (§4.2, item 4) were scoped out of
+  Phase 4b-ii to limit that PR's blast radius** — prev/next still crosses season boundaries, and
+  there's no link from a preview to its eventual recap or vice versa. Not scheduled; a small
+  follow-up whenever it's worth doing.

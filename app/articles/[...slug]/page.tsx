@@ -1,28 +1,16 @@
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 import { allAuthors } from 'contentlayer/generated'
 import type { Metadata } from 'next'
 import PageTitle from '@/components/PageTitle'
 import SectionContainer from '@/components/SectionContainer'
-import Comments from '@/components/Comments'
 import Link from '@/components/Link'
 import ScrollTopAndComment from '@/components/ScrollTopAndComment'
-import MatchupSection from '@/components/articles/MatchupSection'
-import ScoreboardStrip from '@/components/articles/ScoreboardStrip'
-import ArticleSidebar from '@/components/articles/ArticleSidebar'
-import { getArticleBySlug, getPublishedArticles } from '@/lib/supabase/articles'
+import ArticleView from '@/components/articles/ArticleView'
+import { getArticleBySlug, getPublishedArticles, getSiblingArticle } from '@/lib/supabase/articles'
 import { getPollTopFive } from '@/lib/supabase/polls'
 import { focusRingClasses } from '@/lib/focusRing'
 import siteMetadata from '@/data/siteMetadata'
 
 export const revalidate = 300
-
-const postDateTemplate: Intl.DateTimeFormatOptions = {
-  weekday: 'long',
-  year: 'numeric',
-  month: 'long',
-  day: 'numeric',
-}
 
 export async function generateStaticParams() {
   try {
@@ -111,9 +99,9 @@ export default async function ArticlePage({ params }: { params: { slug: string[]
     )
   }
 
-  // Neither of these depends on the other, so fetch them together instead of two round trips
-  // in sequence -- both only need `article`, which is already resolved at this point.
-  const [allArticles, pollTopFive] = await Promise.all([
+  // None of these depend on each other, so fetch them together instead of round trips in
+  // sequence -- all only need `article`, which is already resolved at this point.
+  const [allArticles, pollTopFive, siblingArticle] = await Promise.all([
     getPublishedArticles().catch((error) => {
       console.error('Failed to load published articles for prev/next navigation:', error)
       return [] as Awaited<ReturnType<typeof getPublishedArticles>>
@@ -125,11 +113,21 @@ export default async function ArticlePage({ params }: { params: { slug: string[]
       )
       return []
     }),
+    getSiblingArticle(article.season_year, article.week_number, article.kind).catch((error) => {
+      console.error(
+        `Failed to load sibling article for ${article.season_year} week ${article.week_number}:`,
+        error
+      )
+      return null
+    }),
   ])
 
-  const articleIndex = allArticles.findIndex((a) => a.slug === slug)
-  const prev = articleIndex >= 0 ? allArticles[articleIndex + 1] : undefined
-  const next = articleIndex > 0 ? allArticles[articleIndex - 1] : undefined
+  // Prev/next stays within the same season -- crossing a year boundary mid-navigation reads as a
+  // bug, not a feature (see docs/PREVIEWS_RECAPS_PLAN.md §4.2).
+  const sameSeasonArticles = allArticles.filter((a) => a.season_year === article.season_year)
+  const articleIndex = sameSeasonArticles.findIndex((a) => a.slug === slug)
+  const prev = articleIndex >= 0 ? sameSeasonArticles[articleIndex + 1] : undefined
+  const next = articleIndex > 0 ? sameSeasonArticles[articleIndex - 1] : undefined
 
   const contentlayerAuthor = allAuthors.find((a) => a.slug === article.author_slug)
   const author = contentlayerAuthor
@@ -140,63 +138,16 @@ export default async function ArticlePage({ params }: { params: { slug: string[]
       }
     : null
 
-  const sidebarHasContent = Boolean(author) || article.matchups.length > 0 || pollTopFive.length > 0
-
   return (
     <SectionContainer>
       <ScrollTopAndComment />
       <article>
-        <header className="pt-6">
-          <div className="space-y-1 text-center">
-            {article.published_at && (
-              <dl className="space-y-10">
-                <div>
-                  <dt className="sr-only">Published on</dt>
-                  <dd className="text-base font-medium leading-6 text-gray-500 dark:text-gray-400">
-                    <time dateTime={article.published_at}>
-                      {new Date(article.published_at).toLocaleDateString(
-                        siteMetadata.locale,
-                        postDateTemplate
-                      )}
-                    </time>
-                  </dd>
-                </div>
-              </dl>
-            )}
-            <div>
-              <PageTitle>{article.title}</PageTitle>
-            </div>
-          </div>
-        </header>
-
-        <ScoreboardStrip matchups={article.matchups} kind={article.kind} />
-
-        <div
-          className={`grid grid-cols-1 gap-x-10 pb-8 ${sidebarHasContent ? 'xl:grid-cols-[1fr_280px]' : ''}`}
-        >
-          <div className="divide-y divide-gray-200 dark:divide-gray-700">
-            <div className="prose max-w-none pb-8 pt-10 dark:prose-invert">
-              {article.intro_markdown && (
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{article.intro_markdown}</ReactMarkdown>
-              )}
-              {article.matchups.map((matchup) => (
-                <MatchupSection key={matchup.id} matchup={matchup} articleKind={article.kind} />
-              ))}
-              {article.outro_markdown && (
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{article.outro_markdown}</ReactMarkdown>
-              )}
-            </div>
-            {siteMetadata.comments && (
-              <div className="pb-6 pt-6 text-center text-gray-700 dark:text-gray-300" id="comment">
-                <Comments slug={article.slug} />
-              </div>
-            )}
-          </div>
-
-          {sidebarHasContent && (
-            <ArticleSidebar matchups={article.matchups} author={author} pollTopFive={pollTopFive} />
-          )}
-        </div>
+        <ArticleView
+          article={article}
+          author={author}
+          pollTopFive={pollTopFive}
+          siblingArticle={siblingArticle}
+        />
 
         <footer className="border-t border-gray-200 dark:border-gray-700">
           <div className="text-sm font-medium leading-5">
