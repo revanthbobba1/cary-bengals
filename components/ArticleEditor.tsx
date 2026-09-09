@@ -340,7 +340,7 @@ export default function ArticleEditor({
             <button
               type="button"
               onClick={() => setItems((prev) => [...prev, blankMatchup()])}
-              disabled={!canEditContent}
+              disabled={!canEditContent || anyActionInFlight}
               className={`rounded-full border border-gray-200 px-4 py-1.5 text-sm font-medium text-gray-600 transition-all duration-150 ease-out-expo hover:border-gray-300 hover:bg-gray-50 ${focusRingClasses} active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 dark:border-gray-800 dark:text-gray-400 dark:hover:border-gray-700 dark:hover:bg-gray-900`}
             >
               + Add Matchup
@@ -477,19 +477,13 @@ function MatchupEditorRow({
     }
     const team = teamsForSeason.find((t) => t.id === teamId)
     if (!team) return
-    const record = teamRecords[team.id]
+    // Always overwrite the record, even to '' when we have none for this team -- a fresh team
+    // means the old record no longer applies regardless of what was typed before.
+    const record = teamRecords[team.id] ?? ''
     onChange(
       side === 'away'
-        ? {
-            away_team_name: displayName(team),
-            away_team_id: team.id,
-            ...(record ? { away_record: record } : {}),
-          }
-        : {
-            home_team_name: displayName(team),
-            home_team_id: team.id,
-            ...(record ? { home_record: record } : {}),
-          }
+        ? { away_team_name: displayName(team), away_team_id: team.id, away_record: record }
+        : { home_team_name: displayName(team), home_team_id: team.id, home_record: record }
     )
   }
 
@@ -569,96 +563,26 @@ function MatchupEditorRow({
             className={inputClasses}
           />
         </div>
-        <div>
-          <label
-            htmlFor={`${item._key}-away-name`}
-            className="block text-xs font-medium mb-1 text-gray-500 dark:text-gray-400"
-          >
-            Away Team
-          </label>
-          {teamsForSeason.length > 0 ? (
-            <>
-              <select
-                id={`${item._key}-away-name`}
-                value={item.away_team_id ?? CUSTOM_TEAM}
-                onChange={(e) => handleTeamSelect('away', e.target.value)}
-                disabled={disabled}
-                className={inputClasses}
-              >
-                <option value={CUSTOM_TEAM}>Custom...</option>
-                {teamsForSeason.map((team) => (
-                  <option key={team.id} value={team.id}>
-                    {team.name}
-                  </option>
-                ))}
-              </select>
-              {!item.away_team_id && (
-                <input
-                  type="text"
-                  value={item.away_team_name}
-                  onChange={(e) => onChange({ away_team_name: e.target.value })}
-                  disabled={disabled}
-                  placeholder="Team name"
-                  className={`mt-2 ${inputClasses}`}
-                />
-              )}
-            </>
-          ) : (
-            <input
-              id={`${item._key}-away-name`}
-              type="text"
-              value={item.away_team_name}
-              onChange={(e) => onChange({ away_team_name: e.target.value })}
-              disabled={disabled}
-              className={inputClasses}
-            />
-          )}
-        </div>
-        <div>
-          <label
-            htmlFor={`${item._key}-home-name`}
-            className="block text-xs font-medium mb-1 text-gray-500 dark:text-gray-400"
-          >
-            Home Team
-          </label>
-          {teamsForSeason.length > 0 ? (
-            <>
-              <select
-                id={`${item._key}-home-name`}
-                value={item.home_team_id ?? CUSTOM_TEAM}
-                onChange={(e) => handleTeamSelect('home', e.target.value)}
-                disabled={disabled}
-                className={inputClasses}
-              >
-                <option value={CUSTOM_TEAM}>Custom...</option>
-                {teamsForSeason.map((team) => (
-                  <option key={team.id} value={team.id}>
-                    {team.name}
-                  </option>
-                ))}
-              </select>
-              {!item.home_team_id && (
-                <input
-                  type="text"
-                  value={item.home_team_name}
-                  onChange={(e) => onChange({ home_team_name: e.target.value })}
-                  disabled={disabled}
-                  placeholder="Team name"
-                  className={`mt-2 ${inputClasses}`}
-                />
-              )}
-            </>
-          ) : (
-            <input
-              id={`${item._key}-home-name`}
-              type="text"
-              value={item.home_team_name}
-              onChange={(e) => onChange({ home_team_name: e.target.value })}
-              disabled={disabled}
-              className={inputClasses}
-            />
-          )}
-        </div>
+        <TeamPicker
+          idPrefix={`${item._key}-away`}
+          label="Away Team"
+          teamsForSeason={teamsForSeason}
+          selectedTeamId={item.away_team_id}
+          teamName={item.away_team_name}
+          disabled={disabled}
+          onSelectTeam={(teamId) => handleTeamSelect('away', teamId)}
+          onNameChange={(name) => onChange({ away_team_name: name })}
+        />
+        <TeamPicker
+          idPrefix={`${item._key}-home`}
+          label="Home Team"
+          teamsForSeason={teamsForSeason}
+          selectedTeamId={item.home_team_id}
+          teamName={item.home_team_name}
+          disabled={disabled}
+          onSelectTeam={(teamId) => handleTeamSelect('home', teamId)}
+          onNameChange={(name) => onChange({ home_team_name: name })}
+        />
         <div>
           <label
             htmlFor={`${item._key}-away-record`}
@@ -769,5 +693,80 @@ function MatchupEditorRow({
         </div>
       </div>
     </Reorder.Item>
+  )
+}
+
+interface TeamPickerProps {
+  idPrefix: string
+  label: string
+  teamsForSeason: Team[]
+  selectedTeamId: string | null
+  teamName: string
+  disabled: boolean
+  onSelectTeam: (teamId: string) => void
+  onNameChange: (name: string) => void
+}
+
+/** Away/home team picker: a dropdown of this season's teams, falling back to a free-text name
+ * field when "Custom..." is picked or no teams exist for the season. */
+function TeamPicker({
+  idPrefix,
+  label,
+  teamsForSeason,
+  selectedTeamId,
+  teamName,
+  disabled,
+  onSelectTeam,
+  onNameChange,
+}: TeamPickerProps) {
+  const selectId = `${idPrefix}-select`
+
+  return (
+    <div>
+      <label
+        htmlFor={selectId}
+        className="block text-xs font-medium mb-1 text-gray-500 dark:text-gray-400"
+      >
+        {label}
+      </label>
+      {teamsForSeason.length > 0 ? (
+        <>
+          <select
+            id={selectId}
+            value={selectedTeamId ?? CUSTOM_TEAM}
+            onChange={(e) => onSelectTeam(e.target.value)}
+            disabled={disabled}
+            className={inputClasses}
+          >
+            <option value={CUSTOM_TEAM}>Custom...</option>
+            {teamsForSeason.map((team) => (
+              <option key={team.id} value={team.id}>
+                {team.name}
+              </option>
+            ))}
+          </select>
+          {!selectedTeamId && (
+            <input
+              type="text"
+              aria-label={`${label} name`}
+              value={teamName}
+              onChange={(e) => onNameChange(e.target.value)}
+              disabled={disabled}
+              placeholder="Team name"
+              className={`mt-2 ${inputClasses}`}
+            />
+          )}
+        </>
+      ) : (
+        <input
+          id={selectId}
+          type="text"
+          value={teamName}
+          onChange={(e) => onNameChange(e.target.value)}
+          disabled={disabled}
+          className={inputClasses}
+        />
+      )}
+    </div>
   )
 }
