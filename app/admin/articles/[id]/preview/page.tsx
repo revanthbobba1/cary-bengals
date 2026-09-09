@@ -7,6 +7,7 @@ import { getPollTopFive } from '@/lib/supabase/polls'
 import SectionContainer from '@/components/SectionContainer'
 import PageTitle from '@/components/PageTitle'
 import Link from '@/components/Link'
+import AdminSubNav from '@/components/AdminSubNav'
 import ArticleView from '@/components/articles/ArticleView'
 import { focusRingClasses } from '@/lib/focusRing'
 import type { ArticleWithMatchups } from '@/lib/types/article'
@@ -42,6 +43,7 @@ export default async function PreviewArticlePage({ params }: { params: { id: str
   if (!article || !canView) {
     return (
       <div className="py-12 max-w-4xl mx-auto">
+        <AdminSubNav active="articles" showManage={showManageLink} />
         <PageTitle>Preview</PageTitle>
         <p className="mt-4 text-gray-600 dark:text-gray-400">
           This article doesn&apos;t exist or isn&apos;t assigned to you.
@@ -72,8 +74,11 @@ export default async function PreviewArticlePage({ params }: { params: { id: str
 
   return (
     <SectionContainer>
+      <div className="pt-6">
+        <AdminSubNav active="articles" showManage={showManageLink} />
+      </div>
       <article>
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-control border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800 dark:border-yellow-900 dark:bg-yellow-900/20 dark:text-yellow-400">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-control border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800 dark:border-yellow-900 dark:bg-yellow-900/20 dark:text-yellow-400">
           <span>
             Preview &mdash;{' '}
             {articleWithMatchups.status === 'published' ? 'published' : 'not published yet'}. This
