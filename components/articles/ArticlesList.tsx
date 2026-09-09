@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import ArticleCard from './ArticleCard'
 import ArticleGridCard from './ArticleGridCard'
 import { focusRingClasses } from '@/lib/focusRing'
@@ -25,6 +25,14 @@ export default function ArticlesList({ articles }: { articles: PublishedArticleS
     [articles]
   )
   const [selectedSeason, setSelectedSeason] = useState(seasons[0])
+
+  // Re-sync if `articles` changes after mount and the selected season no longer has any --
+  // otherwise a stale season stays selected and silently shows an empty grid.
+  useEffect(() => {
+    if (seasons.length > 0 && !seasons.includes(selectedSeason)) {
+      setSelectedSeason(seasons[0])
+    }
+  }, [seasons, selectedSeason])
 
   const weekGroups = useMemo<WeekGroup[]>(() => {
     const byWeek = new Map<number, PublishedArticleSummary[]>()
@@ -92,6 +100,10 @@ export default function ArticlesList({ articles }: { articles: PublishedArticleS
             </li>
           ))}
         </ul>
+      ) : articles.length === 0 ? (
+        <p className="border-t border-gray-100 py-8 text-sm text-gray-500 dark:border-gray-800 dark:text-gray-400">
+          No articles found.
+        </p>
       ) : (
         <>
           <div className="mb-10 flex flex-wrap items-center justify-between gap-4">
