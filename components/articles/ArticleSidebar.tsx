@@ -3,6 +3,7 @@ import Link from '@/components/Link'
 import { getBlurProps } from '@/lib/blurPlaceholders'
 import { focusRingClasses } from '@/lib/focusRing'
 import type { ArticleMatchup } from '@/lib/types/article'
+import type { PollTopFiveRow } from '@/lib/supabase/polls'
 
 interface AuthorInfo {
   name: string
@@ -10,16 +11,10 @@ interface AuthorInfo {
   twitter?: string
 }
 
-interface PollRow {
-  team_id: string
-  team_name: string
-  final_rank: number
-}
-
 interface Props {
   matchups: ArticleMatchup[]
   author: AuthorInfo | null
-  pollTopFive: PollRow[] | null
+  pollTopFive: PollTopFiveRow[]
 }
 
 function matchupLabel(m: ArticleMatchup): string {
@@ -74,7 +69,7 @@ export default function ArticleSidebar({ matchups, author, pollTopFive }: Props)
         </div>
       )}
 
-      {pollTopFive && pollTopFive.length > 0 && (
+      {pollTopFive.length > 0 && (
         <div className="rounded-card border border-gray-200 bg-white p-5 shadow-card dark:border-gray-800 dark:bg-gray-900 dark:shadow-card-dark">
           <p className="mb-3 text-[11px] font-bold uppercase tracking-wide text-gray-400 dark:text-gray-500">
             This Week in the Poll

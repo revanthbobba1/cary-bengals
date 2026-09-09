@@ -11,7 +11,7 @@ import MatchupSection from '@/components/articles/MatchupSection'
 import ScoreboardStrip from '@/components/articles/ScoreboardStrip'
 import ArticleSidebar from '@/components/articles/ArticleSidebar'
 import { getArticleBySlug, getPublishedArticles } from '@/lib/supabase/articles'
-import { createPublicClient } from '@/lib/supabase/public'
+import { getPollTopFive } from '@/lib/supabase/polls'
 import { focusRingClasses } from '@/lib/focusRing'
 import siteMetadata from '@/data/siteMetadata'
 
@@ -111,12 +111,22 @@ export default async function ArticlePage({ params }: { params: { slug: string[]
     )
   }
 
-  let allArticles: Awaited<ReturnType<typeof getPublishedArticles>> = []
-  try {
-    allArticles = await getPublishedArticles()
-  } catch (error) {
-    console.error('Failed to load published articles for prev/next navigation:', error)
-  }
+  // Neither of these depends on the other, so fetch them together instead of two round trips
+  // in sequence -- both only need `article`, which is already resolved at this point.
+  const [allArticles, pollTopFive] = await Promise.all([
+    getPublishedArticles().catch((error) => {
+      console.error('Failed to load published articles for prev/next navigation:', error)
+      return [] as Awaited<ReturnType<typeof getPublishedArticles>>
+    }),
+    getPollTopFive(article.season_year, article.week_number).catch((error) => {
+      console.error(
+        `Failed to load poll cross-link for ${article.season_year} week ${article.week_number}:`,
+        error
+      )
+      return []
+    }),
+  ])
+
   const articleIndex = allArticles.findIndex((a) => a.slug === slug)
   const prev = articleIndex >= 0 ? allArticles[articleIndex + 1] : undefined
   const next = articleIndex > 0 ? allArticles[articleIndex - 1] : undefined
@@ -130,39 +140,7 @@ export default async function ArticlePage({ params }: { params: { slug: string[]
       }
     : null
 
-  let pollTopFive: { team_id: string; team_name: string; final_rank: number }[] | null = null
-  try {
-    const supabase = createPublicClient()
-    const { data: pollWeek } = await supabase
-      .from('poll_weeks')
-      .select('id')
-      .eq('season_year', article.season_year)
-      .eq('week_number', article.week_number)
-      .eq('is_locked', true)
-      .maybeSingle()
-
-    if (pollWeek) {
-      const { data: results } = await supabase
-        .from('poll_results')
-        .select('team_id, final_rank, team:teams(name)')
-        .eq('poll_week_id', pollWeek.id)
-        .order('final_rank')
-        .limit(5)
-
-      if (results && results.length > 0) {
-        pollTopFive = results.map((r) => ({
-          team_id: r.team_id,
-          team_name: (r.team as unknown as { name: string } | null)?.name ?? 'Unknown Team',
-          final_rank: r.final_rank,
-        }))
-      }
-    }
-  } catch (error) {
-    console.error(
-      `Failed to load poll cross-link for ${article.season_year} week ${article.week_number}:`,
-      error
-    )
-  }
+  const sidebarHasContent = Boolean(author) || article.matchups.length > 0 || pollTopFive.length > 0
 
   return (
     <SectionContainer>
@@ -193,7 +171,9 @@ export default async function ArticlePage({ params }: { params: { slug: string[]
 
         <ScoreboardStrip matchups={article.matchups} kind={article.kind} />
 
-        <div className="grid grid-cols-1 gap-x-10 pb-8 xl:grid-cols-[1fr_280px]">
+        <div
+          className={`grid grid-cols-1 gap-x-10 pb-8 ${sidebarHasContent ? 'xl:grid-cols-[1fr_280px]' : ''}`}
+        >
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
             <div className="prose max-w-none pb-8 pt-10 dark:prose-invert">
               {article.intro_markdown && (
@@ -213,7 +193,9 @@ export default async function ArticlePage({ params }: { params: { slug: string[]
             )}
           </div>
 
-          <ArticleSidebar matchups={article.matchups} author={author} pollTopFive={pollTopFive} />
+          {sidebarHasContent && (
+            <ArticleSidebar matchups={article.matchups} author={author} pollTopFive={pollTopFive} />
+          )}
         </div>
 
         <footer className="border-t border-gray-200 dark:border-gray-700">
