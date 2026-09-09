@@ -1,4 +1,5 @@
 import Link from '@/components/Link'
+import siteMetadata from '@/data/siteMetadata'
 import { focusRingClasses } from '@/lib/focusRing'
 import type { PublishedArticleSummary } from '@/lib/supabase/articles'
 
@@ -29,7 +30,7 @@ export default function ArticleGridCard({ article }: { article: PublishedArticle
       )}
       <p className="text-xs font-medium text-gray-400 dark:text-gray-500">
         {article.published_at &&
-          new Date(article.published_at).toLocaleDateString('en-US', {
+          new Date(article.published_at).toLocaleDateString(siteMetadata.locale, {
             month: 'short',
             day: 'numeric',
             year: 'numeric',
