@@ -9,12 +9,22 @@ import { springSnappy } from '@/lib/motion'
 import { focusRingClasses } from '@/lib/focusRing'
 import { publishArticleAction, unpublishArticleAction } from 'app/admin/articles/[id]/edit/actions'
 import type { Article, ArticleMatchup } from '@/lib/types/article'
+import type { Team } from '@/lib/types/poll'
 
 interface Props {
   article: Article
   matchups: ArticleMatchup[]
   isCommissioner: boolean
+  /** Teams for this article's season, for the team-name picker. Empty seasons fall back to free text. */
+  teamsForSeason: Team[]
+  /** team_id -> record as of the most recent locked poll week before this one, for autofill. */
+  teamRecords: Record<string, string>
+  /** The most recent earlier same-kind article this season, to copy slot labels from. Null if none. */
+  copyFromArticleId: string | null
 }
+
+/** Sentinel select value meaning "not one of the known teams" -- shows the free-text fallback. */
+const CUSTOM_TEAM = '__custom__'
 
 /** Local-only editor state: the DB fields plus a stable client key for React/Reorder identity. */
 interface EditableMatchup {
@@ -69,7 +79,14 @@ function blankMatchup(): EditableMatchup {
 const inputClasses =
   'w-full rounded-control border border-gray-200 bg-white p-2 text-gray-900 shadow-card transition-shadow duration-150 ease-out-expo focus:border-accent-500 focus:shadow-raised focus:outline-none focus:ring-1 focus:ring-accent-500 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:shadow-card-dark disabled:opacity-50'
 
-export default function ArticleEditor({ article, matchups, isCommissioner }: Props) {
+export default function ArticleEditor({
+  article,
+  matchups,
+  isCommissioner,
+  teamsForSeason,
+  teamRecords,
+  copyFromArticleId,
+}: Props) {
   const router = useRouter()
   const supabase = createClient()
   const toast = useToast()
@@ -86,6 +103,7 @@ export default function ArticleEditor({ article, matchups, isCommissioner }: Pro
   const [saving, setSaving] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [unpublishing, setUnpublishing] = useState(false)
+  const [copyingSlots, setCopyingSlots] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
 
@@ -118,6 +136,30 @@ export default function ArticleEditor({ article, matchups, isCommissioner }: Pro
       next.splice(toIndex, 0, moved)
       return next
     })
+  }
+
+  const handleCopySlots = async () => {
+    if (!copyFromArticleId) return
+    setError(null)
+    setCopyingSlots(true)
+    try {
+      // Only slot labels -- matchup pairings (who plays whom) are different every week in this
+      // league's schedule, so copying team names/records from a prior week would insert wrong
+      // data. What repeats is the broadcast slot structure (TNF, SNF, MNF, etc.), not who's in it.
+      const { data, error: copyError } = await supabase
+        .from('article_matchups')
+        .select('slot_label')
+        .eq('article_id', copyFromArticleId)
+        .order('position')
+
+      if (copyError) throw copyError
+
+      setItems((data ?? []).map((m) => ({ ...blankMatchup(), slot_label: m.slot_label ?? '' })))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to copy last week’s slots')
+    } finally {
+      setCopyingSlots(false)
+    }
   }
 
   const handleSaveDraft = async () => {
@@ -201,7 +243,7 @@ export default function ArticleEditor({ article, matchups, isCommissioner }: Pro
     }
   }
 
-  const anyActionInFlight = saving || publishing || unpublishing
+  const anyActionInFlight = saving || publishing || unpublishing || copyingSlots
 
   return (
     <div className="space-y-8">
@@ -284,14 +326,26 @@ export default function ArticleEditor({ article, matchups, isCommissioner }: Pro
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold text-ink dark:text-gray-100">Matchups</h2>
-          <button
-            type="button"
-            onClick={() => setItems((prev) => [...prev, blankMatchup()])}
-            disabled={!canEditContent}
-            className={`rounded-full border border-gray-200 px-4 py-1.5 text-sm font-medium text-gray-600 transition-all duration-150 ease-out-expo hover:border-gray-300 hover:bg-gray-50 ${focusRingClasses} active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 dark:border-gray-800 dark:text-gray-400 dark:hover:border-gray-700 dark:hover:bg-gray-900`}
-          >
-            + Add Matchup
-          </button>
+          <div className="flex gap-2">
+            {items.length === 0 && copyFromArticleId && (
+              <button
+                type="button"
+                onClick={handleCopySlots}
+                disabled={!canEditContent || anyActionInFlight}
+                className={`rounded-full border border-gray-200 px-4 py-1.5 text-sm font-medium text-gray-600 transition-all duration-150 ease-out-expo hover:border-gray-300 hover:bg-gray-50 ${focusRingClasses} active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 dark:border-gray-800 dark:text-gray-400 dark:hover:border-gray-700 dark:hover:bg-gray-900`}
+              >
+                {copyingSlots ? 'Copying...' : 'Copy Last Week’s Slots'}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setItems((prev) => [...prev, blankMatchup()])}
+              disabled={!canEditContent}
+              className={`rounded-full border border-gray-200 px-4 py-1.5 text-sm font-medium text-gray-600 transition-all duration-150 ease-out-expo hover:border-gray-300 hover:bg-gray-50 ${focusRingClasses} active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 dark:border-gray-800 dark:text-gray-400 dark:hover:border-gray-700 dark:hover:bg-gray-900`}
+            >
+              + Add Matchup
+            </button>
+          </div>
         </div>
 
         {items.length === 0 && (
@@ -318,6 +372,8 @@ export default function ArticleEditor({ article, matchups, isCommissioner }: Pro
               onRemove={() => removeItem(item._key)}
               onMove={(direction) => moveItem(item._key, direction)}
               reduceMotion={Boolean(reduceMotion)}
+              teamsForSeason={teamsForSeason}
+              teamRecords={teamRecords}
             />
           ))}
         </Reorder.Group>
@@ -369,6 +425,8 @@ interface MatchupEditorRowProps {
   onRemove: () => void
   onMove: (direction: -1 | 1) => void
   reduceMotion: boolean
+  teamsForSeason: Team[]
+  teamRecords: Record<string, string>
 }
 
 function MatchupEditorRow({
@@ -383,6 +441,8 @@ function MatchupEditorRow({
   onRemove,
   onMove,
   reduceMotion,
+  teamsForSeason,
+  teamRecords,
 }: MatchupEditorRowProps) {
   const dragControls = useDragControls()
   const interactiveHover = isDragging
@@ -393,6 +453,44 @@ function MatchupEditorRow({
     if (value === '') return null
     const n = Number(value)
     return Number.isNaN(n) ? null : n
+  }
+
+  // teams.name carries a trailing "(Owner)" suffix for the poll UI's benefit (e.g. "Code Monkey
+  // (PR #414) (Ankith)"), but article_matchups' display convention -- set by all 19 backfilled
+  // articles -- never includes it (just "Code Monkey (PR #414)"). Strip exactly that known
+  // suffix, the same way the backfill parser's peelSide() stripped a trailing "(Owner)" paren
+  // when it recognized the content as a known owner name, rather than guessing with a generic
+  // regex that could wrongly eat a legitimate parenthetical nickname.
+  const displayName = (team: Team) => {
+    const suffix = `(${team.owner_name})`
+    return team.name.endsWith(suffix) ? team.name.slice(0, -suffix.length).trim() : team.name
+  }
+
+  // Selecting a real team sets both the display name and the FK, and refreshes the record from
+  // last week's poll results if we have one for them -- a fresh team means the old record no
+  // longer applies regardless of what was typed before. Picking "Custom..." just clears the FK;
+  // the team name stays editable as free text below the select.
+  const handleTeamSelect = (side: 'away' | 'home', teamId: string) => {
+    if (teamId === CUSTOM_TEAM) {
+      onChange(side === 'away' ? { away_team_id: null } : { home_team_id: null })
+      return
+    }
+    const team = teamsForSeason.find((t) => t.id === teamId)
+    if (!team) return
+    const record = teamRecords[team.id]
+    onChange(
+      side === 'away'
+        ? {
+            away_team_name: displayName(team),
+            away_team_id: team.id,
+            ...(record ? { away_record: record } : {}),
+          }
+        : {
+            home_team_name: displayName(team),
+            home_team_id: team.id,
+            ...(record ? { home_record: record } : {}),
+          }
+    )
   }
 
   return (
@@ -478,14 +576,43 @@ function MatchupEditorRow({
           >
             Away Team
           </label>
-          <input
-            id={`${item._key}-away-name`}
-            type="text"
-            value={item.away_team_name}
-            onChange={(e) => onChange({ away_team_name: e.target.value })}
-            disabled={disabled}
-            className={inputClasses}
-          />
+          {teamsForSeason.length > 0 ? (
+            <>
+              <select
+                id={`${item._key}-away-name`}
+                value={item.away_team_id ?? CUSTOM_TEAM}
+                onChange={(e) => handleTeamSelect('away', e.target.value)}
+                disabled={disabled}
+                className={inputClasses}
+              >
+                <option value={CUSTOM_TEAM}>Custom...</option>
+                {teamsForSeason.map((team) => (
+                  <option key={team.id} value={team.id}>
+                    {team.name}
+                  </option>
+                ))}
+              </select>
+              {!item.away_team_id && (
+                <input
+                  type="text"
+                  value={item.away_team_name}
+                  onChange={(e) => onChange({ away_team_name: e.target.value })}
+                  disabled={disabled}
+                  placeholder="Team name"
+                  className={`mt-2 ${inputClasses}`}
+                />
+              )}
+            </>
+          ) : (
+            <input
+              id={`${item._key}-away-name`}
+              type="text"
+              value={item.away_team_name}
+              onChange={(e) => onChange({ away_team_name: e.target.value })}
+              disabled={disabled}
+              className={inputClasses}
+            />
+          )}
         </div>
         <div>
           <label
@@ -494,14 +621,43 @@ function MatchupEditorRow({
           >
             Home Team
           </label>
-          <input
-            id={`${item._key}-home-name`}
-            type="text"
-            value={item.home_team_name}
-            onChange={(e) => onChange({ home_team_name: e.target.value })}
-            disabled={disabled}
-            className={inputClasses}
-          />
+          {teamsForSeason.length > 0 ? (
+            <>
+              <select
+                id={`${item._key}-home-name`}
+                value={item.home_team_id ?? CUSTOM_TEAM}
+                onChange={(e) => handleTeamSelect('home', e.target.value)}
+                disabled={disabled}
+                className={inputClasses}
+              >
+                <option value={CUSTOM_TEAM}>Custom...</option>
+                {teamsForSeason.map((team) => (
+                  <option key={team.id} value={team.id}>
+                    {team.name}
+                  </option>
+                ))}
+              </select>
+              {!item.home_team_id && (
+                <input
+                  type="text"
+                  value={item.home_team_name}
+                  onChange={(e) => onChange({ home_team_name: e.target.value })}
+                  disabled={disabled}
+                  placeholder="Team name"
+                  className={`mt-2 ${inputClasses}`}
+                />
+              )}
+            </>
+          ) : (
+            <input
+              id={`${item._key}-home-name`}
+              type="text"
+              value={item.home_team_name}
+              onChange={(e) => onChange({ home_team_name: e.target.value })}
+              disabled={disabled}
+              className={inputClasses}
+            />
+          )}
         </div>
         <div>
           <label
