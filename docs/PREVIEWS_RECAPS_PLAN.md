@@ -6,7 +6,7 @@ authoring + rendering pipeline, and for redesigning the surfaces that display th
 `ESPN_INTEGRATION_PLAN.md` for the data source that eventually feeds this, and
 `STYLING_OVERHAUL_PLAN.md` for the visual language the redesign must land inside.
 
-Last reviewed: 2026-09-08
+Last reviewed: 2026-09-09
 
 ## 1. Goal
 
@@ -430,7 +430,7 @@ any editor UI is built on top of the model.
 | **1 — Backfill**  | `scripts/import-articles.mjs`, seed migration, hand-fix pass, parity report                                                                                                                                                          | Nothing user-visible; DB now holds all 19 articles                                             |
 | **2 — Read path** ✅ | DB-backed `/previews-recaps` + `/previews-recaps/[...slug]` (renamed from `/newsfeed`, see §7.2), `react-markdown`, home feed / sitemap / RSS route / search-index route re-pointed. **Deleted** the MDX files, the Contentlayer `Blog` type, `scripts/rss.mjs`, `scripts/postbuild.mjs`, `/newsfeed/page/[page]` and the now-dead `ListLayout`/`PostLayout`/`PostSimple`/`PostBanner` | Site now served from Supabase; §2.3's pagination, double-`<h1>`, and stale-metadata bugs fixed. Search now also matches matchup team names and body text (closing another §2.3 gap) |
 | **3 — Editor** ✅  | Commissioner assignment form; `/admin` assigned-draft card; `/admin/articles` list + editor, drag-reorder matchups, draft/publish, `AdminSubNav` generalization, `revalidatePath` on publish. Paste-import **descoped** (see §7.1); team-name picker, record autofill, and "copy last week's slots" shipped instead as Phase 4a | **The actual goal: publishing without a deploy**                                               |
-| **4 — Redesign** ✅ | Editor QoL (4a); hub season pills + flexible per-week grid + `/articles` rename (4b-i); article scoreboard strip, matchup cards, sticky TOC, poll cross-link (4b-ii). Preview↔recap link and within-season-only prev/next **not built** (see §7.2) | The presentation payoff                                                                        |
+| **4 — Redesign** ✅ | Editor QoL (4a); hub season pills + flexible per-week grid + `/articles` rename (4b-i); article scoreboard strip, matchup cards, sticky TOC, poll cross-link (4b-ii); preview-as-rendered in the editor, preview↔recap cross-link, within-season-only prev/next (4c) | The presentation payoff                                                                        |
 
 Phases 2 and 4 could merge, but keeping them apart means the risky part (cutting over the data
 source) lands with the _old_ design intact, so any regression is unambiguously a data problem and
@@ -490,16 +490,14 @@ improvement.
   league's schedule, so copying matchups verbatim would insert wrong data. What repeats is the
   broadcast slot structure (TNF, SNF, MNF, etc.) — that's what's copied; team names are picked
   fresh via the new picker.
+- **Phase 4c shipped the three items 4b-ii deferred — landed 2026-09-09.** "Preview-as-rendered"
+  in the editor (`/admin/articles/[id]/preview`, opened from a new Preview link on the edit page,
+  rendering the last-saved draft through `ArticleView` — the same component the live article page
+  uses, extracted for exactly this reuse); a preview↔recap cross-link (`getSiblingArticle()`, at
+  most one match per the `UNIQUE (season_year, week_number, kind)` constraint, omitted gracefully
+  when the other half doesn't exist); and within-season-only prev/next. Closes §4.2 item 4 and the
+  last of §4.3's editor scope.
 
 ### 7.2 Still open
 
-- **"Preview-as-rendered" in the editor (§4.3) was never built.** A writer currently can't see the
-  formatted article before publishing — only Save Draft / Publish / Unpublish exist. Since drafts
-  are private (RLS-gated to the assigned writer + commissioner) and the real article template is
-  now a shared, structured renderer (not markdown-through-Contentlayer), this is buildable as a
-  read-only render of the draft through the same components the live article page uses. Not
-  scheduled; flagging so it doesn't get lost.
-- **Preview ↔ recap cross-link and within-season-only prev/next (§4.2, item 4) were scoped out of
-  Phase 4b-ii to limit that PR's blast radius** — prev/next still crosses season boundaries, and
-  there's no link from a preview to its eventual recap or vice versa. Not scheduled; a small
-  follow-up whenever it's worth doing.
+None currently.
