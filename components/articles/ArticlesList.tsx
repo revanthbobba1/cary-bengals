@@ -1,9 +1,11 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState, useTransition } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import ArticleCard from './ArticleCard'
 import ArticleGridCard from './ArticleGridCard'
 import { focusRingClasses } from '@/lib/focusRing'
+import { scrollBehavior } from '@/lib/motion'
 import type { PublishedArticleSummary } from '@/lib/supabase/articles'
 
 interface WeekGroup {
@@ -14,7 +16,13 @@ interface WeekGroup {
 const selectClasses =
   'appearance-none rounded-control border border-gray-200 bg-white py-2 pl-4 pr-10 text-sm font-semibold text-gray-700 shadow-card transition-shadow duration-150 ease-out-expo hover:border-gray-300 focus:border-accent-500 focus:shadow-raised focus:outline-none focus:ring-1 focus:ring-accent-500 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:hover:border-gray-600'
 
-export default function ArticlesList({ articles }: { articles: PublishedArticleSummary[] }) {
+export default function ArticlesList({
+  articles,
+  season,
+}: {
+  articles: PublishedArticleSummary[]
+  season: number
+}) {
   const [searchValue, setSearchValue] = useState('')
 
   // Distinct seasons, newest first, for the pills -- and per-season week groups, each an
@@ -24,15 +32,44 @@ export default function ArticlesList({ articles }: { articles: PublishedArticleS
     () => [...new Set(articles.map((a) => a.season_year))].sort((a, b) => b - a),
     [articles]
   )
-  const [selectedSeason, setSelectedSeason] = useState(seasons[0])
+  const router = useRouter()
+  const pathname = usePathname()
+  const [isPending, startTransition] = useTransition()
+  const [pendingSeason, setPendingSeason] = useState<number | null>(null)
 
-  // Re-sync if `articles` changes after mount and the selected season no longer has any --
-  // otherwise a stale season stays selected and silently shows an empty grid.
-  useEffect(() => {
-    if (seasons.length > 0 && !seasons.includes(selectedSeason)) {
-      setSelectedSeason(seasons[0])
-    }
-  }, [seasons, selectedSeason])
+  // The season lives in the URL rather than in component state, so it survives a Back from an
+  // article (client component state does not) and so a filtered view can be linked to. `season`
+  // arrives already read off the query string by the page. Falling back to the newest season here,
+  // rather than correcting a bad value after the fact, also subsumes the old re-sync effect: a
+  // season with no articles left, or one typed into the URL by hand, just renders as the newest
+  // one instead of showing an empty grid until an effect fixes it.
+  const resolvedSeason = seasons.includes(season) ? season : seasons[0]
+
+  // Since `/articles` is now dynamic, updating the URL is a server round-trip that re-fetches the
+  // whole article list. Waiting for it would make a pill click feel dead -- no highlight, no grid
+  // change -- for as long as a cold function or a slow connection takes. Every season's articles
+  // are already on the client, so render the click immediately and let the URL catch up behind it.
+  // Reading the optimistic value only while the transition is pending means it can't go stale: it
+  // is ignored the moment the real `season` prop lands, including when that happens via Back.
+  // Gating on `pendingSeason !== resolvedSeason` instead would survive an older navigation
+  // committing mid-flight, but at the cost of that staleness -- a Back to a season the reader
+  // never clicked would keep showing the clicked one, which is the bug this whole change exists to
+  // fix. Tried to provoke the interleaving with 600ms of injected latency per fetch and a second
+  // click timed to land exactly as the first committed; the pill sequence followed the clicks with
+  // no revert, so the `isPending` gate stays.
+  const selectedSeason = isPending && pendingSeason !== null ? pendingSeason : resolvedSeason
+
+  const selectSeason = (year: number) => {
+    setPendingSeason(year)
+    // The newest season is the default, so it stays out of the URL and /articles keeps a clean URL.
+    // `replace`, not `push`: flicking through pills shouldn't bury the previous page under a pile
+    // of history entries, and Back from an article still returns to whichever season was showing.
+    startTransition(() => {
+      router.replace(year === seasons[0] ? pathname : `${pathname}?season=${year}`, {
+        scroll: false,
+      })
+    })
+  }
 
   const weekGroups = useMemo<WeekGroup[]>(() => {
     const byWeek = new Map<number, PublishedArticleSummary[]>()
@@ -112,7 +149,7 @@ export default function ArticlesList({ articles }: { articles: PublishedArticleS
                 <button
                   key={year}
                   type="button"
-                  onClick={() => setSelectedSeason(year)}
+                  onClick={() => selectSeason(year)}
                   className={`rounded-full border px-5 py-2.5 text-sm font-semibold transition-all duration-150 ease-out-expo ${focusRingClasses} active:scale-[0.97] ${
                     year === selectedSeason
                       ? 'border-primary-500 bg-primary-500 text-white shadow-[0_4px_12px_-2px_rgba(249,115,22,.35)]'
@@ -132,7 +169,7 @@ export default function ArticlesList({ articles }: { articles: PublishedArticleS
                     if (!e.target.value) return
                     document
                       .getElementById(`week-${e.target.value}`)
-                      ?.scrollIntoView({ behavior: 'smooth' })
+                      ?.scrollIntoView({ behavior: scrollBehavior() })
                   }}
                   className={selectClasses}
                 >
