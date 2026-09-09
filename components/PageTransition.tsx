@@ -2,6 +2,7 @@
 
 import { motion, useReducedMotion } from 'framer-motion'
 import { usePathname } from 'next/navigation'
+import { useEffect, useRef } from 'react'
 import { easeOut } from '@/lib/motion'
 import type { ReactNode } from 'react'
 
@@ -25,10 +26,23 @@ export default function PageTransition({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const reduceMotion = useReducedMotion()
 
+  // The very first render must not carry an `initial` state. framer-motion resolves `initial` into
+  // the style attribute it emits during SSR, so a plain `initial={{ opacity: 0 }}` ships every
+  // page as `<main><div style="opacity:0">` — the whole body invisible until hydration (blank with
+  // JS off or a failed bundle, and an LCP hit on every full load), plus a hydration mismatch for
+  // reduced-motion users, whose first client render resolves to opacity 1 against the server's 0.
+  // `AnimatePresence initial={false}` used to suppress this; without it the suppression has to be
+  // explicit. The ref lives on this component, not on the keyed `motion.div`, so a navigation's
+  // remount doesn't reset it and every page after the first still fades in.
+  const isFirstRender = useRef(true)
+  useEffect(() => {
+    isFirstRender.current = false
+  }, [])
+
   return (
     <motion.div
       key={pathname}
-      initial={reduceMotion ? false : { opacity: 0 }}
+      initial={isFirstRender.current || reduceMotion ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={easeOut}
     >

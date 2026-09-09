@@ -31,15 +31,41 @@ export default function SmoothHashScroll() {
       if (!href || !href.startsWith('#') || href === '#') return
       if (anchor?.target && anchor.target !== '_self') return
 
-      // `scroll-margin-top` on the target (the matchup sections set `scroll-mt-28`) is what keeps
-      // the heading clear of the sticky header, and `scrollIntoView` respects it just as native
-      // fragment scrolling would.
-      const target = document.getElementById(decodeURIComponent(href.slice(1)))
+      // Native fragment matching tries the raw fragment before the percent-decoded one, so an id
+      // containing a literal `%20` stays reachable. `decodeURIComponent` also throws on a lone `%`
+      // (`#100%-club`), which inside a document-level listener would surface as an uncaught error —
+      // bail to the browser's own handling instead.
+      const raw = href.slice(1)
+      let target = document.getElementById(raw)
+      if (!target) {
+        let decoded: string
+        try {
+          decoded = decodeURIComponent(raw)
+        } catch {
+          return
+        }
+        target = document.getElementById(decoded)
+      }
       if (!target) return
 
       event.preventDefault()
+      // `scroll-margin-top` on the target (the matchup sections set `scroll-mt-28`) is what keeps
+      // the heading clear of the sticky header, and `scrollIntoView` respects it just as native
+      // fragment scrolling would.
       target.scrollIntoView({ behavior: scrollBehavior(), block: 'start' })
-      history.pushState(null, '', href)
+
+      // Fragment navigation also moves the sequential focus starting point, which `scrollIntoView`
+      // does not. Without this a keyboard user activating a TOC link scrolls the section into view
+      // but leaves focus on the link, so the next Tab carries on through the TOC rather than into
+      // the section they just asked for.
+      if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1')
+      target.focus({ preventScroll: true })
+
+      // Native fragment navigation *replaces* when the hash is already current. Pushing
+      // unconditionally means re-clicking the same TOC entry stacks history entries that Back
+      // can't undo (Next 13.5's popstate handler ignores entries with no router state), stranding
+      // the reader on the article.
+      if (window.location.hash !== href) history.pushState(null, '', href)
     }
 
     document.addEventListener('click', onClick)
