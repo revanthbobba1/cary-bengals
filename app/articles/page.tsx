@@ -2,10 +2,13 @@ import ArticlesList from '@/components/articles/ArticlesList'
 import { getPublishedArticles } from '@/lib/supabase/articles'
 import { genPageMetadata } from 'app/seo'
 
-// Kept, but it no longer caches this page's HTML: reading `searchParams` below makes the route
-// dynamic, so it renders per request. It still bounds any caching of the data fetch underneath,
-// which is why it isn't simply deleted. A published article now appears immediately, so the
-// `revalidatePath('/articles')` in the admin publish action is belt-and-braces rather than load-bearing.
+// This no longer caches the page's HTML -- reading `searchParams` below makes the route dynamic,
+// so it re-renders per request -- but it very much still caches the data. `postgrest-js` calls
+// global `fetch` with only method/headers/body/signal, so under Next's patched fetch the Supabase
+// GET lands in the Data Cache with this value as its TTL. A dynamic render can therefore still
+// serve a response up to 300s stale, which means `revalidatePath('/articles')` in the admin
+// publish action stays load-bearing: without it a freshly published article can be missing for up
+// to five minutes. Don't delete either this or that call on the assumption the other covers it.
 export const revalidate = 300
 
 export const metadata = genPageMetadata({ title: 'Articles' })
@@ -18,7 +21,10 @@ export const metadata = genPageMetadata({ title: 'Articles' })
 export default async function ArticlesPage({
   searchParams,
 }: {
-  searchParams: { season?: string }
+  // A repeated param (`?season=2024&season=2023`) arrives as an array, so the type can't be just
+  // `string`. There's no sensible winner between the two, so anything that isn't a single value
+  // falls through to the newest season, same as an unknown or non-numeric one.
+  searchParams: { season?: string | string[] }
 }) {
   let articles: Awaited<ReturnType<typeof getPublishedArticles>> = []
   let loadError = false
@@ -41,7 +47,10 @@ export default async function ArticlesPage({
           Couldn&apos;t load articles right now — try refreshing the page.
         </p>
       ) : (
-        <ArticlesList articles={articles} season={Number(searchParams.season)} />
+        <ArticlesList
+          articles={articles}
+          season={typeof searchParams.season === 'string' ? Number(searchParams.season) : NaN}
+        />
       )}
     </div>
   )

@@ -51,6 +51,12 @@ export default function ArticlesList({
   // are already on the client, so render the click immediately and let the URL catch up behind it.
   // Reading the optimistic value only while the transition is pending means it can't go stale: it
   // is ignored the moment the real `season` prop lands, including when that happens via Back.
+  // Gating on `pendingSeason !== resolvedSeason` instead would survive an older navigation
+  // committing mid-flight, but at the cost of that staleness -- a Back to a season the reader
+  // never clicked would keep showing the clicked one, which is the bug this whole change exists to
+  // fix. Tried to provoke the interleaving with 600ms of injected latency per fetch and a second
+  // click timed to land exactly as the first committed; the pill sequence followed the clicks with
+  // no revert, so the `isPending` gate stays.
   const selectedSeason = isPending && pendingSeason !== null ? pendingSeason : resolvedSeason
 
   const selectSeason = (year: number) => {
