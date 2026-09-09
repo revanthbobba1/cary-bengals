@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { usePathname } from 'next/navigation'
 import Link from './Link'
 import headerNavLinks from '@/data/headerNavLinks'
 import { useAuth } from '@/lib/hooks/useAuth'
@@ -11,22 +12,35 @@ const MobileNav = () => {
   const [navShow, setNavShow] = useState(false)
   const [mounted, setMounted] = useState(false)
   const { isLoggedIn, logout } = useAuth()
+  const pathname = usePathname()
 
   useEffect(() => setMounted(true), [])
 
-  const onToggleNav = () => {
-    setNavShow((status) => {
-      if (status) {
-        document.body.style.overflow = 'auto'
-      } else {
-        document.body.style.overflow = 'hidden'
-      }
-      return !status
-    })
-  }
+  // Drive the scroll lock off `navShow` instead of setting it inside the toggle handler, so it
+  // can't be stranded: React restores the previous value whenever the sheet closes *or* this
+  // component unmounts, including on paths where none of our own handlers run. (The old handler
+  // also restored `auto` rather than whatever `overflow` was before, which isn't the same thing.)
+  useEffect(() => {
+    if (!navShow) return
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previous
+    }
+  }, [navShow])
+
+  // Close on any route change, not just the ones started by tapping a link in here. A browser
+  // Back/Forward while the sheet is open changes the route without firing any handler of ours,
+  // which used to leave the menu covering the new page with the body still scroll-locked.
+  useEffect(() => {
+    setNavShow(false)
+  }, [pathname])
+
+  const onToggleNav = () => setNavShow((status) => !status)
+  const onCloseNav = () => setNavShow(false)
 
   const handleLogout = async () => {
-    onToggleNav()
+    onCloseNav()
     await logout()
   }
 
@@ -44,8 +58,8 @@ const MobileNav = () => {
       <div className="flex justify-end">
         <button
           className={`mr-8 mt-11 flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 transition-transform duration-150 ease-out-expo ${focusRingClasses} active:scale-90 dark:text-gray-400`}
-          aria-label="Toggle Menu"
-          onClick={onToggleNav}
+          aria-label="Close Menu"
+          onClick={onCloseNav}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -70,7 +84,7 @@ const MobileNav = () => {
             }`}
             style={{ transitionDelay: navShow ? `${50 + index * 50}ms` : '0ms' }}
           >
-            <Link href={link.href} className={linkClasses} onClick={onToggleNav}>
+            <Link href={link.href} className={linkClasses} onClick={onCloseNav}>
               {link.title}
             </Link>
           </div>
@@ -82,7 +96,7 @@ const MobileNav = () => {
             }`}
             style={{ transitionDelay: navShow ? `${50 + headerNavLinks.length * 50}ms` : '0ms' }}
           >
-            <Link href="/admin" className={linkClasses} onClick={onToggleNav}>
+            <Link href="/admin" className={linkClasses} onClick={onCloseNav}>
               Admin
             </Link>
           </div>
@@ -112,7 +126,7 @@ const MobileNav = () => {
             <Link
               href="/login"
               className={`inline-flex items-center rounded-full bg-primary-500 px-7 py-3.5 text-lg font-semibold text-white shadow-[0_8px_20px_-4px_rgba(249,115,22,0.4)] transition-all duration-150 ease-out-expo hover:-translate-y-px hover:bg-primary-600 ${focusRingClasses} active:scale-[0.97]`}
-              onClick={onToggleNav}
+              onClick={onCloseNav}
             >
               Login
             </Link>

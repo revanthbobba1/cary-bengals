@@ -19,3 +19,16 @@ export const fadeScale: Variants = {
   visible: { opacity: 1, scale: 1, transition: easeOut },
   exit: { opacity: 0, scale: 0.9, transition: easeOut },
 }
+
+// Read at call time rather than via framer-motion's `useReducedMotion()` hook, for the imperative
+// scrolling helpers that run inside event handlers rather than during render.
+export function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  )
+}
+
+/** `behavior` for imperative `scrollTo`/`scrollIntoView` calls, honouring reduced motion. */
+export function scrollBehavior(): ScrollBehavior {
+  return prefersReducedMotion() ? 'auto' : 'smooth'
+}
