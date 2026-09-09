@@ -2,11 +2,24 @@ import ArticlesList from '@/components/articles/ArticlesList'
 import { getPublishedArticles } from '@/lib/supabase/articles'
 import { genPageMetadata } from 'app/seo'
 
+// Kept, but it no longer caches this page's HTML: reading `searchParams` below makes the route
+// dynamic, so it renders per request. It still bounds any caching of the data fetch underneath,
+// which is why it isn't simply deleted. A published article now appears immediately, so the
+// `revalidatePath('/articles')` in the admin publish action is belt-and-braces rather than load-bearing.
 export const revalidate = 300
 
 export const metadata = genPageMetadata({ title: 'Articles' })
 
-export default async function ArticlesPage() {
+// Reading `searchParams` opts this route into dynamic rendering, which is the point: the season
+// filter lives in the URL, and resolving it on the server keeps the article list in the
+// server-rendered HTML. Doing the same thing with `useSearchParams()` in the client component
+// instead bails the whole list out of SSR (`NEXT_DYNAMIC_NO_SSR_CODE`), which for the site's main
+// content page is a worse trade than giving up the ISR cache.
+export default async function ArticlesPage({
+  searchParams,
+}: {
+  searchParams: { season?: string }
+}) {
   let articles: Awaited<ReturnType<typeof getPublishedArticles>> = []
   let loadError = false
   try {
@@ -28,7 +41,7 @@ export default async function ArticlesPage() {
           Couldn&apos;t load articles right now — try refreshing the page.
         </p>
       ) : (
-        <ArticlesList articles={articles} />
+        <ArticlesList articles={articles} season={Number(searchParams.season)} />
       )}
     </div>
   )
