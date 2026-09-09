@@ -20,7 +20,7 @@ export async function GET() {
       .join(' ')
 
     return {
-      path: `previews-recaps/${article.slug}`,
+      path: `articles/${article.slug}`,
       title: article.title,
       summary: keywords,
       date: article.published_at,

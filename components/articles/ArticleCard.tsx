@@ -15,7 +15,7 @@ export default function ArticleCard({ article, showReadMore = false }: ArticleCa
 
   return (
     <Link
-      href={`/previews-recaps/${slug}`}
+      href={`/articles/${slug}`}
       className={`group -mx-4 block rounded-card px-4 py-10 transition-all duration-200 ease-out-expo hover:bg-gray-50 ${focusRingClasses} active:scale-[0.99] dark:hover:bg-gray-900/60`}
     >
       <article className="space-y-2 xl:grid xl:grid-cols-4 xl:items-baseline xl:space-y-0">

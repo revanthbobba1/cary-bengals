@@ -469,6 +469,15 @@ improvement.
   building one given nothing live depends on the old paths.
 - **`/newsfeed` renamed to `/previews-recaps` everywhere — decided 2026-09-07.** Route, nav, and
   metadata all now agree, closing the three-way inconsistency this section originally flagged.
+- **`/previews-recaps` renamed to `/articles` everywhere — decided 2026-09-08, during Phase 4b.**
+  A second rename of the same surface, for a different reason than the first: most weeks have only
+  a preview and no recap (all of the 2025 season, live-verified, at the time of this decision), so
+  the compound name overclaimed what's actually there, and a single short word reads better in the
+  nav than "Previews & Recaps". This also fixed an inconsistency that had quietly grown since
+  Phase 3: `/admin/articles` and `components/articles/` already said "Articles" throughout; only
+  the public route/nav/headings still said "Previews & Recaps". Same reasoning as the first rename
+  applies to why this is safe — no live comment threads or backlinks to a private league site — so
+  no redirect from `/previews-recaps` either.
 
 ### 7.2 Still open
 

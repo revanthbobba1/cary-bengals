@@ -218,7 +218,7 @@ export default async function ArticlePage({ params }: { params: { slug: string[]
                   <div className="flex flex-col gap-3 py-4 xl:py-8">
                     {prev && (
                       <Link
-                        href={`/previews-recaps/${prev.slug}`}
+                        href={`/articles/${prev.slug}`}
                         className={`group block rounded-control border border-gray-200 bg-white p-4 shadow-card transition-all duration-150 ease-out-expo hover:-translate-y-0.5 hover:shadow-raised ${focusRingClasses} active:scale-[0.99] dark:border-gray-800 dark:bg-gray-900 dark:shadow-card-dark dark:hover:shadow-raised-dark`}
                       >
                         <h2 className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -231,7 +231,7 @@ export default async function ArticlePage({ params }: { params: { slug: string[]
                     )}
                     {next && (
                       <Link
-                        href={`/previews-recaps/${next.slug}`}
+                        href={`/articles/${next.slug}`}
                         className={`group block rounded-control border border-gray-200 bg-white p-4 shadow-card transition-all duration-150 ease-out-expo hover:-translate-y-0.5 hover:shadow-raised ${focusRingClasses} active:scale-[0.99] dark:border-gray-800 dark:bg-gray-900 dark:shadow-card-dark dark:hover:shadow-raised-dark`}
                       >
                         <h2 className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -247,14 +247,14 @@ export default async function ArticlePage({ params }: { params: { slug: string[]
               </div>
               <div className="pt-4 xl:pt-8">
                 <Link
-                  href="/previews-recaps"
+                  href="/articles"
                   className={`group inline-flex items-center rounded text-primary-500 hover:text-primary-600 ${focusRingClasses} dark:hover:text-primary-400`}
-                  aria-label="Back to Previews & Recaps"
+                  aria-label="Back to Articles"
                 >
                   <span className="mr-1 inline-block w-2 transition-transform duration-200 ease-out-expo group-hover:-translate-x-1">
                     &larr;
                   </span>
-                  Back to Previews & Recaps
+                  Back to Articles
                 </Link>
               </div>
             </footer>

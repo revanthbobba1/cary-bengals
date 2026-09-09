@@ -52,7 +52,7 @@ export default function Home({ posts }: { posts: PublishedArticleSummary[] }) {
       </ul>
       {posts.length > MAX_DISPLAY && (
         <div className="flex justify-end pt-6">
-          <ArrowLink href="/previews-recaps" ariaLabel="All posts">
+          <ArrowLink href="/articles" ariaLabel="All posts">
             All Posts
           </ArrowLink>
         </div>

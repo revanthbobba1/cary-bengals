@@ -17,8 +17,8 @@ export async function publishArticleAction(
   const { error } = await supabase.rpc('publish_article', { p_article_id: articleId })
   if (error) return { error: error.message }
 
-  revalidatePath('/previews-recaps')
-  revalidatePath(`/previews-recaps/${slug}`)
+  revalidatePath('/articles')
+  revalidatePath(`/articles/${slug}`)
   return { error: null }
 }
 
@@ -40,7 +40,7 @@ export async function unpublishArticleAction(
     return { error: 'Could not unpublish -- you do not have permission to edit this article.' }
   }
 
-  revalidatePath('/previews-recaps')
-  revalidatePath(`/previews-recaps/${slug}`)
+  revalidatePath('/articles')
+  revalidatePath(`/articles/${slug}`)
   return { error: null }
 }
