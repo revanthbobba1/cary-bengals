@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import NextLink from 'next/link'
 import { Reorder, useDragControls, useReducedMotion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/lib/hooks/useToast'
@@ -388,6 +389,16 @@ export default function ArticleEditor({
         >
           {saving ? 'Saving...' : 'Save Draft'}
         </button>
+
+        <NextLink
+          href={`/admin/articles/${article.id}/preview`}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Shows the last saved draft, not unsaved changes -- save first to preview them"
+          className={`rounded-full border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 transition-all duration-150 ease-out-expo hover:bg-gray-50 ${focusRingClasses} active:scale-[0.97] dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-900`}
+        >
+          Preview
+        </NextLink>
 
         {article.status === 'draft' ? (
           <button

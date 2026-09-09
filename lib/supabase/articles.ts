@@ -1,5 +1,5 @@
 import { createPublicClient } from './public'
-import type { Article, ArticleWithMatchups } from '@/lib/types/article'
+import type { Article, ArticleKind, ArticleWithMatchups } from '@/lib/types/article'
 
 export type PublishedArticleSummary = Pick<
   Article,
@@ -47,6 +47,31 @@ export async function getArticleBySlug(slug: string): Promise<ArticleWithMatchup
 
   const { article_matchups: matchups, ...article } = data
   return { ...article, matchups } as ArticleWithMatchups
+}
+
+/**
+ * The other kind's published article for the same season/week (a recap's preview, or vice
+ * versa), for the article page's preview/recap cross-link. At most one row can ever match --
+ * `UNIQUE (season_year, week_number, kind)` guarantees it. Null if that week's other half was
+ * never written or isn't published yet.
+ */
+export async function getSiblingArticle(
+  seasonYear: number,
+  weekNumber: number,
+  excludeKind: ArticleKind
+): Promise<Pick<Article, 'slug' | 'title' | 'kind'> | null> {
+  const supabase = createPublicClient()
+  const { data, error } = await supabase
+    .from('articles')
+    .select('slug, title, kind')
+    .eq('season_year', seasonYear)
+    .eq('week_number', weekNumber)
+    .eq('status', 'published')
+    .neq('kind', excludeKind)
+    .maybeSingle()
+
+  if (error) throw error
+  return data
 }
 
 /**
