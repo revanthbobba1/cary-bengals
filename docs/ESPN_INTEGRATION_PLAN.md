@@ -78,7 +78,7 @@ error handling needed.
 constraint or anything the active P0 submissions bug is investigating):
 
 ```sql
--- supabase/migrations/015_add_espn_team_ids.sql
+-- Shipped as supabase/migrations/034_add_espn_team_ids.sql (015 was taken by the time Phase 5 ran)
 ALTER TABLE teams ADD COLUMN espn_team_id INTEGER;
 ALTER TABLE teams ADD COLUMN espn_owner_id TEXT;
 ALTER TABLE teams ADD COLUMN espn_synced_at TIMESTAMPTZ;
@@ -274,7 +274,7 @@ this never runs client-side).
 | 2 ✅  | Scaffold FastAPI; delete Flask files; `/healthz` + `/v1/league/{season}/teams`; run locally       | 1                            |
 | 3 ✅  | Sanitization + pytest against the captured fixture (`respx` for HTTP mocking)                     | 2                            |
 | 4     | Dockerize; deploy to Render; set secrets                                                          | 3                            |
-| 5     | Migration `015_add_espn_team_ids.sql`                                                             | independent, can run anytime |
+| 5     | Migration `034_add_espn_team_ids.sql` (renumbered — `015` was taken by the time this ran)         | independent, can run anytime |
 | 6     | `lib/espn/client.ts` + `app/api/admin/teams/sync/route.ts` (commissioner-gated) + preview/diff UI | 4, 5                         |
 | 7     | Backfill the 12 existing rows through the preview UI                                              | 6                            |
 | 8     | Layer on: `/rosters`, `/standings` → `poll_results.team_record`, `/scoreboard`, `/schedule`       | later                        |
@@ -342,6 +342,19 @@ cookies now get set once on the shared client instance in `__init__` instead, ve
 real league again afterward to confirm auth still works. 16 tests, all passing; `ruff`/`black`
 clean.
 
+**Phase 5 notes (2026-09-10):** Written out of numeric order relative to Phases 2-3 since it's
+independent (per §9) and doesn't need the FastAPI service running. Shipped as
+`034_add_espn_team_ids.sql`, not `015` — this repo's migration numbering had moved on since this
+plan was first drafted; `015` was already `015_fix_submission_rls.sql`. Matches §2.3 exactly
+(additive, partial unique index on `(season_year, espn_team_id)`), with one addition: `lib/types/poll.ts`'s
+`Team` interface picked up the three new nullable fields in the same PR, ahead of any code
+actually reading them, so the TypeScript type doesn't silently drift from the live schema — `tsc
+--noEmit` confirmed this is a no-op for every existing consumer (`Team[]`/`PollResultWithTeam[]`
+usages throughout, no object literals constructing a `Team` field-by-field). **Not yet applied to
+production** — the migration file is written and reviewed, but `supabase db push` is a separate,
+deliberate step against the live database, held pending explicit go-ahead rather than bundled into
+the PR-merge-to-`develop` flow the rest of this work has used.
+
 ## 10. Anticipated friction
 
 - **Netlify build gate** — `yarn lint`/Prettier failures break CI (see commit `b7536f5`). New
@@ -361,8 +374,9 @@ clean.
 
 - `backend/app.py`, `base.py`, `routes/`, `requirements.txt`, `.flaskenv` — all replaced by the
   FastAPI service
-- `supabase/migrations/001_create_poll_tables.sql` — the `teams` schema `015_add_espn_team_ids.sql`
+- `supabase/migrations/001_create_poll_tables.sql` — the `teams` schema `034_add_espn_team_ids.sql`
   extends
 - `app/admin/poll/manage/page.tsx` — commissioner-gated page hosting the new sync/preview UI
-- `lib/types/poll.ts` — `Team` interface gains `espn_team_id`/`espn_owner_id`/`espn_synced_at`
+- `lib/types/poll.ts` — `Team` interface gained `espn_team_id`/`espn_owner_id`/`espn_synced_at` in
+  Phase 5, ahead of any code actually reading them, so the type never lies about the live schema
 - `lib/supabase/roles.ts` — `isCommissioner()` gates the new `/api/admin/teams/sync` Route Handler
