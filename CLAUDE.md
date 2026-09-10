@@ -23,6 +23,7 @@ No test framework is configured. There are no test commands.
 **Framework:** Next.js 13.5 App Router, TypeScript, Tailwind CSS 3.3, deployed on Netlify (Node 18, Yarn 3.6.1).
 
 **Content pipeline:** All content lives in `data/` as MDX files processed by [Contentlayer](https://www.contentlayer.dev/) at build time. Two document types are defined in `contentlayer.config.ts`:
+
 - `Blog` — sourced from `data/newsfeed/**/*.mdx`, rendered via layouts in `layouts/`
 - `Authors` — sourced from `data/authors/**/*.mdx`, used for league member profiles
 
@@ -31,6 +32,7 @@ Contentlayer generates typed objects importable from `contentlayer/generated`. A
 **MDX processing chain:** remark-gfm → remark-math → remark-code-titles → rehype-slug → rehype-autolink-headings → rehype-katex → rehype-citation → rehype-prism-plus → rehype-preset-minify.
 
 **Key data files (not MDX):**
+
 - `data/siteMetadata.js` — central site config (title, URLs, analytics, comments, search, newsletter provider)
 - `data/projectsData.ts` — press conference video entries (title, thumbnail, YouTube URL)
 - `data/pollData.ts` — commissioner poll rankings keyed by `year → week → team[]`
@@ -68,6 +70,9 @@ Supabase Auth gates `/admin` (email/password + Google OAuth). No self-registrati
 - `NEXT_UMAMI_ID` — Umami analytics site ID
 - Giscus comments: `GISCUS_REPO`, `REPOSITORY_ID`, `CATEGORY`, `CATEGORY_ID`
 - Newsletter provider keys are optional (Mailchimp, Buttondown, Convertkit, Klaviyo, Emailoctopus)
+- `ESPN_SERVICE_URL`, `ESPN_SERVICE_TOKEN` — server-only (no `NEXT_PUBLIC_` prefix), used by
+  `lib/espn/client.ts` to call the ESPN sync service in `backend/`. See
+  `docs/ESPN_INTEGRATION_PLAN.md`.
 
 ## Conventions
 

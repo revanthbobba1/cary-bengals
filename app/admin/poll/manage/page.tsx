@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { isCommissioner } from '@/lib/supabase/roles'
 import PollWeekManager from '@/components/PollWeekManager'
+import EspnTeamSync from '@/components/EspnTeamSync'
 import AdminSubNav from '@/components/AdminSubNav'
 
 export default async function ManagePollPage() {
@@ -38,12 +39,22 @@ export default async function ManagePollPage() {
     .order('season_year', { ascending: false })
     .order('week_number', { ascending: false })
 
+  // Same "newest season present" default PollWeekManager itself falls back to for its own
+  // year filter — there's no separate notion of "the current season" anywhere else to query.
+  const seasonYear =
+    pollWeeks && pollWeeks.length > 0
+      ? Math.max(...pollWeeks.map((week) => week.season_year))
+      : new Date().getFullYear()
+
   return (
-    <div className="py-12 max-w-4xl mx-auto">
-      <AdminSubNav active="manage" showManage={showManageLink} />
-      <h1 className="text-2xl font-bold tracking-tight text-ink dark:text-gray-100 mb-6">
-        Manage Poll Weeks
-      </h1>
+    <div className="py-12 max-w-4xl mx-auto space-y-8">
+      <div>
+        <AdminSubNav active="manage" showManage={showManageLink} />
+        <h1 className="text-2xl font-bold tracking-tight text-ink dark:text-gray-100 mb-6">
+          Manage Poll Weeks
+        </h1>
+      </div>
+      <EspnTeamSync seasonYear={seasonYear} />
       <PollWeekManager existingWeeks={pollWeeks || []} now={new Date().toISOString()} />
     </div>
   )
