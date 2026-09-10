@@ -29,7 +29,10 @@ class EspnClient:
     ) -> None:
         self._http = http_client
         self._league_id = league_id
-        self._cookies = {"espn_s2": espn_s2, "SWID": espn_swid} if espn_s2 and espn_swid else {}
+        if espn_s2 and espn_swid:
+            # Set on the client itself, not per-request — httpx deprecated
+            # per-request cookies, and this client is dedicated to ESPN calls.
+            self._http.cookies.update({"espn_s2": espn_s2, "SWID": espn_swid})
 
     async def fetch_league(
         self,
@@ -41,7 +44,7 @@ class EspnClient:
         params = [("view", view) for view in views]
         headers = {"X-Fantasy-Filter": x_fantasy_filter} if x_fantasy_filter else {}
 
-        response = await self._http.get(url, params=params, cookies=self._cookies, headers=headers)
+        response = await self._http.get(url, params=params, headers=headers)
 
         if response.status_code == 401:
             raise EspnAuthError("ESPN rejected the request — cookies missing or expired")
