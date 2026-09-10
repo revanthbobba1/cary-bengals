@@ -25,6 +25,7 @@ overengineering for the actual job.
 Considered against Flask (the existing unused skeleton at `backend/`), Express, and NestJS.
 
 **Why FastAPI, specifically (not just "the trendy pick"):**
+
 - Pydantic v2 models with `extra="ignore"` are the sanitization boundary, declaratively — ESPN's
   API is undocumented and can add/change fields without warning; validation-as-schema means that
   shows up as a clean typed error, not a silent bad write.
@@ -38,6 +39,7 @@ Considered against Flask (the existing unused skeleton at `backend/`), Express, 
   generation, not concurrency.
 
 **Why not the alternatives:**
+
 - Flask (existing skeleton) — gets you most of this with `flask-pydantic`/`flask-smorest`, but
   bolted on rather than native; the skeleton itself (`backend/app.py`, `base.py`, `routes/`) is a
   hardcoded stub nothing references, safe to replace wholesale.
@@ -58,7 +60,7 @@ one secret class (ESPN cookies) and one failure mode.
 
 Team names change mid-season (part of the fun of the league) — syncing on name would create
 duplicate `teams` rows on every rename and silently split historical `poll_submissions`/
-`poll_results` data across two "teams." Owner ID was considered but rejected as the *primary* key
+`poll_results` data across two "teams." Owner ID was considered but rejected as the _primary_ key
 because ESPN's `owners[]` field can hold multiple IDs for a co-owned team, making it ambiguous as
 a sole match key.
 
@@ -187,6 +189,7 @@ attached if the league is private. Cache parsed result in-process, 15-min TTL ke
 `(season, views)`.
 
 **Sanitize** (in order):
+
 1. Structural — Pydantic `extra="ignore"` models; missing required fields raise `ValidationError`
    → clean 502, never a partial write.
 2. Name resolution — `name` if present/non-blank; otherwise skip the team and report in
@@ -202,6 +205,7 @@ attached if the league is private. Cache parsed result in-process, 15-min TTL ke
 7. Never log `espn_s2`/`SWID` — redact in exception handlers and HTTP client logging.
 
 **Serve:**
+
 ```json
 GET /v1/league/{season}/teams
 {
@@ -215,6 +219,7 @@ GET /v1/league/{season}/teams
   "warnings": []
 }
 ```
+
 `record` is included even though not needed yet — it's free in the `mTeam` payload, and having it
 present means wiring it into `poll_results.team_record` later is a frontend-only change.
 
@@ -245,30 +250,45 @@ this never runs client-side).
 - [ffscrapr — ESPN Private Leagues](https://ffscrapr.ffverse.com/articles/espn_authentication.html)
 - [mkreiser/ESPN-Fantasy-Football-API](http://espn-fantasy-football-api.s3-website.us-east-2.amazonaws.com/)
 
-## 8. Open — must confirm before Phase 0
+## 8. Open — resolved 2026-09-09
 
 1. **Public or private league?** Test with an unauthenticated request to the league endpoint:
    200 with populated `teams[]` = public; 401 = private; 404 = wrong league ID.
-2. **League ID** — from the ESPN league URL.
+   **Private** — confirmed via an unauthenticated `curl` to the league endpoint, which returned
+   401 (`AUTH_LEAGUE_NOT_VISIBLE`).
+2. **League ID** — from the ESPN league URL. **`19467081`.**
 3. **If private: `espn_s2` + `SWID` cookies** — from browser DevTools → Application → Cookies →
    `fantasy.espn.com`, on a logged-in session. Keep the braces on `SWID`. These expire (commonly
    ~1yr, or earlier on password change/logout) — the sync UI must surface a 401 as "ESPN
    credentials expired, re-capture cookies," not fail silently. Store as Render env vars, never
-   in the repo.
+   in the repo. **Captured and verified** — an authenticated `curl` with both cookies returned 200
+   with all 12 teams. Not stored anywhere in this repo or on disk; held by the user until the
+   Phase 4 Render deploy needs them as env vars.
 
 ## 9. Sequencing
 
-| Phase | Work | Blocked by |
-|---|---|---|
-| 0 | Answer §8 (public/private, league ID, cookies if needed) | **User** |
-| 1 | Hand-probe the API with `curl`; capture + redact a real payload into `tests/fixtures/` | 0 |
-| 2 | Scaffold FastAPI; delete Flask files; `/healthz` + `/v1/league/{season}/teams`; run locally | 1 |
-| 3 | Sanitization + pytest against the captured fixture (`respx` for HTTP mocking) | 2 |
-| 4 | Dockerize; deploy to Render; set secrets | 3 |
-| 5 | Migration `015_add_espn_team_ids.sql` | independent, can run anytime |
-| 6 | `lib/espn/client.ts` + `app/api/admin/teams/sync/route.ts` (commissioner-gated) + preview/diff UI | 4, 5 |
-| 7 | Backfill the 12 existing rows through the preview UI | 6 |
-| 8 | Layer on: `/rosters`, `/standings` → `poll_results.team_record`, `/scoreboard`, `/schedule` | later |
+| Phase | Work                                                                                              | Blocked by                   |
+| ----- | ------------------------------------------------------------------------------------------------- | ---------------------------- |
+| 0 ✅  | Answer §8 (public/private, league ID, cookies if needed)                                          | **User**                     |
+| 1 ✅  | Hand-probe the API with `curl`; capture + redact a real payload into `tests/fixtures/`            | 0                            |
+| 2     | Scaffold FastAPI; delete Flask files; `/healthz` + `/v1/league/{season}/teams`; run locally       | 1                            |
+| 3     | Sanitization + pytest against the captured fixture (`respx` for HTTP mocking)                     | 2                            |
+| 4     | Dockerize; deploy to Render; set secrets                                                          | 3                            |
+| 5     | Migration `015_add_espn_team_ids.sql`                                                             | independent, can run anytime |
+| 6     | `lib/espn/client.ts` + `app/api/admin/teams/sync/route.ts` (commissioner-gated) + preview/diff UI | 4, 5                         |
+| 7     | Backfill the 12 existing rows through the preview UI                                              | 6                            |
+| 8     | Layer on: `/rosters`, `/standings` → `poll_results.team_record`, `/scoreboard`, `/schedule`       | later                        |
+
+**Phase 1 notes (2026-09-09):** Captured `?view=mTeam` for season 2026 (12 teams, 13 members —
+one team is co-owned). Real member names, `displayName`s, and GUIDs (`members[].id`,
+`teams[].owners`, `teams[].primaryOwner`) were replaced with synthetic placeholders before the
+file touched the repo; two team logo URLs that embedded a real member's name in the path
+(`.../BlitznBears-MartinLaksman/...`) were genericized the same way. `notificationSettings`
+(15 entries per member, irrelevant to this integration) were dropped to keep the fixture
+readable — every field the sanitizer in §5 actually reads is preserved untouched, plus several
+genuinely unused fields (`draftStrategy`, `tradeBlock`, `transactionCounter`, `valuesByStat`) left
+in as-is specifically so Phase 3's `extra="ignore"` test has real noise to ignore. Saved to
+`backend/tests/fixtures/mteam_2026.json`.
 
 ## 10. Anticipated friction
 
