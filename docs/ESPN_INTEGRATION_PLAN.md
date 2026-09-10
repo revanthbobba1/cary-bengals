@@ -271,7 +271,7 @@ this never runs client-side).
 | ----- | ------------------------------------------------------------------------------------------------- | ---------------------------- |
 | 0 ✅  | Answer §8 (public/private, league ID, cookies if needed)                                          | **User**                     |
 | 1 ✅  | Hand-probe the API with `curl`; capture + redact a real payload into `tests/fixtures/`            | 0                            |
-| 2     | Scaffold FastAPI; delete Flask files; `/healthz` + `/v1/league/{season}/teams`; run locally       | 1                            |
+| 2 ✅  | Scaffold FastAPI; delete Flask files; `/healthz` + `/v1/league/{season}/teams`; run locally       | 1                            |
 | 3     | Sanitization + pytest against the captured fixture (`respx` for HTTP mocking)                     | 2                            |
 | 4     | Dockerize; deploy to Render; set secrets                                                          | 3                            |
 | 5     | Migration `015_add_espn_team_ids.sql`                                                             | independent, can run anytime |
@@ -289,6 +289,31 @@ readable — every field the sanitizer in §5 actually reads is preserved untouc
 genuinely unused fields (`draftStrategy`, `tradeBlock`, `transactionCounter`, `valuesByStat`) left
 in as-is specifically so Phase 3's `extra="ignore"` test has real noise to ignore. Saved to
 `backend/tests/fixtures/mteam_2026.json`.
+
+**Phase 2 notes (2026-09-09):** Scaffolded per §4's layout, built and run with `uv` (Python 3.12,
+venv at `backend/env` per §10's friction note — already covered by the pre-existing `env` entry
+in the root `.gitignore`). Old Flask skeleton (`app.py`, `base.py`, `routes/`, `.flaskenv`,
+`requirements.txt`) deleted wholesale per §2.1. `clients/espn.py` exposes the single
+`fetch_league(season, views, x_fantasy_filter)` primitive from §4, raising typed
+`EspnAuthError`/`EspnNotFoundError`/`EspnRequestError` that `routers/league.py` maps to a 502 with
+a clear message (never a silent failure, per §8 item 3). `services/league.py` implements the §5
+sanitize pipeline (NFKC normalize, strip control/zero-width/bidi-override chars via explicit
+codepoint ranges — not literal invisible characters in source — strip HTML, collapse whitespace,
+cap length; emoji/punctuation preserved). `cache.py` is a single-lock async TTL cache — traffic
+here is a commissioner clicking "sync" a few times a season, so per-key locking would be
+unjustified complexity. `security.py` gates `/v1/*` on a shared-secret `X-Service-Token` header,
+matching §6's Next.js-only caller design (no CORS middleware added — the browser never calls this
+service directly). Verified end-to-end against the real league, not just unit-level: local
+`uvicorn` run, `/healthz` and `/readyz` both 200, `/v1/league/2026/teams` returns all 12 teams
+correctly sanitized (emoji and apostrophes intact, e.g. `Bark For Daddy!🫵🐶`, `Ladd's Lads`) with
+`owner_display_name` populated as a suggestion only (never applied anywhere yet — that's Phase 6's
+preview UI), a second request returns an identical `fetched_at` confirming the cache hit, a
+missing/wrong `X-Service-Token` returns 401, and `/openapi.json` serves correctly for the future
+`openapi-typescript` step. `ruff check` and `black --check` both pass; `package.json`'s
+`lint-staged` gained the `backend/**/*.py` entry §10 flagged as missing, using
+`uv run --project backend` so it resolves the `backend/env` venv from the repo root. Real ESPN
+credentials live only in `backend/.env` (gitignored, never committed) — `.env.example` documents
+the required keys with no real values.
 
 ## 10. Anticipated friction
 
