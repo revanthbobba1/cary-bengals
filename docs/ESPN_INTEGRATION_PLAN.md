@@ -272,7 +272,7 @@ this never runs client-side).
 | 0 ✅  | Answer §8 (public/private, league ID, cookies if needed)                                          | **User**                     |
 | 1 ✅  | Hand-probe the API with `curl`; capture + redact a real payload into `tests/fixtures/`            | 0                            |
 | 2 ✅  | Scaffold FastAPI; delete Flask files; `/healthz` + `/v1/league/{season}/teams`; run locally       | 1                            |
-| 3     | Sanitization + pytest against the captured fixture (`respx` for HTTP mocking)                     | 2                            |
+| 3 ✅  | Sanitization + pytest against the captured fixture (`respx` for HTTP mocking)                     | 2                            |
 | 4     | Dockerize; deploy to Render; set secrets                                                          | 3                            |
 | 5     | Migration `015_add_espn_team_ids.sql`                                                             | independent, can run anytime |
 | 6     | `lib/espn/client.ts` + `app/api/admin/teams/sync/route.ts` (commissioner-gated) + preview/diff UI | 4, 5                         |
@@ -314,6 +314,33 @@ missing/wrong `X-Service-Token` returns 401, and `/openapi.json` serves correctl
 `uv run --project backend` so it resolves the `backend/env` venv from the repo root. Real ESPN
 credentials live only in `backend/.env` (gitignored, never committed) — `.env.example` documents
 the required keys with no real values.
+
+**Phase 2 review fixes (2026-09-09):** Two findings from the automated review addressed before
+merge: `security.py`'s token check now uses `hmac.compare_digest` (closing a timing side-channel
+on the shared secret), and `config.py` gained a `model_validator` that fails startup clearly if
+only one of `ESPN_S2`/`ESPN_SWID` is set, instead of silently sending no cookies and surfacing a
+generic 401 later. A third finding (the single-lock `TTLCache` serializing unrelated keys across
+a slow fetch) was deliberately left as-is — the only caller is a commissioner clicking "sync" a
+handful of times a season, so there's no concurrent-key traffic to actually serialize, and
+per-key locking would be real complexity for a race that can't occur at this scale.
+
+**Phase 3 notes (2026-09-09):** `tests/test_sanitize.py` unit-tests `_sanitize_name` (control/HTML
+stripping, emoji and punctuation preservation, length capping) and `get_league_teams` end-to-end
+against the real (redacted) `mteam_2026.json` fixture from Phase 1 — including confirming
+`RawLeagueResponse`'s `extra="ignore"` swallows unknown fields and a missing required field raises
+`ValidationError`. `tests/test_league_route.py` uses `respx` to mock ESPN at the HTTP layer and
+drives the actual FastAPI app through `TestClient`, covering the service-token gate, the
+sanitized-response shape, the TTL cache (asserting the mocked route is hit exactly once across two
+requests), and both ESPN error paths (401 → 502 "credentials expired", 404 → 502 "not found").
+`tests/conftest.py` overrides settings via `monkeypatch.setenv` + `get_settings.cache_clear()` so
+tests never touch the real values in `backend/.env`. Needed one infra fix along the way: pytest
+couldn't import the `app` package until `pythonpath = ["."]` was added to `[tool.pytest.ini_options]`
+(the `tests/` directory has no `__init__.py`, so pytest's default import-mode never added
+`backend/` itself to `sys.path`). Also fixed a real (if minor) issue surfaced by running the new
+suite: `EspnClient` was passing `cookies=` per-request, which newer `httpx` flags as deprecated —
+cookies now get set once on the shared client instance in `__init__` instead, verified against the
+real league again afterward to confirm auth still works. 16 tests, all passing; `ruff`/`black`
+clean.
 
 ## 10. Anticipated friction
 
