@@ -118,8 +118,31 @@ export interface TeamSyncPairing {
   acceptOwnerName: boolean
 }
 
+export type TeamSyncPairingStatus = 'updated' | 'espn-team-missing' | 'no-matching-row'
+
+export interface TeamSyncPairingResult {
+  dbTeamId: string
+  status: TeamSyncPairingStatus
+}
+
 export interface TeamSyncCommitResult {
-  updatedCount: number
+  results: TeamSyncPairingResult[]
+}
+
+// Wire shape for sync_espn_teams (035) -- snake_case to match the jsonb keys the SQL function
+// reads, deliberately distinct from Team (lib/types/poll.ts): this is a payload contract with the
+// RPC boundary, not a partial update to that TS type.
+interface SyncEspnTeamsPayloadItem {
+  db_team_id: string
+  name: string
+  espn_team_id: number
+  espn_owner_id: string | null
+  owner_name: string | null
+}
+
+interface SyncEspnTeamsResultRow {
+  db_team_id: string
+  updated: boolean
 }
 
 export async function commitEspnTeamSyncAction(
@@ -131,7 +154,7 @@ export async function commitEspnTeamSyncAction(
   const { supabase } = auth
 
   if (pairings.length === 0) {
-    return { data: { updatedCount: 0 }, error: null }
+    return { data: { results: [] }, error: null }
   }
 
   try {
@@ -141,41 +164,49 @@ export async function commitEspnTeamSyncAction(
     const espnResponse = await fetchEspnTeams(seasonYear)
     const espnTeamById = new Map(espnResponse.teams.map((team) => [team.espn_team_id, team]))
 
-    let updatedCount = 0
+    const results: TeamSyncPairingResult[] = []
+    const payload: SyncEspnTeamsPayloadItem[] = []
+
     for (const pairing of pairings) {
       const espnTeam = espnTeamById.get(pairing.espnTeamId)
-      // ESPN team vanished between preview and commit (renamed/removed mid-season) -- skip
-      // rather than write stale data for it.
-      if (!espnTeam) continue
+      // ESPN team vanished between preview and commit (renamed/removed mid-season) -- report it
+      // rather than silently dropping it or writing stale data.
+      if (!espnTeam) {
+        results.push({ dbTeamId: pairing.dbTeamId, status: 'espn-team-missing' })
+        continue
+      }
 
-      const update: {
-        name: string
-        espn_team_id: number
-        espn_owner_id: string | null
-        espn_synced_at: string
-        owner_name?: string
-      } = {
+      payload.push({
+        db_team_id: pairing.dbTeamId,
         name: espnTeam.name,
         espn_team_id: espnTeam.espn_team_id,
         espn_owner_id: espnTeam.espn_owner_id,
-        espn_synced_at: new Date().toISOString(),
-      }
-      if (pairing.acceptOwnerName && espnTeam.owner_display_name) {
-        update.owner_name = espnTeam.owner_display_name
-      }
-
-      const { data, error } = await supabase
-        .from('teams')
-        .update(update)
-        .eq('id', pairing.dbTeamId)
-        .eq('season_year', seasonYear)
-        .select('id')
-
-      if (error) return { data: null, error: error.message }
-      if (data && data.length > 0) updatedCount += 1
+        owner_name: pairing.acceptOwnerName ? espnTeam.owner_display_name : null,
+      })
     }
 
-    return { data: { updatedCount }, error: null }
+    if (payload.length > 0) {
+      // sync_espn_teams (035) applies the whole batch in one transaction -- a unique-violation on
+      // any single row (e.g. two pairings claiming the same espn_team_id) rolls back the entire
+      // batch rather than leaving some teams already re-pointed and others not.
+      const { data, error } = await supabase.rpc('sync_espn_teams', {
+        p_season_year: seasonYear,
+        p_pairings: payload,
+      })
+      if (error) return { data: null, error: error.message }
+
+      const updatedByDbTeamId = new Map(
+        (data as SyncEspnTeamsResultRow[]).map((row) => [row.db_team_id, row.updated])
+      )
+      for (const item of payload) {
+        results.push({
+          dbTeamId: item.db_team_id,
+          status: updatedByDbTeamId.get(item.db_team_id) ? 'updated' : 'no-matching-row',
+        })
+      }
+    }
+
+    return { data: { results }, error: null }
   } catch (err) {
     return { data: null, error: err instanceof Error ? err.message : 'Failed to sync from ESPN.' }
   }

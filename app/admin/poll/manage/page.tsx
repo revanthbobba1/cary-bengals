@@ -39,13 +39,6 @@ export default async function ManagePollPage() {
     .order('season_year', { ascending: false })
     .order('week_number', { ascending: false })
 
-  // Same "newest season present" default PollWeekManager itself falls back to for its own
-  // year filter — there's no separate notion of "the current season" anywhere else to query.
-  const seasonYear =
-    pollWeeks && pollWeeks.length > 0
-      ? Math.max(...pollWeeks.map((week) => week.season_year))
-      : new Date().getFullYear()
-
   return (
     <div className="py-12 max-w-4xl mx-auto space-y-8">
       <div>
@@ -54,7 +47,13 @@ export default async function ManagePollPage() {
           Manage Poll Weeks
         </h1>
       </div>
-      <EspnTeamSync seasonYear={seasonYear} />
+      {/* The real calendar year, matching PollWeekManager's own "Create New Poll Week" default
+          (components/PollWeekManager.tsx) rather than the newest season_year already present in
+          poll_weeks — those two disagree exactly when they'd matter most: at the start of a new
+          season, before that season's poll weeks exist yet, which is also the most realistic time
+          to run an ESPN sync. The season field here is editable regardless, so this is just the
+          better default, not the only source of truth. */}
+      <EspnTeamSync initialSeasonYear={new Date().getFullYear()} />
       <PollWeekManager existingWeeks={pollWeeks || []} now={new Date().toISOString()} />
     </div>
   )

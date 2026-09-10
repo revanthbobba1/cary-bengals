@@ -404,6 +404,58 @@ interactions, the commit step's real Postgres writes, RLS actually allowing the 
 session to update `teams`. None of that could be exercised without a commissioner login, which
 this session doesn't have. **The commit path has not touched production data.**
 
+**Phase 6 review-fix round (2026-09-10):** A `code-review high` pass posted 10 comments; addressed
+before merge:
+
+- **Season-year mismatch (fixed).** `EspnTeamSync`'s default silently disagreed with
+  `PollWeekManager`'s own "Create New Poll Week" default at exactly the moment they'd matter most
+  — season start, before that season's `poll_weeks` exist. Now defaults to the real calendar year
+  (matching that form) and is editable in the UI, so a wrong guess is visible and correctable
+  rather than silent.
+- **Partial/non-atomic commit + no server-side dedup on `espnTeamId` (fixed, one change covers
+  both).** The original loop of independent `.update()` calls could leave a batch half-applied on
+  a mid-loop failure, including a unique-violation if two pairings claimed the same
+  `espn_team_id`. Replaced with `sync_espn_teams()` (`035_sync_espn_teams.sql`), a `SECURITY
+DEFINER` function applying the whole batch in one transaction — same pattern as
+  `save_article_matchups` (032) and `submit_poll_ballot` (020) already use for this exact class of
+  problem. A unique-violation now rolls back the entire batch instead of partially landing.
+- **Silent partial failure (fixed).** `commitEspnTeamSyncAction` now returns a per-pairing
+  `{dbTeamId, status}` array (`updated` / `espn-team-missing` / `no-matching-row`) instead of a
+  bare count; `EspnTeamSync` renders a Status column and only clears the table on full success,
+  otherwise leaving it up so the commissioner can see exactly which rows need a retry.
+- **No fetch timeout (fixed).** `lib/espn/client.ts` now aborts at 8s — comfortably under
+  Netlify's default 10s synchronous function ceiling — so a Render cold start (§2.6, up to ~60s)
+  produces this code's own clear message instead of an opaque platform-level 502/504.
+- **`RowState` duplicating `preview.rows`, hand-rolled update type (both fixed).** `RowState` now
+  holds only `{dbTeamId, selectedEspnTeamId, acceptOwnerName}`, looking up name/owner from
+  `preview.rows` at render time. The old inline `.update()` type doesn't exist anymore — replaced
+  by the RPC's jsonb payload shape, which is deliberately its own snake_case contract rather than
+  a partial `Team`.
+- **A real bug the posted findings missed, found and fixed anyway:** re-picking a different ESPN
+  team for a row didn't reset "use ESPN's name," so an acceptance made for one pairing could
+  silently carry over to a different one. `handleSelect` now resets it on every reselection.
+- **Table-chrome duplication across `PollWeekManager`/`ArticlesList`/`EspnTeamSync` (partially
+  addressed).** Extracted local constants within this file; a shared `AdminTable` component
+  spanning all three is real but out of scope for this PR.
+- **`ActionResult<T>` diverging from `actions.ts`'s `{error}` convention (not changed).** Kept —
+  `ActionResult<T>` types the success payload instead of bolting extra optional fields on, and
+  (concretely) is what let TypeScript actually catch the null-narrowing bugs this file hit during
+  development. Retrofitting `actions.ts` to match is a separate, unrelated cleanup.
+- **`Co-Authored-By` trailer (not changed).** Flagged against `~/.claude/CLAUDE.md`'s general
+  rule, but this session's attribution instructions explicitly state they replace that guidance.
+
+Not independently execution-tested against a live Postgres — `sync_espn_teams()`'s SQL was checked
+line-by-line against documented Postgres semantics (`GET DIAGNOSTICS`, jsonb `||` array-append,
+`->>` returning SQL `NULL` for a JSON `null`) and closely mirrors two already-working functions in
+this schema, but actually running it needs either local Docker (not started this session) or a
+real `supabase db push`, same as the rest of this phase's commit path.
+
+**Also worth noting: one of the review's own sub-agents exceeded its assigned scope** — told to
+return a candidate list for one narrow angle, it instead re-ran the full multi-agent pipeline and
+posted all 10 comments to this PR itself, before the top-level review's own dedup/verify pass had
+finished. The findings held up on inspection, but the process gap is real and has been reported
+separately as product feedback, not something this plan needs to track.
+
 ## 10. Anticipated friction
 
 - **Netlify build gate** — `yarn lint`/Prettier failures break CI (see commit `b7536f5`). New
