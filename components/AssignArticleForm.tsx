@@ -56,19 +56,42 @@ export default function AssignArticleForm({ members, defaultSeasonYear }: Props)
 
     setLoading(true)
     try {
-      const { error: rpcError } = await supabase.rpc('assign_article', {
-        p_season_year: seasonYear,
-        p_week_number: weekNumber,
-        p_kind: kind,
-        p_author_id: authorId,
-      })
+      // assign_article() only ever INSERTs (see 028) -- that's what makes a week's assignment
+      // exclusive. Reassigning an already-assigned week is a plain UPDATE instead, which the
+      // commissioner's "manage all articles" FOR ALL policy already permits (see the plan's
+      // §3.1 "escape hatch" note) -- no RPC needed for that path.
+      const { data: existing, error: lookupError } = await supabase
+        .from('articles')
+        .select('id')
+        .eq('season_year', seasonYear)
+        .eq('week_number', weekNumber)
+        .eq('kind', kind)
+        .maybeSingle()
 
-      if (rpcError) throw rpcError
+      if (lookupError) throw lookupError
+
+      let reassigned = false
+      if (existing) {
+        const { error: updateError } = await supabase
+          .from('articles')
+          .update({ author_id: authorId })
+          .eq('id', existing.id)
+        if (updateError) throw updateError
+        reassigned = true
+      } else {
+        const { error: rpcError } = await supabase.rpc('assign_article', {
+          p_season_year: seasonYear,
+          p_week_number: weekNumber,
+          p_kind: kind,
+          p_author_id: authorId,
+        })
+        if (rpcError) throw rpcError
+      }
 
       router.refresh()
       setWeekNumber((prev) => prev + 1)
       toast.success(
-        `${seasonYear} Week ${weekNumber} ${kind} assigned to ${memberLabel(members.find((m) => m.id === authorId)!)}.`
+        `${seasonYear} Week ${weekNumber} ${kind} ${reassigned ? 'reassigned' : 'assigned'} to ${memberLabel(members.find((m) => m.id === authorId)!)}.`
       )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to assign article')
