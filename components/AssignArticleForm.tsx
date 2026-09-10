@@ -53,6 +53,14 @@ export default function AssignArticleForm({ members, defaultSeasonYear }: Props)
       setError('Choose a member to assign this week to.')
       return
     }
+    // assign_article() re-validates this server-side for the insert path (028's "No such league
+    // member"), but the reassign path below is a plain UPDATE with no such check -- catch a stale
+    // `members` list (e.g. a revoked account) here so both paths fail the same friendly way
+    // instead of the reassign path surfacing a raw foreign-key-violation message.
+    if (!members.some((m) => m.id === authorId)) {
+      setError('No such league member.')
+      return
+    }
 
     setLoading(true)
     try {
