@@ -78,6 +78,10 @@
     ],
     "*.+(js|jsx|ts|tsx|json|css|md|mdx)": [
       "prettier --write"
+    ],
+    "backend/**/*.py": [
+      "env UV_PROJECT_ENVIRONMENT=env uv run --project backend ruff check --fix",
+      "env UV_PROJECT_ENVIRONMENT=env uv run --project backend black"
     ]
   },
   "packageManager": "yarn@3.6.1"
