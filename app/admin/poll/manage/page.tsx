@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { isCommissioner } from '@/lib/supabase/roles'
 import PollWeekManager from '@/components/PollWeekManager'
+import EspnTeamSync from '@/components/EspnTeamSync'
 import AdminSubNav from '@/components/AdminSubNav'
 
 export default async function ManagePollPage() {
@@ -39,11 +40,20 @@ export default async function ManagePollPage() {
     .order('week_number', { ascending: false })
 
   return (
-    <div className="py-12 max-w-4xl mx-auto">
-      <AdminSubNav active="manage" showManage={showManageLink} />
-      <h1 className="text-2xl font-bold tracking-tight text-ink dark:text-gray-100 mb-6">
-        Manage Poll Weeks
-      </h1>
+    <div className="py-12 max-w-4xl mx-auto space-y-8">
+      <div>
+        <AdminSubNav active="manage" showManage={showManageLink} />
+        <h1 className="text-2xl font-bold tracking-tight text-ink dark:text-gray-100 mb-6">
+          Manage Poll Weeks
+        </h1>
+      </div>
+      {/* The real calendar year, matching PollWeekManager's own "Create New Poll Week" default
+          (components/PollWeekManager.tsx) rather than the newest season_year already present in
+          poll_weeks — those two disagree exactly when they'd matter most: at the start of a new
+          season, before that season's poll weeks exist yet, which is also the most realistic time
+          to run an ESPN sync. The season field here is editable regardless, so this is just the
+          better default, not the only source of truth. */}
+      <EspnTeamSync initialSeasonYear={new Date().getFullYear()} />
       <PollWeekManager existingWeeks={pollWeeks || []} now={new Date().toISOString()} />
     </div>
   )
