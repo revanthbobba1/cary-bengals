@@ -283,8 +283,8 @@ this never runs client-side).
 | 3 ✅  | Sanitization + pytest against the captured fixture (`respx` for HTTP mocking)               | 2                            |
 | 4     | Dockerize; deploy to Render; set secrets                                                    | 3                            |
 | 5 ✅  | Migration `034_add_espn_team_ids.sql` (renumbered — `015` was taken by the time this ran)   | independent, can run anytime |
-| 6 ⚠️  | `lib/espn/client.ts` + Server Actions (commissioner-gated) + preview/diff UI                | 4, 5                         |
-| 7     | Backfill the 12 existing rows through the preview UI                                        | 6                            |
+| 6 ✅  | `lib/espn/client.ts` + Server Actions (commissioner-gated) + preview/diff UI                | 4, 5                         |
+| 7 ✅  | Backfill the 12 existing rows through the preview UI                                        | 6                            |
 | 8     | Layer on: `/rosters`, `/standings` → `poll_results.team_record`, `/scoreboard`, `/schedule` | later                        |
 
 **Phase 1 notes (2026-09-09):** Captured `?view=mTeam` for season 2026 (12 teams, 13 members —
@@ -455,6 +455,23 @@ return a candidate list for one narrow angle, it instead re-ran the full multi-a
 posted all 10 comments to this PR itself, before the top-level review's own dedup/verify pass had
 finished. The findings held up on inspection, but the process gap is real and has been reported
 separately as product feedback, not something this plan needs to track.
+
+**Phase 7 (2026-09-12) — done, and it closes Phase 6's open verification gap.** Ran the real
+commissioner flow for the first time this session, live in a browser: local `uv run uvicorn` +
+`yarn dev`, commissioner logged in locally, drove the UI via Claude in Chrome from there. Preview
+matched the earlier throwaway-script prediction exactly — 6 of 12 teams auto-suggested (`TJ`,
+`Rishi`, `Carter`, `Revanth`, `Sam`, `Alvin`), 6 needed manual pairing (`Kirk`, `Ankith`, `Amogh`,
+`Keshav`, `Sparsh`, `Joseph`). The `Joseph` → `Welcome to Joe'Block` (ESPN owner `jh.713` = Joe
+Hong) pairing was a nickname guess, not a data-driven match — flagged to the commissioner rather
+than auto-selected, and confirmed correct. All "use ESPN's name" boxes left unchecked
+deliberately, per the commissioner's own call: keep the curated `owner_name` values, sync team
+identity/name only. `Apply Sync` returned "Synced 12 teams" (full success, table cleared per the
+all-succeeded UI path); verified directly against production via `supabase db query` — all 12 rows
+now carry `espn_team_id`/`espn_owner_id` and one identical `espn_synced_at` timestamp across all
+12 (proof `sync_espn_teams` (035) applied them as a single transaction, not a loop), team names
+updated to ESPN's current values, every `owner_name` untouched. This is also the first real
+exercise of the commissioner-authenticated write path, RLS, and the atomic RPC end to end — the
+gap Phase 6's own notes above called out as unverified is now closed.
 
 ## 10. Anticipated friction
 
