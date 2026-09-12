@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { inputClasses, labelClasses } from '@/lib/authFormClasses'
 import { focusRingClasses } from '@/lib/focusRing'
+import { describeDuration, IDLE_TIMEOUT_SECONDS, SESSION_IDLE_REASON } from '@/lib/supabase/session'
 
 function safeRedirectPath(value: string | null): string {
   if (value && value.startsWith('/') && !value.startsWith('//') && !value.includes('@')) {
@@ -17,6 +18,7 @@ function LoginForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -29,15 +31,26 @@ function LoginForm() {
     // fragment instead of a query param since it's a client-side-only redirect.
     const hashError = new URLSearchParams(window.location.hash.slice(1)).get('error')
     const queryError = searchParams.get('error')
+    const reason = searchParams.get('reason')
 
     if (hashError || queryError) {
       setError('Unable to sign in with that account')
+    } else if (reason === SESSION_IDLE_REASON) {
+      // Sent here by the inactivity timeout (lib/supabase/session.ts) rather than by a failed sign-in,
+      // so this is an explanation, not an error.
+      setNotice(
+        `You were signed out after ${describeDuration(IDLE_TIMEOUT_SECONDS)} of inactivity. Sign in again to continue.`
+      )
+    }
+
+    if (hashError || queryError || reason) {
       // Rewrite the URL bar directly instead of router.replace(): the Next.js
       // router treats a query-string change as a real navigation and remounts
-      // this component, wiping the error state we just set.
+      // this component, wiping the message state we just set.
       const url = new URL(window.location.href)
       url.hash = ''
       url.searchParams.delete('error')
+      url.searchParams.delete('reason')
       window.history.replaceState(null, '', url.pathname + url.search)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -47,6 +60,7 @@ function LoginForm() {
     e.preventDefault()
     setLoading(true)
     setError(null)
+    setNotice(null)
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -92,6 +106,15 @@ function LoginForm() {
           {error && (
             <div className="rounded-control bg-red-50 p-4 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">
               {error}
+            </div>
+          )}
+
+          {notice && !error && (
+            <div
+              role="status"
+              className="rounded-control bg-gray-100 p-4 text-sm text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+            >
+              {notice}
             </div>
           )}
 
