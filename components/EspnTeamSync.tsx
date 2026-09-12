@@ -9,7 +9,7 @@ import {
   commitEspnTeamSyncAction,
   type TeamSyncPreview,
   type TeamSyncPairingStatus,
-} from 'app/admin/poll/manage/teams-sync-actions'
+} from 'app/admin/commissioner/teams-sync-actions'
 
 interface Props {
   initialSeasonYear: number

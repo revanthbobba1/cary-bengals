@@ -230,7 +230,7 @@ Server-side only — the browser never talks to FastAPI directly.
 **Shipped as two Server Actions, not a Route Handler** — see the Phase 6 note in §9 for why:
 
 ```
-Commissioner clicks "Check ESPN for updates" in components/EspnTeamSync.tsx (/admin/poll/manage)
+Commissioner clicks "Check ESPN for updates" in components/EspnTeamSync.tsx (/admin/commissioner)
   → previewEspnTeamSyncAction(seasonYear)   (Server Action)
       ├─ getUser() + isCommissioner()   ← reuses lib/supabase/roles.ts
       ├─ GET {ESPN_SERVICE_URL}/v1/league/2026/teams   (FastAPI, read-only)
@@ -473,6 +473,17 @@ updated to ESPN's current values, every `owner_name` untouched. This is also the
 exercise of the commissioner-authenticated write path, RLS, and the atomic RPC end to end — the
 gap Phase 6's own notes above called out as unverified is now closed.
 
+**Post-Phase-7 reorganization (2026-09-12):** `app/admin/poll/manage/` was renamed to
+`app/admin/commissioner/` (page + `teams-sync-actions.ts` both moved), and `AdminSubNav`'s tab
+relabeled "Commissioner Tools" with a badge matching the dashboard's "Only visible to you"
+language — the old name/route stopped fitting once this page covered team sync as well as poll
+weeks, not poll weeks alone. The page itself now has labeled sections ("Team Sync" / "Poll
+Weeks"), mirroring the dashboard's own section pattern, instead of two stacked cards with generic
+headings. Verified live in a browser (worktree dev server, real commissioner session): the nav
+badge renders correctly, `/admin/commissioner` shows both sections, `/admin/poll/manage` is gone.
+Built in an isolated git worktree since another concurrent session had uncommitted changes to
+auth/session files in the main checkout at the time.
+
 ## 10. Anticipated friction
 
 - **Netlify build gate** — `yarn lint`/Prettier failures break CI (see commit `b7536f5`). New
@@ -494,9 +505,9 @@ gap Phase 6's own notes above called out as unverified is now closed.
   FastAPI service
 - `supabase/migrations/001_create_poll_tables.sql` — the `teams` schema `034_add_espn_team_ids.sql`
   extends
-- `app/admin/poll/manage/page.tsx` — commissioner-gated page hosting the new sync/preview UI
-  (`components/EspnTeamSync.tsx`)
+- `app/admin/commissioner/page.tsx` (moved from `app/admin/poll/manage/page.tsx` — see §9) —
+  commissioner-gated page hosting the new sync/preview UI (`components/EspnTeamSync.tsx`)
 - `lib/types/poll.ts` — `Team` interface gained `espn_team_id`/`espn_owner_id`/`espn_synced_at` in
   Phase 5, ahead of any code actually reading them, so the type never lies about the live schema
 - `lib/supabase/roles.ts` — `isCommissioner()` gates both Server Actions in
-  `app/admin/poll/manage/teams-sync-actions.ts` (shipped instead of a Route Handler — see §9)
+  `app/admin/commissioner/teams-sync-actions.ts` (shipped instead of a Route Handler — see §9)

@@ -13,7 +13,7 @@ export default async function AdminPollPage() {
   } = await supabase.auth.getUser()
   if (!user) redirect('/login?redirectTo=/admin/poll')
 
-  const showManageLink = isCommissioner(user)
+  const showCommissionerTools = isCommissioner(user)
 
   // Get current or next open poll week
   const { data: openWeek } = await supabase
@@ -28,7 +28,7 @@ export default async function AdminPollPage() {
   if (!openWeek) {
     return (
       <div className="py-12 max-w-4xl mx-auto">
-        <AdminSubNav active="poll" showManage={showManageLink} />
+        <AdminSubNav active="poll" showCommissionerTools={showCommissionerTools} />
         <h1 className="text-2xl font-bold tracking-tight text-ink dark:text-gray-100 mb-4">
           Submit Poll Rankings
         </h1>
@@ -78,7 +78,7 @@ export default async function AdminPollPage() {
 
   return (
     <div className="py-12 max-w-4xl mx-auto">
-      <AdminSubNav active="poll" showManage={showManageLink} />
+      <AdminSubNav active="poll" showCommissionerTools={showCommissionerTools} />
       <h1 className="text-2xl font-bold tracking-tight text-ink dark:text-gray-100 mb-2">
         Submit Poll Rankings
       </h1>
