@@ -25,7 +25,7 @@ const Header = () => {
     // responsive margin (not padding) so it survives being on the same element as max-width —
     // fixed side margins below `xl`, switching to auto-centering once max-w-6xl actually binds.
     <header
-      className={`sticky top-6 z-40 mx-4 mb-6 mt-6 flex max-w-6xl items-center justify-between rounded-[20px] bg-white/75 px-4 py-3 backdrop-blur-md transition-shadow duration-300 ease-out-expo dark:bg-gray-950/75 sm:mx-6 sm:px-6 xl:mx-auto ${
+      className={`sticky top-0 z-40 mx-4 mb-6 mt-6 flex max-w-6xl items-center justify-between rounded-[20px] bg-white/75 px-4 py-3 backdrop-blur-md transition-shadow duration-300 ease-out-expo dark:bg-gray-950/75 sm:mx-6 sm:px-6 xl:mx-auto ${
         scrolled
           ? 'shadow-nav-scrolled dark:shadow-nav-scrolled-dark'
           : 'shadow-nav dark:shadow-nav-dark'
