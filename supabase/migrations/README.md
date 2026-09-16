@@ -61,6 +61,12 @@ invite — which is exactly what happened, twice (`025`, then `036`). `036` is t
 enforce the shape continuously; prefer extending its `normalize_app_roles()` over writing another
 one-shot `UPDATE`.
 
+**And they were all chasing a writer that wasn't in this repo.** `037` found an undocumented
+`set_default_role()` trigger in production, stamping `{"role": "member"}` onto every insert — which
+is *why* each of those cleanups came undone. When a data shape keeps returning after you've fixed
+it, look for the writer (`select tgname, pg_get_triggerdef(oid) from pg_trigger where tgrelid =
+'auth.users'::regclass and not tgisinternal;`) before writing another backfill.
+
 ## Admin-facing features
 
 | File                                     | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
@@ -77,6 +83,7 @@ one-shot `UPDATE`.
 | `025_auto_grant_admin_role.sql` | `BEFORE INSERT` trigger on `auth.users` that grants every new signup `admin` automatically (promoting a legacy singular `role` string into the `roles` array first, if present) — closes the gap `011`/`013` left, where only users existing _at the time_ were backfilled and every invite since had to be fixed by hand. Also backfills the one account that slipped through before the trigger existed. |
 | `026_gate_admin_grant_on_invite.sql` | Adds a `WHEN (NEW.invited_at IS NOT NULL)` guard to `025`'s trigger, so it only fires for Dashboard-invited accounts, not any future self-service signup (e.g. if the Supabase project's "allow signups" setting were ever toggled on) — enforces the invite-only design intent at the database level instead of relying solely on that external setting. **Superseded by `036`: the guard silently disabled the trigger outright** (the invite flow stamps `invited_at` after the INSERT, so the `WHEN` clause never matched). |
 | `036_normalize_roles_on_invite.sql` | Repairs `026` and closes the loop `011`–`014` left open. Moves the invite-only check off the `WHEN` clause into the function body (where it reads `invited_at` when it actually runs), adds a `BEFORE UPDATE OF raw_app_meta_data, invited_at` trigger so the invite flow's second write — and any later Dashboard edit — is normalized too, and extracts `normalize_app_roles(meta, invited)` as the one place the rules live, shared by both triggers and the backfill. Verified by `../tests/verify_036.sql`. |
+| `037_drop_set_default_role.sql` | Drops `on_auth_user_created` → `public.set_default_role()`, an undocumented trigger that existed only in production and stamped `{"role": "member"}` onto every `auth.users` insert. It is the reason that shape kept returning after `011`–`014` cleaned it up, and the reason `036` was needed at all. Also sweeps up the last legacy keys and corrects `036`'s comments, which blamed Dashboard hand-typing. Verified by `../tests/verify_037.sql`. |
 | `027_fix_recalculate_trigger_search_path.sql` | Root-cause fix for poll submissions failing outright: `submit_poll_ballot` (020) runs with `SET search_path = ''`, which stays in effect for the statement-level triggers (016) its own INSERT/DELETE fire. Neither `trigger_recalculate_poll_results()` nor `recalculate_poll_results()` (004) schema-qualified their references, so every unqualified name inside them failed to resolve under the inherited empty search_path (`42883`, surfaced to PostgREST as a 404) — every submission has been hitting this since `020` first shipped. Gives both functions their own `SET search_path = ''` and fully schema-qualifies every reference so they no longer depend on inherited search_path at all. |
 
 ## Previews & recaps
