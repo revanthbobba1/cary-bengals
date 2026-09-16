@@ -84,6 +84,6 @@ Supabase Auth gates `/admin` (email/password + Google OAuth). No self-registrati
 
 ## Git Workflow
 
-- All changes go on a feature branch off `main` and land via a pull request — no direct commits to `main`.
+- All changes go on a feature branch off `develop` and land via a pull request against `develop` — no direct commits to `develop` or `main`.
 - PR review, findings handling, thread resolution, and post-merge cleanup follow the
   `pr-review-workflow` personal skill (same process across all my projects, not specific to this repo).
