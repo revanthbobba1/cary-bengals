@@ -82,8 +82,7 @@ Supabase Auth gates `/admin` (email/password + Google OAuth). No self-registrati
 - Three post layout options: `PostLayout` (default, two-column with author sidebar), `PostSimple`, `PostBanner`.
 - Security headers (CSP, HSTS, X-Frame-Options) are configured in `next.config.js`. Update the CSP if adding new external script/image domains.
 
-## Git Workflow
+## Repository instructions
 
-- All changes go on a feature branch off `develop` and land via a pull request against `develop` — no direct commits to `develop` or `main`.
-- PR review, findings handling, thread resolution, and post-merge cleanup follow the
-  `pr-review-workflow` personal skill (same process across all my projects, not specific to this repo).
+See [`AGENTS.md`](AGENTS.md), the canonical source for repository-specific agent instructions
+including the branch and pull-request workflow.
