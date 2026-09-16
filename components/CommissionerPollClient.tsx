@@ -10,6 +10,7 @@ interface Props {
   defaultYear: number
   defaultWeek: number
   defaultResults: PollResultWithTeam[]
+  localFixtures?: Record<string, PollResultWithTeam[]>
 }
 
 const getTrendColor = (trend: string) => {
@@ -67,6 +68,7 @@ export default function CommissionerPollClient({
   defaultYear,
   defaultWeek,
   defaultResults,
+  localFixtures,
 }: Props) {
   const [selectedYear, setSelectedYear] = useState(defaultYear)
   const [selectedWeek, setSelectedWeek] = useState(defaultWeek)
@@ -74,11 +76,18 @@ export default function CommissionerPollClient({
   const [loading, setLoading] = useState(false)
 
   const supabase = createClient()
+  const useLocalFixtures = Boolean(localFixtures)
 
   const availableWeeks = useMemo(() => weeksByYear[selectedYear] || [], [selectedYear, weeksByYear])
 
   const fetchResults = async (year: number, week: number) => {
     setLoading(true)
+
+    if (useLocalFixtures) {
+      setResults(localFixtures?.[`${year}-${week}`] ?? [])
+      setLoading(false)
+      return
+    }
 
     const { data: pollWeek } = await supabase
       .from('poll_weeks')

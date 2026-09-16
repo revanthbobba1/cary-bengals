@@ -2,7 +2,57 @@ import { createClient } from '@/lib/supabase/server'
 import CommissionerPollClient from './CommissionerPollClient'
 import type { PollResultWithTeam } from '@/lib/types/poll'
 
+const localTeams = [
+  ['local-team-1', 'Bark For Daddy!🫵🐶', 'Kirk'],
+  ['local-team-2', 'Code Monkey', 'Ankith'],
+  ['local-team-3', 'Kamara vs the World', 'Amogh'],
+] as const
+
+function localResults(year: number, week: number): PollResultWithTeam[] {
+  return localTeams.map(([id, name, owner_name], index) => ({
+    id: `local-result-${year}-${week}-${index + 1}`,
+    poll_week_id: `local-week-${year}-${week}`,
+    team_id: id,
+    final_rank: index + 1,
+    avg_rank_score: index + 1.5,
+    team_record: `${Math.max(0, 3 - index)}-${index}`,
+    trend: index === 0 ? '↑1' : '-',
+    num_ballots: 12,
+    created_at: `${year}-09-01T00:00:00.000Z`,
+    team: {
+      id,
+      name,
+      owner_name,
+      season_year: year,
+      espn_team_id: null,
+      espn_owner_id: null,
+      espn_synced_at: null,
+      created_at: `${year}-09-01T00:00:00.000Z`,
+      updated_at: `${year}-09-01T00:00:00.000Z`,
+    },
+  }))
+}
+
+const localFixtureData = {
+  availableYears: [2026, 2025],
+  weeksByYear: { 2026: [2, 1], 2025: [3, 2, 1] },
+  defaultYear: 2026,
+  defaultWeek: 2,
+  defaultResults: localResults(2026, 2),
+  localFixtures: {
+    '2026-2': localResults(2026, 2),
+    '2026-1': localResults(2026, 1),
+    '2025-3': localResults(2025, 3),
+    '2025-2': localResults(2025, 2),
+    '2025-1': localResults(2025, 1),
+  },
+}
+
 export default async function CommissionerPoll() {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.includes('your-project-ref')) {
+    return <CommissionerPollClient {...localFixtureData} />
+  }
+
   const supabase = createClient()
 
   // Only show weeks the commissioner has explicitly locked — that's the
