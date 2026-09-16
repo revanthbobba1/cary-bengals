@@ -97,7 +97,7 @@ export default function ArticlesList({
 
   return (
     <>
-      <div className="relative max-w-lg pb-8">
+      <div className="relative max-w-3xl pb-8">
         <label>
           <span className="sr-only">Search articles</span>
           <input
@@ -186,7 +186,7 @@ export default function ArticlesList({
             )}
           </div>
 
-          <div>
+          <div className="space-y-2">
             {weekGroups.map((group, index) => (
               <div
                 key={group.week_number}
@@ -195,7 +195,7 @@ export default function ArticlesList({
                   index === 0 ? '' : 'border-t border-gray-100 dark:border-gray-800'
                 }`}
               >
-                <div className="flex-none text-xs font-bold uppercase tracking-wide text-gray-400 dark:text-gray-500 sm:w-24 sm:pt-6">
+                <div className="flex-none text-xs font-bold uppercase tracking-wide text-gray-400 dark:text-gray-500 sm:w-44 sm:pt-6">
                   Week {group.week_number}
                 </div>
                 <div className="flex flex-1 flex-wrap gap-4">
