@@ -19,7 +19,7 @@ DECLARE
 BEGIN
   -- -------------------------------------------------------------------------
   -- 1. The real invite flow: INSERT without invited_at, stamped on a later UPDATE.
-  --    This is the exact sequence that produced ankith.kodali@gmail.com's broken row.
+  --    This is the exact sequence that produced the broken rows on the 2026-09-15 invites.
   -- -------------------------------------------------------------------------
   v_id := gen_random_uuid();
   INSERT INTO auth.users (id, aud, role, email, raw_app_meta_data)
@@ -100,7 +100,38 @@ BEGIN
   RAISE NOTICE 'PASS 5: uninvited signup untouched -> %', v_meta;
 
   -- -------------------------------------------------------------------------
-  -- 6. Backfill: no real account is left in a legacy shape.
+  -- 6. Malformed `roles` values are repaired, not raised on. jsonb_array_elements() rejects a
+  --    scalar or an object, and this function also backs the backfill UPDATE -- so without the
+  --    type check in normalize_app_roles(), one hand-typed row like this would abort the whole
+  --    migration. (Found in review of PR #77.)
+  -- -------------------------------------------------------------------------
+  v_id := gen_random_uuid();
+  INSERT INTO auth.users (id, aud, role, email, invited_at, raw_app_meta_data)
+  VALUES (v_id, 'authenticated', 'authenticated', 'verify036-stringroles@example.test', now(),
+          '{"roles": "commissioner", "provider": "email"}'::jsonb);
+
+  SELECT raw_app_meta_data INTO v_meta FROM auth.users WHERE id = v_id;
+  IF jsonb_typeof(v_meta->'roles') <> 'array' THEN
+    RAISE EXCEPTION 'FAIL 6: string roles was not promoted to an array -- got %', v_meta;
+  END IF;
+  IF NOT (v_meta->'roles' ? 'admin' AND v_meta->'roles' ? 'commissioner') THEN
+    RAISE EXCEPTION 'FAIL 6: string roles lost its value or missed the admin grant -- got %', v_meta;
+  END IF;
+  RAISE NOTICE 'PASS 6: string roles promoted -> %', v_meta;
+
+  -- An object is unreadable rather than misspelled, so it's discarded and rebuilt, not promoted.
+  UPDATE auth.users
+  SET raw_app_meta_data = '{"roles": {"admin": true}, "provider": "email"}'::jsonb
+  WHERE id = v_id;
+
+  SELECT raw_app_meta_data INTO v_meta FROM auth.users WHERE id = v_id;
+  IF v_meta->'roles' <> '["admin"]'::jsonb THEN
+    RAISE EXCEPTION 'FAIL 6: object roles was not rebuilt as ["admin"] -- got %', v_meta;
+  END IF;
+  RAISE NOTICE 'PASS 6: object roles rebuilt -> %', v_meta;
+
+  -- -------------------------------------------------------------------------
+  -- 7. Backfill: no real account is left in a legacy shape.
   -- -------------------------------------------------------------------------
   SELECT count(*) INTO v_legacy_rows
   FROM auth.users
@@ -108,11 +139,11 @@ BEGIN
      OR COALESCE(raw_app_meta_data->'roles', '[]'::jsonb) ? 'member'
      OR (invited_at IS NOT NULL AND NOT (COALESCE(raw_app_meta_data->'roles', '[]'::jsonb) ? 'admin'));
   IF v_legacy_rows > 0 THEN
-    RAISE EXCEPTION 'FAIL 6: % account(s) still in a legacy role shape', v_legacy_rows;
+    RAISE EXCEPTION 'FAIL 7: % account(s) still in a legacy role shape', v_legacy_rows;
   END IF;
-  RAISE NOTICE 'PASS 6: every account has a clean roles array';
+  RAISE NOTICE 'PASS 7: every account has a clean roles array';
 
-  RAISE NOTICE 'All 6 checks passed.';
+  RAISE NOTICE 'All 7 checks passed.';
 END
 $verify$;
 

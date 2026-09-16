@@ -40,15 +40,27 @@ AS $$
 DECLARE
   v_meta jsonb := COALESCE(p_meta, '{}'::jsonb);
   v_roles jsonb;
+  v_roles_type text := jsonb_typeof(v_meta->'roles');
 BEGIN
-  -- Promote the legacy singular `role` string into the array, same normalization 011 and 025 did.
-  v_roles := COALESCE(
-    v_meta->'roles',
-    CASE WHEN v_meta ? 'role'
-      THEN jsonb_build_array(v_meta->>'role')
-      ELSE '[]'::jsonb
-    END
-  );
+  -- Every branch here has to yield an ARRAY: jsonb_array_elements() below raises on a scalar or
+  -- object, and this function backs the backfill UPDATE as well as the triggers -- so one row with
+  -- a hand-typed `{"roles": "admin"}` would abort the whole migration rather than repair the row.
+  -- Hand-typed metadata is exactly what this file exists to clean up, so it can't assume good input.
+  IF v_roles_type = 'array' THEN
+    v_roles := v_meta->'roles';
+  ELSIF v_roles_type = 'string' THEN
+    -- `{"roles": "admin"}` -- same mistake as the legacy singular key, same promotion.
+    v_roles := jsonb_build_array(v_meta->>'roles');
+  ELSIF v_meta ? 'role' THEN
+    -- Promote the legacy singular `role` string, same normalization 011 and 025 did.
+    v_roles := jsonb_build_array(v_meta->>'role');
+  ELSE
+    -- Absent, or an unusable shape (object/number/bool). Start clean and let the grant below
+    -- rebuild it: discarding an unreadable value loses nothing a role check could have honored
+    -- anyway, and repairing beats raising. Only 'admin' is restored, so a `commissioner` typed in
+    -- some other shape would need re-adding -- worth it to keep the migration applyable.
+    v_roles := '[]'::jsonb;
+  END IF;
 
   -- Strip 'member' (dropped in 014 -- never checked anywhere, functionally identical to 'admin').
   SELECT COALESCE(jsonb_agg(r), '[]'::jsonb)
@@ -56,9 +68,12 @@ BEGIN
   FROM jsonb_array_elements(v_roles) r
   WHERE r <> '"member"'::jsonb;
 
-  -- Leave a self-service signup's metadata completely untouched, rather than stamping an empty
-  -- `roles: []` onto it. 026's invite-only intent, enforced where it actually works this time:
-  -- an account with no invite never gets 'admin', whatever the project's signup setting says.
+  -- Leave a self-service signup's metadata completely untouched -- including any legacy `role` key,
+  -- which is deliberate: there are no roles to normalize on an account that has none, and rewriting
+  -- it would only stamp an empty `roles: []` onto a row no role check will ever accept. 026's
+  -- invite-only intent, enforced where it actually works this time: an account with no invite never
+  -- gets 'admin', whatever the project's signup setting says. (Unreachable in practice today --
+  -- every account is Dashboard-invited -- so it's a guard, not a code path with live traffic.)
   IF NOT p_invited AND v_roles = '[]'::jsonb THEN
     RETURN v_meta;
   END IF;
