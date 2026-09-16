@@ -227,6 +227,19 @@ when a week is open.
   is two-tier: `admin` (baseline `/admin` access, granted to everyone) and `commissioner`
   (additive, poll administration only).
 
+  **2026-09-15:** the `{"role": "member"}` shape came back on the newest invites, and this time
+  the accounts had no `roles` array at all. Root cause: `026`'s `WHEN (NEW.invited_at IS NOT NULL)`
+  guard on `025`'s **BEFORE INSERT** trigger never matches, because the invite flow inserts the row
+  first and stamps `invited_at` ~18ms later in a separate write. The auto-grant had therefore been
+  dead for every invite since 2026-09-02, and nobody noticed because the affected members simply
+  couldn't reach `/admin` and were missing from the ballot-status and article-assignment lists.
+  `036_normalize_roles_on_invite.sql` moves the invite check into the function body, adds a
+  `BEFORE UPDATE OF raw_app_meta_data, invited_at` trigger so the invite's second write and any
+  later Dashboard edit are normalized too, and backfills. The broader lesson, now recorded in
+  `supabase/migrations/README.md`: `011`–`014` were one-time `UPDATE`s, so they could never stop
+  the shape from returning — only a trigger can. Hand-entering App Metadata at invite time is no
+  longer necessary for `admin`; `commissioner` is still a deliberate manual addition.
+
 ### Completed ✅ (prior)
 
 - [x] Schema + indexes for `teams`, `poll_weeks`, `poll_submissions`, `poll_results`

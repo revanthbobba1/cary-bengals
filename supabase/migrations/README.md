@@ -55,6 +55,12 @@ for the pattern to copy for any future migration that adds RLS policies.
 | `013_normalize_admin_role.sql`     | Grants `admin` to every user (matches original design intent — all league members get equal `/admin` access)                                                                                          |
 | `014_drop_member_role.sql`         | Removes `member` entirely — it was never checked anywhere in the codebase; the role model is now `admin` (everyone) + `commissioner` (additive, poll administration)                                  |
 
+**`011`–`014` are data backfills, not constraints.** Each was a one-time `UPDATE` over the rows that
+existed the day it ran, so nothing stopped the old shapes from coming straight back on the next
+invite — which is exactly what happened, twice (`025`, then `036`). `036` is the first file to
+enforce the shape continuously; prefer extending its `normalize_app_roles()` over writing another
+one-shot `UPDATE`.
+
 ## Admin-facing features
 
 | File                                     | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
@@ -69,7 +75,8 @@ for the pattern to copy for any future migration that adds RLS policies.
 
 | `024_widen_rank_check_constraint.sql` | Relaxes the hardcoded `rank <= 12` CHECK to a generous static bound and moves the real "matches this season's team count" validation into `submit_poll_ballot` itself, so the roster can grow without a schema change. |
 | `025_auto_grant_admin_role.sql` | `BEFORE INSERT` trigger on `auth.users` that grants every new signup `admin` automatically (promoting a legacy singular `role` string into the `roles` array first, if present) — closes the gap `011`/`013` left, where only users existing _at the time_ were backfilled and every invite since had to be fixed by hand. Also backfills the one account that slipped through before the trigger existed. |
-| `026_gate_admin_grant_on_invite.sql` | Adds a `WHEN (NEW.invited_at IS NOT NULL)` guard to `025`'s trigger, so it only fires for Dashboard-invited accounts, not any future self-service signup (e.g. if the Supabase project's "allow signups" setting were ever toggled on) — enforces the invite-only design intent at the database level instead of relying solely on that external setting. |
+| `026_gate_admin_grant_on_invite.sql` | Adds a `WHEN (NEW.invited_at IS NOT NULL)` guard to `025`'s trigger, so it only fires for Dashboard-invited accounts, not any future self-service signup (e.g. if the Supabase project's "allow signups" setting were ever toggled on) — enforces the invite-only design intent at the database level instead of relying solely on that external setting. **Superseded by `036`: the guard silently disabled the trigger outright** (the invite flow stamps `invited_at` after the INSERT, so the `WHEN` clause never matched). |
+| `036_normalize_roles_on_invite.sql` | Repairs `026` and closes the loop `011`–`014` left open. Moves the invite-only check off the `WHEN` clause into the function body (where it reads `invited_at` when it actually runs), adds a `BEFORE UPDATE OF raw_app_meta_data, invited_at` trigger so the invite flow's second write — and any later Dashboard edit — is normalized too, and extracts `normalize_app_roles(meta, invited)` as the one place the rules live, shared by both triggers and the backfill. Verified by `../tests/verify_036.sql`. |
 | `027_fix_recalculate_trigger_search_path.sql` | Root-cause fix for poll submissions failing outright: `submit_poll_ballot` (020) runs with `SET search_path = ''`, which stays in effect for the statement-level triggers (016) its own INSERT/DELETE fire. Neither `trigger_recalculate_poll_results()` nor `recalculate_poll_results()` (004) schema-qualified their references, so every unqualified name inside them failed to resolve under the inherited empty search_path (`42883`, surfaced to PostgREST as a 404) — every submission has been hitting this since `020` first shipped. Gives both functions their own `SET search_path = ''` and fully schema-qualifies every reference so they no longer depend on inherited search_path at all. |
 
 ## Previews & recaps
