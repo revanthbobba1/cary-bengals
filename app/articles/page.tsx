@@ -37,8 +37,8 @@ export default async function ArticlesPage({
 
   return (
     <div>
-      <div className="space-y-2 pb-8 pt-6 md:space-y-5">
-        <h1 className="text-3xl font-extrabold leading-9 tracking-tight text-ink dark:text-gray-100 sm:text-4xl sm:leading-10 md:text-6xl md:leading-14">
+      <div className="space-y-2 pb-10 pt-14 md:space-y-5 md:pb-12 md:pt-16">
+        <h1 className="text-4xl font-extrabold leading-10 tracking-tight text-ink dark:text-gray-100 sm:text-5xl sm:leading-tight md:text-6xl md:leading-14">
           Articles
         </h1>
       </div>
