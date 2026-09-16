@@ -98,7 +98,7 @@ export default function ArticlesList({
   return (
     <>
       <div className="relative max-w-3xl pb-8">
-        <label>
+        <label className="relative block">
           <span className="sr-only">Search articles</span>
           <input
             aria-label="Search articles"
