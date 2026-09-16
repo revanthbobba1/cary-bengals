@@ -9,12 +9,48 @@ export type PublishedArticleSummary = Pick<
   matchupTeamNames: string[]
 }
 
+// Keeps the public list page usable while styling/testing locally before a Supabase project is
+// available. This is deliberately development-only; production still fails visibly if its data
+// connection is misconfigured instead of silently showing fake content.
+const localArticleFixtures: PublishedArticleSummary[] = [
+  {
+    id: 'local-2026-week-1-preview',
+    slug: '2026/week-one-preview',
+    title: '2026 Week 1 Preview',
+    summary: '2026 Week 1 Preview',
+    season_year: 2026,
+    week_number: 1,
+    kind: 'preview',
+    published_at: '2026-09-07T12:00:00.000Z',
+    matchupTeamNames: [],
+  },
+  {
+    id: 'local-2026-week-2-preview',
+    slug: '2026/week-two-preview',
+    title: '2026 Week 2 Preview',
+    summary: '2026 Week 2 Preview',
+    season_year: 2026,
+    week_number: 2,
+    kind: 'preview',
+    published_at: '2026-09-14T12:00:00.000Z',
+    matchupTeamNames: [],
+  },
+]
+
+function useLocalArticleFixtures() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const isPlaceholder = !url || url.includes('your-project-ref')
+  return process.env.NODE_ENV !== 'production' && isPlaceholder
+}
+
 /**
  * All published articles, newest first. Shared by the list page, the home feed, the sitemap, and
  * prev/next lookups on the detail page -- all of them need "the full published list," and at
  * today's row count (dozens, growing ~1-2/week) fetching it fresh per request is cheap.
  */
 export async function getPublishedArticles(): Promise<PublishedArticleSummary[]> {
+  if (useLocalArticleFixtures()) return localArticleFixtures
+
   const supabase = createPublicClient()
   const { data, error } = await supabase
     .from('articles')
