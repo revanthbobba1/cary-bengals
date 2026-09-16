@@ -240,6 +240,25 @@ when a week is open.
   the shape from returning — only a trigger can. Hand-entering App Metadata at invite time is no
   longer necessary for `admin`; `commissioner` is still a deliberate manual addition.
 
+  **2026-09-16 — the actual root cause, found while verifying `036` in production.** Every entry
+  above that describes `{"role": "member"}` as a manual invite-time inconsistency is **wrong**,
+  including the 2026-08-14 one. Nobody ever typed it. A trigger nobody wrote down —
+  `on_auth_user_created` → `public.set_default_role()`, created by hand in the SQL editor when
+  `member` was still a live role, present in production but in **no migration in this repo** —
+  stamped `{"role": "member"}` onto every row inserted into `auth.users`. It was found when a
+  debug row inserted with no `role` key came back carrying one.
+
+  That single object explains the whole five-week sequence: `011` (promote `role` → `roles`),
+  `012` (drop the key), `013`/`014` (normalize/strip `member`), `025` (auto-grant), and half of
+  `036` were all responses to metadata this trigger wrote, and each one "fixed" it as data while
+  the trigger refilled it on the next insert. `037_drop_set_default_role.sql` drops the trigger and
+  the function and sweeps up the last of the key.
+
+  An audit of every function and trigger in `public` and `auth` against the migrations found
+  `set_default_role` to be the only undocumented object — everything else traces to a file.
+  Worth repeating as a habit: a symptom that keeps coming back after a data fix is evidence of a
+  writer nobody has looked for, and `pg_trigger` answers that question in one query.
+
 ### Completed ✅ (prior)
 
 - [x] Schema + indexes for `teams`, `poll_weeks`, `poll_submissions`, `poll_results`

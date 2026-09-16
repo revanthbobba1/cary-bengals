@@ -17,9 +17,14 @@
 -- The `{"role": "member"}` shape is separate rot with the same blast radius: `member` was dropped
 -- as a concept in 014 and is read nowhere in the codebase, and the singular `role` key was dropped
 -- in 012. Both of those were one-time UPDATEs over the rows that existed that day -- they fixed
--- data, they didn't constrain anything, so hand-typing the old shape into the Dashboard's App
--- Metadata box reintroduces it freely. (Note: unrelated to auth.users' own `role` COLUMN, which
--- GoTrue sets to 'authenticated'.)
+-- data, they didn't constrain anything, so nothing stopped the shape from coming back.
+-- (Note: unrelated to auth.users' own `role` COLUMN, which GoTrue sets to 'authenticated'.)
+--
+-- CORRECTED BY 037: this file originally blamed that shape on someone typing it into the
+-- Dashboard's App Metadata box. Nobody did. An undocumented `set_default_role()` trigger, present
+-- in production but in no migration, stamped `{"role": "member"}` onto every insert -- 037 drops it
+-- and explains the whole history. The normalization below stands as written; only the attribution
+-- was wrong.
 --
 -- Fix, in three parts:
 --   1. Move the invite-only gate off the trigger's WHEN clause and into the function body, where
@@ -44,8 +49,9 @@ DECLARE
 BEGIN
   -- Every branch here has to yield an ARRAY: jsonb_array_elements() below raises on a scalar or
   -- object, and this function backs the backfill UPDATE as well as the triggers -- so one row with
-  -- a hand-typed `{"roles": "admin"}` would abort the whole migration rather than repair the row.
-  -- Hand-typed metadata is exactly what this file exists to clean up, so it can't assume good input.
+  -- a malformed `{"roles": "admin"}` would abort the whole migration rather than repair the row.
+  -- Metadata this app didn't write is exactly what this file exists to clean up (see 037 for who
+  -- was actually writing it), so it can't assume good input.
   IF v_roles_type = 'array' THEN
     v_roles := v_meta->'roles';
   ELSIF v_roles_type = 'string' THEN

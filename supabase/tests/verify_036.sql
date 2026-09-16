@@ -132,12 +132,19 @@ BEGIN
 
   -- -------------------------------------------------------------------------
   -- 7. Backfill: no real account is left in a legacy shape.
+  --
+  -- Excludes this script's own fixtures, which is not bookkeeping -- it's the bug that found
+  -- `set_default_role` (see 037). Check 5's uninvited fixture is inserted with no `role` key and
+  -- comes back carrying one, because that trigger stamps it on every insert; 036 then leaves
+  -- uninvited accounts untouched by design, so the fixture sat here failing a check that is about
+  -- real accounts. Scope it to real accounts and the question it asks is the one it meant to ask.
   -- -------------------------------------------------------------------------
   SELECT count(*) INTO v_legacy_rows
   FROM auth.users
-  WHERE raw_app_meta_data ? 'role'
+  WHERE email NOT LIKE 'verify036-%@example.test'
+    AND (raw_app_meta_data ? 'role'
      OR COALESCE(raw_app_meta_data->'roles', '[]'::jsonb) ? 'member'
-     OR (invited_at IS NOT NULL AND NOT (COALESCE(raw_app_meta_data->'roles', '[]'::jsonb) ? 'admin'));
+     OR (invited_at IS NOT NULL AND NOT (COALESCE(raw_app_meta_data->'roles', '[]'::jsonb) ? 'admin')));
   IF v_legacy_rows > 0 THEN
     RAISE EXCEPTION 'FAIL 7: % account(s) still in a legacy role shape', v_legacy_rows;
   END IF;
