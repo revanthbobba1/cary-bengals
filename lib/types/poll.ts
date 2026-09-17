@@ -3,6 +3,9 @@ export interface Team {
   name: string
   owner_name: string
   season_year: number
+  espn_team_id: number | null
+  espn_owner_id: string | null
+  espn_synced_at: string | null
   created_at: string
   updated_at: string
 }

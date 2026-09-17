@@ -36,14 +36,14 @@ export default async function PreviewArticlePage({ params }: { params: { id: str
     console.error('Failed to load article for preview:', articleError)
   }
 
-  const showManageLink = isCommissioner(user)
+  const showCommissionerTools = isCommissioner(user)
   const isOwner = article?.author_id === user.id
-  const canView = isOwner || showManageLink
+  const canView = isOwner || showCommissionerTools
 
   if (!article || !canView) {
     return (
       <div className="py-12 max-w-4xl mx-auto">
-        <AdminSubNav active="articles" showManage={showManageLink} />
+        <AdminSubNav active="articles" showCommissionerTools={showCommissionerTools} />
         <PageTitle>Preview</PageTitle>
         <p className="mt-4 text-gray-600 dark:text-gray-400">
           This article doesn&apos;t exist or isn&apos;t assigned to you.
@@ -75,7 +75,7 @@ export default async function PreviewArticlePage({ params }: { params: { id: str
   return (
     <SectionContainer>
       <div className="pt-6">
-        <AdminSubNav active="articles" showManage={showManageLink} />
+        <AdminSubNav active="articles" showCommissionerTools={showCommissionerTools} />
       </div>
       <article>
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-control border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800 dark:border-yellow-900 dark:bg-yellow-900/20 dark:text-yellow-400">

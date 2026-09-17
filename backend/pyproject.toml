@@ -1,0 +1,39 @@
+[project]
+name = "cary-bengals-espn-service"
+version = "0.1.0"
+description = "Read-only FastAPI service that syncs ESPN Fantasy Football league data into the Cary Bengals site."
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "httpx>=0.27",
+    "pydantic-settings>=2.5",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.7",
+    "black>=24.10",
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "respx>=0.21",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["."]

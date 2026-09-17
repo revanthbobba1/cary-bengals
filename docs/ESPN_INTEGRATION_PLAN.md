@@ -25,6 +25,7 @@ overengineering for the actual job.
 Considered against Flask (the existing unused skeleton at `backend/`), Express, and NestJS.
 
 **Why FastAPI, specifically (not just "the trendy pick"):**
+
 - Pydantic v2 models with `extra="ignore"` are the sanitization boundary, declaratively — ESPN's
   API is undocumented and can add/change fields without warning; validation-as-schema means that
   shows up as a clean typed error, not a silent bad write.
@@ -38,6 +39,7 @@ Considered against Flask (the existing unused skeleton at `backend/`), Express, 
   generation, not concurrency.
 
 **Why not the alternatives:**
+
 - Flask (existing skeleton) — gets you most of this with `flask-pydantic`/`flask-smorest`, but
   bolted on rather than native; the skeleton itself (`backend/app.py`, `base.py`, `routes/`) is a
   hardcoded stub nothing references, safe to replace wholesale.
@@ -58,7 +60,7 @@ one secret class (ESPN cookies) and one failure mode.
 
 Team names change mid-season (part of the fun of the league) — syncing on name would create
 duplicate `teams` rows on every rename and silently split historical `poll_submissions`/
-`poll_results` data across two "teams." Owner ID was considered but rejected as the *primary* key
+`poll_results` data across two "teams." Owner ID was considered but rejected as the _primary_ key
 because ESPN's `owners[]` field can hold multiple IDs for a co-owned team, making it ambiguous as
 a sole match key.
 
@@ -76,7 +78,7 @@ error handling needed.
 constraint or anything the active P0 submissions bug is investigating):
 
 ```sql
--- supabase/migrations/015_add_espn_team_ids.sql
+-- Shipped as supabase/migrations/034_add_espn_team_ids.sql (015 was taken by the time Phase 5 ran)
 ALTER TABLE teams ADD COLUMN espn_team_id INTEGER;
 ALTER TABLE teams ADD COLUMN espn_owner_id TEXT;
 ALTER TABLE teams ADD COLUMN espn_synced_at TIMESTAMPTZ;
@@ -187,6 +189,7 @@ attached if the league is private. Cache parsed result in-process, 15-min TTL ke
 `(season, views)`.
 
 **Sanitize** (in order):
+
 1. Structural — Pydantic `extra="ignore"` models; missing required fields raise `ValidationError`
    → clean 502, never a partial write.
 2. Name resolution — `name` if present/non-blank; otherwise skip the team and report in
@@ -202,6 +205,7 @@ attached if the league is private. Cache parsed result in-process, 15-min TTL ke
 7. Never log `espn_s2`/`SWID` — redact in exception handlers and HTTP client logging.
 
 **Serve:**
+
 ```json
 GET /v1/league/{season}/teams
 {
@@ -215,6 +219,7 @@ GET /v1/league/{season}/teams
   "warnings": []
 }
 ```
+
 `record` is included even though not needed yet — it's free in the `mTeam` payload, and having it
 present means wiring it into `poll_results.team_record` later is a frontend-only change.
 
@@ -222,13 +227,21 @@ present means wiring it into `poll_results.team_record` later is a frontend-only
 
 Server-side only — the browser never talks to FastAPI directly.
 
+**Shipped as two Server Actions, not a Route Handler** — see the Phase 6 note in §9 for why:
+
 ```
-Commissioner clicks "Sync teams from ESPN" at /admin/poll/manage
-  → POST /api/admin/teams/sync   (Next Route Handler)
+Commissioner clicks "Check ESPN for updates" in components/EspnTeamSync.tsx (/admin/commissioner)
+  → previewEspnTeamSyncAction(seasonYear)   (Server Action)
       ├─ getUser() + isCommissioner()   ← reuses lib/supabase/roles.ts
       ├─ GET {ESPN_SERVICE_URL}/v1/league/2026/teams   (FastAPI, read-only)
       ├─ diff against Supabase teams WHERE season_year = 2026, matched on espn_team_id
-      └─ return preview → commissioner confirms/edits owner names → second call upserts
+      └─ return preview with a best-effort suggested pairing per row (often null — see §9)
+  → commissioner confirms/overrides every pairing, opts in per-row to ESPN's owner name
+  → commitEspnTeamSyncAction(seasonYear, pairings)   (Server Action)
+      ├─ getUser() + isCommissioner() again (independent of the preview call)
+      ├─ re-fetches ESPN rather than trusting client-submitted team/owner data
+      └─ UPDATEs each paired teams row directly via the commissioner's own RLS session
+         (teams' "Commissioner can manage teams" FOR ALL policy from 010 — no service role key)
 ```
 
 `lib/espn/client.ts` — typed fetch wrapper reading `ESPN_SERVICE_URL` / `ESPN_SERVICE_TOKEN`
@@ -245,30 +258,231 @@ this never runs client-side).
 - [ffscrapr — ESPN Private Leagues](https://ffscrapr.ffverse.com/articles/espn_authentication.html)
 - [mkreiser/ESPN-Fantasy-Football-API](http://espn-fantasy-football-api.s3-website.us-east-2.amazonaws.com/)
 
-## 8. Open — must confirm before Phase 0
+## 8. Open — resolved 2026-09-09
 
 1. **Public or private league?** Test with an unauthenticated request to the league endpoint:
    200 with populated `teams[]` = public; 401 = private; 404 = wrong league ID.
-2. **League ID** — from the ESPN league URL.
+   **Private** — confirmed via an unauthenticated `curl` to the league endpoint, which returned
+   401 (`AUTH_LEAGUE_NOT_VISIBLE`).
+2. **League ID** — from the ESPN league URL. **`19467081`.**
 3. **If private: `espn_s2` + `SWID` cookies** — from browser DevTools → Application → Cookies →
    `fantasy.espn.com`, on a logged-in session. Keep the braces on `SWID`. These expire (commonly
    ~1yr, or earlier on password change/logout) — the sync UI must surface a 401 as "ESPN
    credentials expired, re-capture cookies," not fail silently. Store as Render env vars, never
-   in the repo.
+   in the repo. **Captured and verified** — an authenticated `curl` with both cookies returned 200
+   with all 12 teams. Not stored anywhere in this repo or on disk; held by the user until the
+   Phase 4 Render deploy needs them as env vars.
 
 ## 9. Sequencing
 
-| Phase | Work | Blocked by |
-|---|---|---|
-| 0 | Answer §8 (public/private, league ID, cookies if needed) | **User** |
-| 1 | Hand-probe the API with `curl`; capture + redact a real payload into `tests/fixtures/` | 0 |
-| 2 | Scaffold FastAPI; delete Flask files; `/healthz` + `/v1/league/{season}/teams`; run locally | 1 |
-| 3 | Sanitization + pytest against the captured fixture (`respx` for HTTP mocking) | 2 |
-| 4 | Dockerize; deploy to Render; set secrets | 3 |
-| 5 | Migration `015_add_espn_team_ids.sql` | independent, can run anytime |
-| 6 | `lib/espn/client.ts` + `app/api/admin/teams/sync/route.ts` (commissioner-gated) + preview/diff UI | 4, 5 |
-| 7 | Backfill the 12 existing rows through the preview UI | 6 |
-| 8 | Layer on: `/rosters`, `/standings` → `poll_results.team_record`, `/scoreboard`, `/schedule` | later |
+| Phase | Work                                                                                        | Blocked by                   |
+| ----- | ------------------------------------------------------------------------------------------- | ---------------------------- |
+| 0 ✅  | Answer §8 (public/private, league ID, cookies if needed)                                    | **User**                     |
+| 1 ✅  | Hand-probe the API with `curl`; capture + redact a real payload into `tests/fixtures/`      | 0                            |
+| 2 ✅  | Scaffold FastAPI; delete Flask files; `/healthz` + `/v1/league/{season}/teams`; run locally | 1                            |
+| 3 ✅  | Sanitization + pytest against the captured fixture (`respx` for HTTP mocking)               | 2                            |
+| 4     | Dockerize; deploy to Render; set secrets                                                    | 3                            |
+| 5 ✅  | Migration `034_add_espn_team_ids.sql` (renumbered — `015` was taken by the time this ran)   | independent, can run anytime |
+| 6 ✅  | `lib/espn/client.ts` + Server Actions (commissioner-gated) + preview/diff UI                | 4, 5                         |
+| 7 ✅  | Backfill the 12 existing rows through the preview UI                                        | 6                            |
+| 8     | Layer on: `/rosters`, `/standings` → `poll_results.team_record`, `/scoreboard`, `/schedule` | later                        |
+
+**Phase 1 notes (2026-09-09):** Captured `?view=mTeam` for season 2026 (12 teams, 13 members —
+one team is co-owned). Real member names, `displayName`s, and GUIDs (`members[].id`,
+`teams[].owners`, `teams[].primaryOwner`) were replaced with synthetic placeholders before the
+file touched the repo; two team logo URLs that embedded a real member's name in the path
+(`.../BlitznBears-MartinLaksman/...`) were genericized the same way. `notificationSettings`
+(15 entries per member, irrelevant to this integration) were dropped to keep the fixture
+readable — every field the sanitizer in §5 actually reads is preserved untouched, plus several
+genuinely unused fields (`draftStrategy`, `tradeBlock`, `transactionCounter`, `valuesByStat`) left
+in as-is specifically so Phase 3's `extra="ignore"` test has real noise to ignore. Saved to
+`backend/tests/fixtures/mteam_2026.json`.
+
+**Phase 2 notes (2026-09-09):** Scaffolded per §4's layout, built and run with `uv` (Python 3.12,
+venv at `backend/env` per §10's friction note — already covered by the pre-existing `env` entry
+in the root `.gitignore`). Old Flask skeleton (`app.py`, `base.py`, `routes/`, `.flaskenv`,
+`requirements.txt`) deleted wholesale per §2.1. `clients/espn.py` exposes the single
+`fetch_league(season, views, x_fantasy_filter)` primitive from §4, raising typed
+`EspnAuthError`/`EspnNotFoundError`/`EspnRequestError` that `routers/league.py` maps to a 502 with
+a clear message (never a silent failure, per §8 item 3). `services/league.py` implements the §5
+sanitize pipeline (NFKC normalize, strip control/zero-width/bidi-override chars via explicit
+codepoint ranges — not literal invisible characters in source — strip HTML, collapse whitespace,
+cap length; emoji/punctuation preserved). `cache.py` is a single-lock async TTL cache — traffic
+here is a commissioner clicking "sync" a few times a season, so per-key locking would be
+unjustified complexity. `security.py` gates `/v1/*` on a shared-secret `X-Service-Token` header,
+matching §6's Next.js-only caller design (no CORS middleware added — the browser never calls this
+service directly). Verified end-to-end against the real league, not just unit-level: local
+`uvicorn` run, `/healthz` and `/readyz` both 200, `/v1/league/2026/teams` returns all 12 teams
+correctly sanitized (emoji and apostrophes intact, e.g. `Bark For Daddy!🫵🐶`, `Ladd's Lads`) with
+`owner_display_name` populated as a suggestion only (never applied anywhere yet — that's Phase 6's
+preview UI), a second request returns an identical `fetched_at` confirming the cache hit, a
+missing/wrong `X-Service-Token` returns 401, and `/openapi.json` serves correctly for the future
+`openapi-typescript` step. `ruff check` and `black --check` both pass; `package.json`'s
+`lint-staged` gained the `backend/**/*.py` entry §10 flagged as missing, using
+`uv run --project backend` so it resolves the `backend/env` venv from the repo root. Real ESPN
+credentials live only in `backend/.env` (gitignored, never committed) — `.env.example` documents
+the required keys with no real values.
+
+**Phase 2 review fixes (2026-09-09):** Two findings from the automated review addressed before
+merge: `security.py`'s token check now uses `hmac.compare_digest` (closing a timing side-channel
+on the shared secret), and `config.py` gained a `model_validator` that fails startup clearly if
+only one of `ESPN_S2`/`ESPN_SWID` is set, instead of silently sending no cookies and surfacing a
+generic 401 later. A third finding (the single-lock `TTLCache` serializing unrelated keys across
+a slow fetch) was deliberately left as-is — the only caller is a commissioner clicking "sync" a
+handful of times a season, so there's no concurrent-key traffic to actually serialize, and
+per-key locking would be real complexity for a race that can't occur at this scale.
+
+**Phase 3 notes (2026-09-09):** `tests/test_sanitize.py` unit-tests `_sanitize_name` (control/HTML
+stripping, emoji and punctuation preservation, length capping) and `get_league_teams` end-to-end
+against the real (redacted) `mteam_2026.json` fixture from Phase 1 — including confirming
+`RawLeagueResponse`'s `extra="ignore"` swallows unknown fields and a missing required field raises
+`ValidationError`. `tests/test_league_route.py` uses `respx` to mock ESPN at the HTTP layer and
+drives the actual FastAPI app through `TestClient`, covering the service-token gate, the
+sanitized-response shape, the TTL cache (asserting the mocked route is hit exactly once across two
+requests), and both ESPN error paths (401 → 502 "credentials expired", 404 → 502 "not found").
+`tests/conftest.py` overrides settings via `monkeypatch.setenv` + `get_settings.cache_clear()` so
+tests never touch the real values in `backend/.env`. Needed one infra fix along the way: pytest
+couldn't import the `app` package until `pythonpath = ["."]` was added to `[tool.pytest.ini_options]`
+(the `tests/` directory has no `__init__.py`, so pytest's default import-mode never added
+`backend/` itself to `sys.path`). Also fixed a real (if minor) issue surfaced by running the new
+suite: `EspnClient` was passing `cookies=` per-request, which newer `httpx` flags as deprecated —
+cookies now get set once on the shared client instance in `__init__` instead, verified against the
+real league again afterward to confirm auth still works. 16 tests, all passing; `ruff`/`black`
+clean.
+
+**Phase 5 notes (2026-09-10):** Written out of numeric order relative to Phases 2-3 since it's
+independent (per §9) and doesn't need the FastAPI service running. Shipped as
+`034_add_espn_team_ids.sql`, not `015` — this repo's migration numbering had moved on since this
+plan was first drafted; `015` was already `015_fix_submission_rls.sql`. Matches §2.3 exactly
+(additive, partial unique index on `(season_year, espn_team_id)`), with one addition: `lib/types/poll.ts`'s
+`Team` interface picked up the three new nullable fields in the same PR, ahead of any code
+actually reading them, so the TypeScript type doesn't silently drift from the live schema — `tsc
+--noEmit` confirmed this is a no-op for every existing consumer (`Team[]`/`PollResultWithTeam[]`
+usages throughout, no object literals constructing a `Team` field-by-field). **Applied to
+production 2026-09-10** via `supabase db push`, as a separate deliberate step after PR merge (not
+bundled into the PR-merge-to-`develop` flow the rest of this work has used) — verified live via
+`supabase db query`: all three columns exist with the right types, all 12 2026 rows intact with
+`espn_team_id IS NULL` (unsynced, as expected), and `teams_season_espn_id` exists.
+
+**Phase 6 notes (2026-09-10) — done ahead of Phase 4, with caveats:** Built and locally verified
+without the Render deploy, at the user's request to make progress without spending more credits on
+Phase 4 right now. Two real deviations from §6's original sketch, discovered by actually building
+this:
+
+- **Server Actions, not a Route Handler.** `app/api/admin/teams/sync/route.ts` was never created;
+  instead `app/admin/poll/manage/teams-sync-actions.ts` follows the precedent
+  `app/admin/articles/[id]/edit/actions.ts` set during the articles work (see that file's own
+  comment) — Server Actions are this codebase's actual pattern for "admin write needing a
+  server-only capability" (there, `revalidatePath`; here, the `ESPN_SERVICE_TOKEN` secret), not
+  Route Handlers, which have zero precedent anywhere in `app/api/`.
+- **Manual pairing, not fuzzy-matched auto-suggestion, is the real mechanism — confirmed against
+  live data, not assumed.** Ran the actual matching logic against the real 2026 `teams` rows (12,
+  public `SELECT` via RLS, no auth needed) and the real ESPN payload: only 6 of 12 teams got a
+  confident automatic suggestion. The other 6 have no reliable signal to match on — `teams.name` is
+  a stale 2025 joke name with zero overlap with this season's ESPN name (`005`'s own comment
+  admits this: "using 2025 team names as placeholders"), and ESPN's `owner_display_name` is an
+  autogenerated username for roughly half this league's members (`ESPNFAN9412180343`,
+  `espnfan9918119315`, etc. — exactly the failure mode §2.4 already flagged). So the suggestion is
+  genuinely just a starting point, never a silent default — every row still requires the
+  commissioner's explicit dropdown selection in `components/EspnTeamSync.tsx`, which is what
+  actually makes the sync correct regardless of suggestion quality.
+
+Also fixed along the way: `lib/espn/client.ts` is server-only by construction (no
+`NEXT_PUBLIC_` prefix on `ESPN_SERVICE_URL`/`ESPN_SERVICE_TOKEN`, only ever imported from a
+`'use server'` file) rather than via the `server-only` package, which has no precedent in this
+codebase either. `ESPN_SERVICE_URL`/`ESPN_SERVICE_TOKEN` added to `.env.example`, `.env.local`
+(pointing at a local `uv run uvicorn` instance for now), and `CLAUDE.md`.
+
+**Verification, and its real limit:** `tsc --noEmit`, `yarn lint`, and a full `yarn build` all
+pass — the build compiles every route including this one (`/admin/poll/manage` came in at 6.21 kB)
+regardless of auth, which caught real Server-Action/client-boundary issues a dev-server request
+couldn't (middleware redirects unauthenticated requests before the page component, and therefore
+this feature's code, ever runs). The matching-logic verification above ran the real algorithm
+against real production data outside the app entirely (a throwaway script, deleted after). What
+this did **not** verify: the actual commissioner-authenticated browser flow — the dropdown
+interactions, the commit step's real Postgres writes, RLS actually allowing the commissioner's
+session to update `teams`. None of that could be exercised without a commissioner login, which
+this session doesn't have. **The commit path has not touched production data.**
+
+**Phase 6 review-fix round (2026-09-10):** A `code-review high` pass posted 10 comments; addressed
+before merge:
+
+- **Season-year mismatch (fixed).** `EspnTeamSync`'s default silently disagreed with
+  `PollWeekManager`'s own "Create New Poll Week" default at exactly the moment they'd matter most
+  — season start, before that season's `poll_weeks` exist. Now defaults to the real calendar year
+  (matching that form) and is editable in the UI, so a wrong guess is visible and correctable
+  rather than silent.
+- **Partial/non-atomic commit + no server-side dedup on `espnTeamId` (fixed, one change covers
+  both).** The original loop of independent `.update()` calls could leave a batch half-applied on
+  a mid-loop failure, including a unique-violation if two pairings claimed the same
+  `espn_team_id`. Replaced with `sync_espn_teams()` (`035_sync_espn_teams.sql`), a `SECURITY
+DEFINER` function applying the whole batch in one transaction — same pattern as
+  `save_article_matchups` (032) and `submit_poll_ballot` (020) already use for this exact class of
+  problem. A unique-violation now rolls back the entire batch instead of partially landing.
+- **Silent partial failure (fixed).** `commitEspnTeamSyncAction` now returns a per-pairing
+  `{dbTeamId, status}` array (`updated` / `espn-team-missing` / `no-matching-row`) instead of a
+  bare count; `EspnTeamSync` renders a Status column and only clears the table on full success,
+  otherwise leaving it up so the commissioner can see exactly which rows need a retry.
+- **No fetch timeout (fixed).** `lib/espn/client.ts` now aborts at 8s — comfortably under
+  Netlify's default 10s synchronous function ceiling — so a Render cold start (§2.6, up to ~60s)
+  produces this code's own clear message instead of an opaque platform-level 502/504.
+- **`RowState` duplicating `preview.rows`, hand-rolled update type (both fixed).** `RowState` now
+  holds only `{dbTeamId, selectedEspnTeamId, acceptOwnerName}`, looking up name/owner from
+  `preview.rows` at render time. The old inline `.update()` type doesn't exist anymore — replaced
+  by the RPC's jsonb payload shape, which is deliberately its own snake_case contract rather than
+  a partial `Team`.
+- **A real bug the posted findings missed, found and fixed anyway:** re-picking a different ESPN
+  team for a row didn't reset "use ESPN's name," so an acceptance made for one pairing could
+  silently carry over to a different one. `handleSelect` now resets it on every reselection.
+- **Table-chrome duplication across `PollWeekManager`/`ArticlesList`/`EspnTeamSync` (partially
+  addressed).** Extracted local constants within this file; a shared `AdminTable` component
+  spanning all three is real but out of scope for this PR.
+- **`ActionResult<T>` diverging from `actions.ts`'s `{error}` convention (not changed).** Kept —
+  `ActionResult<T>` types the success payload instead of bolting extra optional fields on, and
+  (concretely) is what let TypeScript actually catch the null-narrowing bugs this file hit during
+  development. Retrofitting `actions.ts` to match is a separate, unrelated cleanup.
+- **`Co-Authored-By` trailer (not changed).** Flagged against `~/.claude/CLAUDE.md`'s general
+  rule, but this session's attribution instructions explicitly state they replace that guidance.
+
+Not independently execution-tested against a live Postgres — `sync_espn_teams()`'s SQL was checked
+line-by-line against documented Postgres semantics (`GET DIAGNOSTICS`, jsonb `||` array-append,
+`->>` returning SQL `NULL` for a JSON `null`) and closely mirrors two already-working functions in
+this schema, but actually running it needs either local Docker (not started this session) or a
+real `supabase db push`, same as the rest of this phase's commit path.
+
+**Also worth noting: one of the review's own sub-agents exceeded its assigned scope** — told to
+return a candidate list for one narrow angle, it instead re-ran the full multi-agent pipeline and
+posted all 10 comments to this PR itself, before the top-level review's own dedup/verify pass had
+finished. The findings held up on inspection, but the process gap is real and has been reported
+separately as product feedback, not something this plan needs to track.
+
+**Phase 7 (2026-09-12) — done, and it closes Phase 6's open verification gap.** Ran the real
+commissioner flow for the first time this session, live in a browser: local `uv run uvicorn` +
+`yarn dev`, commissioner logged in locally, drove the UI via Claude in Chrome from there. Preview
+matched the earlier throwaway-script prediction exactly — 6 of 12 teams auto-suggested (`TJ`,
+`Rishi`, `Carter`, `Revanth`, `Sam`, `Alvin`), 6 needed manual pairing (`Kirk`, `Ankith`, `Amogh`,
+`Keshav`, `Sparsh`, `Joseph`). The `Joseph` → `Welcome to Joe'Block` (ESPN owner `jh.713` = Joe
+Hong) pairing was a nickname guess, not a data-driven match — flagged to the commissioner rather
+than auto-selected, and confirmed correct. All "use ESPN's name" boxes left unchecked
+deliberately, per the commissioner's own call: keep the curated `owner_name` values, sync team
+identity/name only. `Apply Sync` returned "Synced 12 teams" (full success, table cleared per the
+all-succeeded UI path); verified directly against production via `supabase db query` — all 12 rows
+now carry `espn_team_id`/`espn_owner_id` and one identical `espn_synced_at` timestamp across all
+12 (proof `sync_espn_teams` (035) applied them as a single transaction, not a loop), team names
+updated to ESPN's current values, every `owner_name` untouched. This is also the first real
+exercise of the commissioner-authenticated write path, RLS, and the atomic RPC end to end — the
+gap Phase 6's own notes above called out as unverified is now closed.
+
+**Post-Phase-7 reorganization (2026-09-12):** `app/admin/poll/manage/` was renamed to
+`app/admin/commissioner/` (page + `teams-sync-actions.ts` both moved), and `AdminSubNav`'s tab
+relabeled "Commissioner Tools" with a badge matching the dashboard's "Only visible to you"
+language — the old name/route stopped fitting once this page covered team sync as well as poll
+weeks, not poll weeks alone. The page itself now has labeled sections ("Team Sync" / "Poll
+Weeks"), mirroring the dashboard's own section pattern, instead of two stacked cards with generic
+headings. Verified live in a browser (worktree dev server, real commissioner session): the nav
+badge renders correctly, `/admin/commissioner` shows both sections, `/admin/poll/manage` is gone.
+Built in an isolated git worktree since another concurrent session had uncommitted changes to
+auth/session files in the main checkout at the time.
 
 ## 10. Anticipated friction
 
@@ -289,8 +503,11 @@ this never runs client-side).
 
 - `backend/app.py`, `base.py`, `routes/`, `requirements.txt`, `.flaskenv` — all replaced by the
   FastAPI service
-- `supabase/migrations/001_create_poll_tables.sql` — the `teams` schema `015_add_espn_team_ids.sql`
+- `supabase/migrations/001_create_poll_tables.sql` — the `teams` schema `034_add_espn_team_ids.sql`
   extends
-- `app/admin/poll/manage/page.tsx` — commissioner-gated page hosting the new sync/preview UI
-- `lib/types/poll.ts` — `Team` interface gains `espn_team_id`/`espn_owner_id`/`espn_synced_at`
-- `lib/supabase/roles.ts` — `isCommissioner()` gates the new `/api/admin/teams/sync` Route Handler
+- `app/admin/commissioner/page.tsx` (moved from `app/admin/poll/manage/page.tsx` — see §9) —
+  commissioner-gated page hosting the new sync/preview UI (`components/EspnTeamSync.tsx`)
+- `lib/types/poll.ts` — `Team` interface gained `espn_team_id`/`espn_owner_id`/`espn_synced_at` in
+  Phase 5, ahead of any code actually reading them, so the type never lies about the live schema
+- `lib/supabase/roles.ts` — `isCommissioner()` gates both Server Actions in
+  `app/admin/commissioner/teams-sync-actions.ts` (shipped instead of a Route Handler — see §9)

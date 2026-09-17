@@ -10,6 +10,7 @@ interface Props {
   defaultYear: number
   defaultWeek: number
   defaultResults: PollResultWithTeam[]
+  localFixtures?: Record<string, PollResultWithTeam[]>
 }
 
 const getTrendColor = (trend: string) => {
@@ -27,6 +28,7 @@ function PollTableSkeleton() {
         <tr className="text-left text-gray-600 dark:text-gray-300">
           <th className="py-2">Rank</th>
           <th>Team</th>
+          <th>Owner</th>
           <th>Record</th>
           <th>Rank Score</th>
           <th>Trend</th>
@@ -40,6 +42,9 @@ function PollTableSkeleton() {
             </td>
             <td>
               <div className="h-4 w-32 animate-pulse rounded bg-gray-200 dark:bg-gray-800" />
+            </td>
+            <td>
+              <div className="h-4 w-24 animate-pulse rounded bg-gray-200 dark:bg-gray-800" />
             </td>
             <td>
               <div className="h-4 w-10 animate-pulse rounded bg-gray-200 dark:bg-gray-800" />
@@ -63,6 +68,7 @@ export default function CommissionerPollClient({
   defaultYear,
   defaultWeek,
   defaultResults,
+  localFixtures,
 }: Props) {
   const [selectedYear, setSelectedYear] = useState(defaultYear)
   const [selectedWeek, setSelectedWeek] = useState(defaultWeek)
@@ -70,11 +76,18 @@ export default function CommissionerPollClient({
   const [loading, setLoading] = useState(false)
 
   const supabase = createClient()
+  const useLocalFixtures = Boolean(localFixtures)
 
   const availableWeeks = useMemo(() => weeksByYear[selectedYear] || [], [selectedYear, weeksByYear])
 
   const fetchResults = async (year: number, week: number) => {
     setLoading(true)
+
+    if (useLocalFixtures) {
+      setResults(localFixtures?.[`${year}-${week}`] ?? [])
+      setLoading(false)
+      return
+    }
 
     const { data: pollWeek } = await supabase
       .from('poll_weeks')
@@ -182,6 +195,7 @@ export default function CommissionerPollClient({
             <tr className="text-left text-gray-600 dark:text-gray-300">
               <th className="py-2">Rank</th>
               <th>Team</th>
+              <th>Owner</th>
               <th>Record</th>
               <th>Rank Score</th>
               <th>Trend</th>
@@ -197,6 +211,7 @@ export default function CommissionerPollClient({
                   {result.final_rank}
                 </td>
                 <td className="font-medium text-ink dark:text-gray-100">{result.team.name}</td>
+                <td>{result.team.owner_name || '-'}</td>
                 <td>{result.team_record || '-'}</td>
                 <td>{result.avg_rank_score.toFixed(2)}</td>
                 <td className={`font-semibold ${getTrendColor(result.trend)}`}>{result.trend}</td>

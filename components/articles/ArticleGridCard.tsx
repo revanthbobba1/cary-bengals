@@ -13,7 +13,6 @@ export default function ArticleGridCard({ article }: { article: PublishedArticle
     <Link
       href={`/articles/${article.slug}`}
       className={`group block flex-1 basis-80 rounded-card border border-gray-200 bg-white p-5 shadow-card transition-all duration-200 ease-out-expo hover:-translate-y-0.5 hover:shadow-raised ${focusRingClasses} active:scale-[0.99] dark:border-gray-800 dark:bg-gray-900 dark:shadow-card-dark dark:hover:shadow-raised-dark`}
-      style={{ maxWidth: 460 }}
     >
       <span
         className={`mb-3 inline-block rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${badgeClasses[article.kind]}`}

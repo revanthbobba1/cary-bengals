@@ -44,8 +44,9 @@ env
 .env.test.local
 .env.production.local
 backend/env
-backend/__pycache__
-backend/routes/__pycache__
+backend/.env
+__pycache__/
+*.pyc
 
 
 # Contentlayer

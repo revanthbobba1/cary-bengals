@@ -30,9 +30,9 @@ export default async function AdminPage() {
     .limit(1)
     .maybeSingle()
 
-  const showManageLink = isCommissioner(user)
+  const showCommissionerTools = isCommissioner(user)
 
-  // The four queries below are all independent of each other once openWeek/user/showManageLink
+  // The four queries below are all independent of each other once openWeek/user/showCommissionerTools
   // are known (none reads another's result), so they're fired together instead of one-at-a-time
   // -- sequential round trips to Supabase were the largest contributor to this page feeling slow,
   // since each one pays the full network latency rather than all of them sharing it.
@@ -53,7 +53,7 @@ export default async function AdminPage() {
     // League-wide "who has/hasn't submitted" — commissioner only. The RPC itself enforces the
     // commissioner check server-side (SECURITY DEFINER function reading the JWT), this is just
     // avoiding a pointless call for members who'd get an error back anyway.
-    openWeek && showManageLink
+    openWeek && showCommissionerTools
       ? supabase.rpc('get_poll_week_submission_status', { p_poll_week_id: openWeek.id })
       : null,
     // "Do I have a draft assigned?" -- explicitly filtered to this user's own rows even
@@ -148,7 +148,7 @@ export default async function AdminPage() {
         </p>
       </div>
 
-      <AdminSubNav active="dashboard" showManage={showManageLink} />
+      <AdminSubNav active="dashboard" showCommissionerTools={showCommissionerTools} />
 
       {/* Each admin feature gets its own labeled section here. As more admin
           features are added, they should follow this same "section with an
@@ -272,7 +272,7 @@ export default async function AdminPage() {
             member never sees lives here — a single place to look, rather than scattered
             per-card badges that are easy to forget to add consistently (as happened when the
             submission-status list below was first added without one). */}
-        {showManageLink && (
+        {showCommissionerTools && (
           <section aria-labelledby="commissioner-section-heading">
             <h2
               id="commissioner-section-heading"
@@ -284,8 +284,8 @@ export default async function AdminPage() {
               </span>
             </h2>
 
-            {/* No "Manage Poll Weeks" card here on purpose — that's exactly what the
-                "Manage Poll Weeks" tab in AdminSubNav already navigates to, and a static
+            {/* No "Commissioner Tools" card here on purpose — that's exactly what the
+                "Commissioner Tools" tab in AdminSubNav already navigates to, and a static
                 description + link would add nothing beyond what the tab label already
                 says. This section is for live, dashboard-only oversight content instead
                 (things with no dedicated tab of their own), not a second copy of navigation. */}

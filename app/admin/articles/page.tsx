@@ -16,7 +16,7 @@ export default async function AdminArticlesPage() {
   } = await supabase.auth.getUser()
   if (!user) redirect('/login?redirectTo=/admin/articles')
 
-  const showManageLink = isCommissioner(user)
+  const showCommissionerTools = isCommissioner(user)
 
   // "Your Articles" and the commissioner-only duty roster/member list are all independent of
   // each other, so they're fetched together rather than one sequential round trip apiece.
@@ -35,14 +35,14 @@ export default async function AdminArticlesPage() {
     // in the league" -- RLS's "Public can view published articles" policy is TO anon,
     // authenticated with no author check, so an unfiltered query would return far more than
     // what this section means to show a plain member.
-    showManageLink
+    showCommissionerTools
       ? supabase
           .from('articles')
           .select('*')
           .order('season_year', { ascending: false })
           .order('week_number', { ascending: false })
       : null,
-    showManageLink ? supabase.rpc('list_league_members') : null,
+    showCommissionerTools ? supabase.rpc('list_league_members') : null,
   ])
 
   if (myArticlesRes.error) {
@@ -70,7 +70,7 @@ export default async function AdminArticlesPage() {
 
   return (
     <div className="py-12 max-w-4xl mx-auto">
-      <AdminSubNav active="articles" showManage={showManageLink} />
+      <AdminSubNav active="articles" showCommissionerTools={showCommissionerTools} />
       <h1 className="text-2xl font-bold tracking-tight text-ink dark:text-gray-100 mb-6">
         Articles
       </h1>
@@ -90,7 +90,7 @@ export default async function AdminArticlesPage() {
           <ArticlesList articles={myArticles || []} />
         </section>
 
-        {showManageLink && (
+        {showCommissionerTools && (
           <section aria-labelledby="commissioner-section-heading">
             <h2
               id="commissioner-section-heading"
