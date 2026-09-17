@@ -7,9 +7,10 @@ import { getBlurProps } from '@/lib/blurPlaceholders'
 interface Props {
   children: ReactNode
   content: Omit<Authors, '_id' | '_raw' | 'body'>
+  teamOverride?: string
 }
 
-export default function AuthorLayout({ children, content }: Props) {
+export default function AuthorLayout({ children, content, teamOverride }: Props) {
   const { name, avatar, team, company, email, twitter, linkedin, github } = content
 
   return (
@@ -27,7 +28,7 @@ export default function AuthorLayout({ children, content }: Props) {
       <h3 className="pb-1.5 pt-5 text-2xl font-bold tracking-tight text-ink dark:text-gray-100">
         {name}
       </h3>
-      <div className="text-base text-gray-500 dark:text-gray-400">{team}</div>
+      <div className="text-base text-gray-500 dark:text-gray-400">{teamOverride ?? team}</div>
       <div className="text-base text-gray-500 dark:text-gray-400">{company}</div>
       <div className="flex min-h-9 items-center gap-2 pt-5">
         <SocialIcon kind="mail" href={`mailto:${email}`} size={6} />
