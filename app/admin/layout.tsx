@@ -19,9 +19,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   // Second layer behind middleware, which normally catches an idle session first. A Server Component
   // can't clear cookies, but revoking the session still ends it: its refresh token stops working, so
-  // the next request finds no session at all.
+  // the next request finds no session at all. If revoking fails, the session survives, but the next
+  // /admin request is still idle and goes through middleware, which clears the cookies itself.
   if (isIdle(lastActiveAt(cookies().get(LAST_ACTIVE_COOKIE)?.value, claims))) {
-    await supabase.auth.signOut({ scope: 'local' })
+    const { error } = await supabase.auth.signOut({ scope: 'local' })
+    if (error) console.error('Failed to revoke idle session:', error)
     redirect(`/login?redirectTo=/admin&reason=${SESSION_IDLE_REASON}`)
   }
 

@@ -67,7 +67,14 @@ async function checkActivity({ record }: { record: boolean }) {
   if (isIdle(lastActiveAt(readLastActive(), claims), now)) {
     // Revokes the session with Supabase too, and fires SIGNED_OUT, which useAuth listens for -- so
     // the header flips to "Login" without anything else needing to know this happened.
-    await supabase.auth.signOut({ scope: 'local' })
+    const { error } = await supabase.auth.signOut({ scope: 'local' })
+    if (error) {
+      // Revoking failed (offline, Supabase down), so the session is still here and SIGNED_OUT never
+      // fired. Nothing to force from here -- the next interval tick tries again, and an /admin page
+      // still leaves below, where middleware clears the cookies on the way back in. Not reloading:
+      // the reload's own check would fail the same way and loop.
+      console.error('Failed to revoke idle session:', error)
+    }
 
     // Signing out doesn't un-render the page. On an admin page that would leave whatever it had
     // loaded -- drafts, other members' ballots -- on screen for whoever walks up to an unattended
