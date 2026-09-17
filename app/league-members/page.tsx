@@ -16,7 +16,10 @@ export default async function Page() {
   const teamByOwner = new Map<string, string>()
   const currentSeason = siteMetadata.currentSeason
 
-  if (process.env.NEXT_PUBLIC_SUPABASE_URL && !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('your-project-ref')) {
+  if (
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('your-project-ref')
+  ) {
     const { data, error } = await createPublicClient()
       .from('teams')
       .select('name, owner_name')
