@@ -37,7 +37,7 @@ const localArticleFixtures: PublishedArticleSummary[] = [
   },
 ]
 
-function useLocalArticleFixtures() {
+function shouldUseLocalArticleFixtures() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const isPlaceholder = !url || url.includes('your-project-ref')
   return process.env.NODE_ENV !== 'production' && isPlaceholder
@@ -49,7 +49,7 @@ function useLocalArticleFixtures() {
  * today's row count (dozens, growing ~1-2/week) fetching it fresh per request is cheap.
  */
 export async function getPublishedArticles(): Promise<PublishedArticleSummary[]> {
-  if (useLocalArticleFixtures()) return localArticleFixtures
+  if (shouldUseLocalArticleFixtures()) return localArticleFixtures
 
   const supabase = createPublicClient()
   const { data, error } = await supabase
