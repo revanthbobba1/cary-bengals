@@ -29,7 +29,7 @@ export default function AuthorLayout({ children, content, teamOverride }: Props)
         {name}
       </h3>
       <div className="text-base text-gray-500 dark:text-gray-400">
-        {teamOverride ?? 'Team unavailable'}
+        {teamOverride ?? `Team ${name.split(' ')[0]}`}
       </div>
       <div className="text-base text-gray-500 dark:text-gray-400">{company}</div>
       <div className="flex min-h-9 items-center gap-2 pt-5">
