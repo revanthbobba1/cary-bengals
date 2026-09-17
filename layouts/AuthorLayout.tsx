@@ -28,7 +28,7 @@ export default function AuthorLayout({ children, content, team }: Props) {
       <h3 className="pb-1.5 pt-5 text-2xl font-bold tracking-tight text-ink dark:text-gray-100">
         {name}
       </h3>
-      <div className="text-base text-gray-500 dark:text-gray-400">
+      <div className="text-center text-base text-gray-500 dark:text-gray-400">
         {team ?? `Team ${name.split(' ')[0]}`}
       </div>
       <div className="text-base text-gray-500 dark:text-gray-400">{company}</div>
