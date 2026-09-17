@@ -25,7 +25,7 @@ export default function AuthorLayout({ children, content, team }: Props) {
           {...getBlurProps(avatar)}
         />
       )}
-      <h3 className="pb-1.5 pt-5 text-2xl font-bold tracking-tight text-ink dark:text-gray-100">
+      <h3 className="pb-1.5 pt-5 text-center text-2xl font-bold tracking-tight text-ink dark:text-gray-100">
         {name}
       </h3>
       <div className="text-center text-base text-gray-500 dark:text-gray-400">
