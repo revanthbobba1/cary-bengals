@@ -13,6 +13,7 @@ const siteMetadata = {
   socialBanner: '/static/favicons/apple-touch-icon.png',
   youtube: 'https://www.youtube.com/@carybengalsffl',
   locale: 'en-US',
+  currentSeason: 2026,
   analytics: {
     // If you want to use an analytics provider you have to add it to the
     // content security policy in the `next.config.js` file.

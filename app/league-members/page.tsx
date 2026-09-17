@@ -4,6 +4,7 @@ import AuthorLayout from '@/layouts/AuthorLayout'
 import { coreContent } from 'pliny/utils/contentlayer'
 import { genPageMetadata } from 'app/seo'
 import { createPublicClient } from '@/lib/supabase/public'
+import siteMetadata from '@/data/siteMetadata'
 
 export const metadata = genPageMetadata({ title: 'League Members' })
 
@@ -13,12 +14,13 @@ function normalizeName(value: string) {
 
 export default async function Page() {
   const teamByOwner = new Map<string, string>()
+  const currentSeason = siteMetadata.currentSeason
 
   if (process.env.NEXT_PUBLIC_SUPABASE_URL && !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('your-project-ref')) {
     const { data, error } = await createPublicClient()
       .from('teams')
       .select('name, owner_name')
-      .eq('season_year', new Date().getFullYear())
+      .eq('season_year', currentSeason)
 
     if (!error) {
       for (const team of data ?? []) {
