@@ -45,7 +45,7 @@ export default async function Page() {
             <div key={author.slug} className="flex flex-col items-center">
               <AuthorLayout
                 content={mainContent}
-                teamOverride={teamByOwner.get(normalizeName(author.name.split(' ')[0]))}
+                team={teamByOwner.get(normalizeName(author.name.split(' ')[0]))}
               >
                 <MDXLayoutRenderer code={author.body.code} />
               </AuthorLayout>

@@ -7,10 +7,10 @@ import { getBlurProps } from '@/lib/blurPlaceholders'
 interface Props {
   children: ReactNode
   content: Omit<Authors, '_id' | '_raw' | 'body'>
-  teamOverride?: string
+  team?: string
 }
 
-export default function AuthorLayout({ children, content, teamOverride }: Props) {
+export default function AuthorLayout({ children, content, team }: Props) {
   const { name, avatar, company, email, twitter, linkedin, github } = content
 
   return (
@@ -29,7 +29,7 @@ export default function AuthorLayout({ children, content, teamOverride }: Props)
         {name}
       </h3>
       <div className="text-base text-gray-500 dark:text-gray-400">
-        {teamOverride ?? `Team ${name.split(' ')[0]}`}
+        {team ?? `Team ${name.split(' ')[0]}`}
       </div>
       <div className="text-base text-gray-500 dark:text-gray-400">{company}</div>
       <div className="flex min-h-9 items-center gap-2 pt-5">
