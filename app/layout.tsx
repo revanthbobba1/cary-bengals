@@ -10,6 +10,7 @@ import Footer from '@/components/Footer'
 import siteMetadata from '@/data/siteMetadata'
 import { ThemeProviders } from './theme-providers'
 import AuthListener from '@/components/AuthListener'
+import IdleSessionGuard from '@/components/IdleSessionGuard'
 import { ToastProvider } from '@/components/ToastProvider'
 import PageTransition from '@/components/PageTransition'
 import SmoothHashScroll from '@/components/SmoothHashScroll'
@@ -77,6 +78,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProviders>
           <ToastProvider>
             <AuthListener />
+            <IdleSessionGuard />
             <SmoothHashScroll />
             <Analytics analyticsConfig={siteMetadata.analytics as AnalyticsConfig} />
             <SearchProvider searchConfig={siteMetadata.search as SearchConfig}>
