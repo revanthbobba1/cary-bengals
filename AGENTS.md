@@ -5,7 +5,7 @@ This file is the canonical source for repository-specific agent instructions.
 ## Project context
 
 Cary Bengals Fantasy Football is a Next.js 13.5 App Router site using TypeScript, Tailwind CSS,
-Contentlayer, Supabase, and Netlify. Authors live in `data/authors/`; public articles, teams, and
+Contentlayer, Supabase, and Netlify. Authors live in `data/authors/`. public articles, teams, and
 poll data are Supabase-backed. The ESPN service in `backend/` securely fetches team metadata;
 public pages must never call ESPN directly or expose ESPN credentials.
 
