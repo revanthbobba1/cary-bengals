@@ -1,0 +1,7 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Mirrors netlify.toml's build.command exactly, so lint/type errors that
+# lint-staged's staged-files-only pre-commit check can miss (e.g. files
+# edited outside a local commit) are still caught before they reach Netlify.
+yarn build

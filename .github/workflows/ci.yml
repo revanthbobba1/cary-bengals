@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+
+jobs:
+  frontend-build:
+    name: Lint & build (Netlify parity)
+    runs-on: ubuntu-latest
+    env:
+      # Placeholder Supabase credentials: non-empty so @supabase/ssr doesn't throw during
+      # static export, and the 'your-project-ref' substring so app code that checks for it
+      # (e.g. app/league-members/page.tsx, components/CommissionerPoll.tsx,
+      # lib/supabase/articles.ts) falls back to local fixtures instead of hitting a real project.
+      NEXT_PUBLIC_SUPABASE_URL: https://your-project-ref.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Lint
+        run: yarn lint
+
+      - name: Build (same command as netlify.toml's build.command)
+        run: yarn build
+
+  backend-tests:
+    name: Backend tests (ESPN service)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v3
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Lint (ruff)
+        run: uv run ruff check .
+
+      - name: Format check (black)
+        run: uv run black --check .
+
+      - name: Tests
+        run: uv run pytest
