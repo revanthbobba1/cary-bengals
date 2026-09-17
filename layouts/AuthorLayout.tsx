@@ -7,10 +7,11 @@ import { getBlurProps } from '@/lib/blurPlaceholders'
 interface Props {
   children: ReactNode
   content: Omit<Authors, '_id' | '_raw' | 'body'>
+  team?: string
 }
 
-export default function AuthorLayout({ children, content }: Props) {
-  const { name, avatar, team, company, email, twitter, linkedin, github } = content
+export default function AuthorLayout({ children, content, team }: Props) {
+  const { name, avatar, company, email, twitter, linkedin, github } = content
 
   return (
     <div className="flex h-full w-full min-h-[420px] flex-col items-center rounded-card border border-gray-200 bg-white p-8 shadow-card dark:border-gray-800 dark:bg-gray-900 dark:shadow-card-dark">
@@ -24,10 +25,12 @@ export default function AuthorLayout({ children, content }: Props) {
           {...getBlurProps(avatar)}
         />
       )}
-      <h3 className="pb-1.5 pt-5 text-2xl font-bold tracking-tight text-ink dark:text-gray-100">
+      <h3 className="pb-1.5 pt-5 text-center text-2xl font-bold tracking-tight text-ink dark:text-gray-100">
         {name}
       </h3>
-      <div className="text-base text-gray-500 dark:text-gray-400">{team}</div>
+      <div className="text-center text-base text-gray-500 dark:text-gray-400">
+        {team ?? `Team ${name.split(' ')[0]}`}
+      </div>
       <div className="text-base text-gray-500 dark:text-gray-400">{company}</div>
       <div className="flex min-h-9 items-center gap-2 pt-5">
         <SocialIcon kind="mail" href={`mailto:${email}`} size={6} />
