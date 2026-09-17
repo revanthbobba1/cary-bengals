@@ -78,8 +78,22 @@ Login failures should remain generic to avoid user enumeration.
 ## Build and review notes
 
 - The production build also generates the search index through Contentlayer.
-- Netlify uses Node 18, Yarn 3.6.1, and the Next.js runtime plugin.
-- Pre-commit hooks run ESLint and Prettier on staged files.
+- Netlify uses Node 18, Yarn 3.6.1, and the Next.js runtime plugin. `netlify.toml`'s
+  `build.command` is `yarn build` -- run that exact command locally before opening a PR, not just
+  `yarn lint`. `yarn build` also runs the TypeScript check that `yarn lint` alone does not, and is
+  the only local command that reproduces what Netlify actually runs.
+- `yarn build` succeeds without a real Supabase project as long as `NEXT_PUBLIC_SUPABASE_URL`
+  contains the literal substring `your-project-ref` (see `.env.example`) and
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY` is any non-empty string; code paths that check for that
+  substring fall back to local fixture data instead of calling Supabase.
+- Pre-commit hooks (Husky + lint-staged) run ESLint and Prettier, but only on staged files.
+  Pre-push runs the full `yarn build`, matching Netlify exactly, since staged-file linting alone
+  has missed real build breaks (e.g. errors introduced by commits that bypass local hooks, such
+  as GitHub-web edits or squash merges).
+- GitHub Actions (`.github/workflows/ci.yml`) runs on every pull request against `develop` or
+  `main`: a `frontend-build` job (`yarn lint` + `yarn build`, same command Netlify runs) and a
+  `backend-tests` job (`ruff`, `black --check`, `pytest` under `backend/`). This is the backstop
+  for cases where local hooks are bypassed entirely.
 - There is no JavaScript test framework; run targeted TypeScript/ESLint checks and backend tests
   when relevant.
 - Update CSP rules when adding external scripts, images, comments, analytics, or API domains.
