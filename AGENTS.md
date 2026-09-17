@@ -87,9 +87,11 @@ Login failures should remain generic to avoid user enumeration.
   `NEXT_PUBLIC_SUPABASE_ANON_KEY` is any non-empty string; code paths that check for that
   substring fall back to local fixture data instead of calling Supabase.
 - Pre-commit hooks (Husky + lint-staged) run ESLint and Prettier, but only on staged files.
-  Pre-push runs the full `yarn build`, matching Netlify exactly, since staged-file linting alone
-  has missed real build breaks (e.g. errors introduced by commits that bypass local hooks, such
-  as GitHub-web edits or squash merges).
+  `package.json` is missing Husky's `prepare` script, so `yarn install` never wires up
+  `core.hooksPath` and these hooks never actually run -- if you're on a checkout from before this
+  was fixed, run `yarn prepare` once by hand. Pre-push runs the full `yarn build`, matching
+  Netlify exactly, as a second layer since staged-file linting alone wouldn't catch every case
+  (e.g. GitHub-web edits or squash merges that never touch a local working tree at all).
 - GitHub Actions (`.github/workflows/ci.yml`) runs on every pull request against `develop` or
   `main`: a `frontend-build` job (`yarn lint` + `yarn build`, same command Netlify runs) and a
   `backend-tests` job (`ruff`, `black --check`, `pytest` under `backend/`). This is the backstop
