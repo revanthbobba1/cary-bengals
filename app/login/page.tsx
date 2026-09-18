@@ -78,14 +78,21 @@ function LoginForm() {
   }
 
   const handleGoogleLogin = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
-      },
-    })
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
+        },
+      })
 
-    if (error) {
+      if (error) {
+        setError('Failed to sign in with Google')
+      }
+    } catch {
+      // signInWithOAuth can reject instead of resolving with `error` (e.g. a storage write
+      // failure right before the redirect) -- without this, that fails with no visible
+      // feedback at all, indistinguishable from the button doing nothing.
       setError('Failed to sign in with Google')
     }
   }
