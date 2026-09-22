@@ -99,9 +99,14 @@ export default function ArticlesList({ articles, members }: Props) {
     }
   }
 
+  // Drafts only, and only genuinely untouched ones -- a published article is league history, and
+  // a draft with real prose already written is in-progress work, not an unstarted to-do. Matchup
+  // rows aren't checked here (would need a per-row query); prose is the meaningful signal.
+  const isUnstartedDraft = (article: Article) =>
+    article.status === 'draft' && !article.intro_markdown?.trim() && !article.outro_markdown?.trim()
+
   const handleDelete = async (article: Article) => {
-    // Drafts only -- a published article is league history, not a to-do that can be discarded.
-    if (article.status !== 'draft') return
+    if (!isUnstartedDraft(article)) return
     if (
       !window.confirm(
         `Delete the Week ${article.week_number} ${article.kind} draft? This cannot be undone.`
@@ -273,7 +278,7 @@ export default function ArticlesList({ articles, members }: Props) {
                       >
                         Edit
                       </Link>
-                      {showAssignee && article.status === 'draft' && (
+                      {showAssignee && isUnstartedDraft(article) && (
                         <button
                           type="button"
                           onClick={() => handleDelete(article)}
