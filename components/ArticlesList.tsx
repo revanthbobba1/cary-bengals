@@ -41,6 +41,7 @@ export default function ArticlesList({ articles, members }: Props) {
   const [reassigningId, setReassigningId] = useState<string | null>(null)
   const [pendingAuthorId, setPendingAuthorId] = useState('')
   const [savingId, setSavingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const startReassign = (article: Article) => {
     setReassigningId(article.id)
@@ -95,6 +96,36 @@ export default function ArticlesList({ articles, members }: Props) {
       toast.error(err instanceof Error ? err.message : 'Failed to reassign article')
     } finally {
       setSavingId((current) => (current === article.id ? null : current))
+    }
+  }
+
+  // Drafts only, and only genuinely untouched ones -- a published article is league history, and
+  // a draft with real prose already written is in-progress work, not an unstarted to-do. Matchup
+  // rows aren't checked here (would need a per-row query); prose is the meaningful signal.
+  const isUnstartedDraft = (article: Article) =>
+    article.status === 'draft' && !article.intro_markdown?.trim() && !article.outro_markdown?.trim()
+
+  const handleDelete = async (article: Article) => {
+    if (!isUnstartedDraft(article)) return
+    if (
+      !window.confirm(
+        `Delete the Week ${article.week_number} ${article.kind} draft? This cannot be undone.`
+      )
+    ) {
+      return
+    }
+
+    setDeletingId(article.id)
+    try {
+      const { error } = await supabase.from('articles').delete().eq('id', article.id)
+      if (error) throw error
+
+      router.refresh()
+      toast.success(`Week ${article.week_number} ${article.kind} draft deleted.`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete article')
+    } finally {
+      setDeletingId((current) => (current === article.id ? null : current))
     }
   }
 
@@ -240,12 +271,24 @@ export default function ArticlesList({ articles, members }: Props) {
                     </td>
                   )}
                   <td className="p-2">
-                    <Link
-                      href={`/admin/articles/${article.id}/edit`}
-                      className={`rounded text-sm font-medium text-primary-500 hover:text-primary-600 ${focusRingClasses} dark:hover:text-primary-400`}
-                    >
-                      Edit
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/admin/articles/${article.id}/edit`}
+                        className={`rounded text-sm font-medium text-primary-500 hover:text-primary-600 ${focusRingClasses} dark:hover:text-primary-400`}
+                      >
+                        Edit
+                      </Link>
+                      {showAssignee && isUnstartedDraft(article) && (
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(article)}
+                          disabled={deletingId === article.id}
+                          className={`rounded text-sm font-medium text-red-500 hover:text-red-600 ${focusRingClasses} dark:hover:text-red-400 disabled:pointer-events-none disabled:opacity-50`}
+                        >
+                          {deletingId === article.id ? 'Deleting...' : 'Delete'}
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               )
