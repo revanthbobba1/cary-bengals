@@ -52,6 +52,17 @@ export default function ArticlesList({ articles, members }: Props) {
     setPendingAuthorId('')
   }
 
+  // reassigningId/pendingAuthorId/savingId are shared, not per-row, so a save that finishes
+  // after the user has already moved on to editing a different row must not clobber that row's
+  // still-in-progress edit -- only clear state for the row that actually finished.
+  const finishReassign = (articleId: string) => {
+    setReassigningId((current) => {
+      if (current !== articleId) return current
+      setPendingAuthorId('')
+      return null
+    })
+  }
+
   const handleReassign = async (article: Article) => {
     // Same "manage all articles" commissioner UPDATE path AssignArticleForm's reassign branch
     // uses -- and the same stale-members-list guard, since this <select> was built from the
@@ -65,24 +76,25 @@ export default function ArticlesList({ articles, members }: Props) {
       return
     }
 
+    const authorId = pendingAuthorId
     setSavingId(article.id)
     try {
       const { error } = await supabase
         .from('articles')
-        .update({ author_id: pendingAuthorId })
+        .update({ author_id: authorId })
         .eq('id', article.id)
       if (error) throw error
 
-      const newAssignee = members?.find((m) => m.id === pendingAuthorId)
+      const newAssignee = members?.find((m) => m.id === authorId)
       router.refresh()
-      cancelReassign()
+      finishReassign(article.id)
       toast.success(
         `Week ${article.week_number} ${article.kind} reassigned to ${getDisplayName(newAssignee?.full_name, newAssignee?.email, 'Unknown member')}.`
       )
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to reassign article')
     } finally {
-      setSavingId(null)
+      setSavingId((current) => (current === article.id ? null : current))
     }
   }
 
