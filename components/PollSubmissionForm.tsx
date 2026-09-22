@@ -28,6 +28,11 @@ export default function PollSubmissionForm({
   // Initialize rankings from existing submission (in saved order), then append
   // any team not yet ranked (covers partial submissions and teams added after
   // the member last submitted) so all teams always render, never just a subset.
+  // Teams with no existing submission start pre-ordered by last week's finalized
+  // rank, since most members' ballots resemble the prior week -- a team with no
+  // previous rank (bye week, mid-season addition) falls to the end, alphabetical
+  // among themselves (the `teams` prop already arrives sorted by name, and
+  // Array.prototype.sort is stable, so that order survives the tie).
   const [rankings, setRankings] = useState(() => {
     const ranked = existingSubmission
       .slice()
@@ -36,7 +41,16 @@ export default function PollSubmissionForm({
       .filter((t): t is Team => Boolean(t))
 
     const rankedIds = new Set(ranked.map((t) => t.id))
-    const unranked = teams.filter((t) => !rankedIds.has(t.id))
+    const unranked = teams
+      .filter((t) => !rankedIds.has(t.id))
+      .sort((a, b) => {
+        const aPrev = teamRecords[a.id]?.prevRank
+        const bPrev = teamRecords[b.id]?.prevRank
+        if (aPrev == null && bPrev == null) return 0
+        if (aPrev == null) return 1
+        if (bPrev == null) return -1
+        return aPrev - bPrev
+      })
 
     return [...ranked, ...unranked].map((team, idx) => ({
       team_id: team.id,
