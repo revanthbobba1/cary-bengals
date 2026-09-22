@@ -43,14 +43,10 @@ export default function PollSubmissionForm({
     const rankedIds = new Set(ranked.map((t) => t.id))
     const unranked = teams
       .filter((t) => !rankedIds.has(t.id))
-      .sort((a, b) => {
-        const aPrev = teamRecords[a.id]?.prevRank
-        const bPrev = teamRecords[b.id]?.prevRank
-        if (aPrev == null && bPrev == null) return 0
-        if (aPrev == null) return 1
-        if (bPrev == null) return -1
-        return aPrev - bPrev
-      })
+      .sort(
+        (a, b) =>
+          (teamRecords[a.id]?.prevRank ?? Infinity) - (teamRecords[b.id]?.prevRank ?? Infinity)
+      )
 
     return [...ranked, ...unranked].map((team, idx) => ({
       team_id: team.id,
