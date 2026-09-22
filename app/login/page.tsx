@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { inputClasses, labelClasses } from '@/lib/authFormClasses'
@@ -142,9 +143,17 @@ function LoginForm() {
             </div>
 
             <div>
-              <label htmlFor="password" className={labelClasses}>
-                Password
-              </label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="password" className={labelClasses}>
+                  Password
+                </label>
+                <Link
+                  href="/forgot-password"
+                  className={`text-sm text-primary-600 hover:underline ${focusRingClasses}`}
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <input
                 id="password"
                 type="password"
