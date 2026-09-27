@@ -2,15 +2,18 @@ import { ReactNode } from 'react'
 import type { Authors } from 'contentlayer/generated'
 import SocialIcon from '@/components/social-icons'
 import Image from '@/components/Image'
+import RosterModal from '@/components/RosterModal'
 import { getBlurProps } from '@/lib/blurPlaceholders'
+import type { RosterPlayer } from '@/lib/types/roster'
 
 interface Props {
   children: ReactNode
   content: Omit<Authors, '_id' | '_raw' | 'body'>
   team?: string
+  roster?: RosterPlayer[]
 }
 
-export default function AuthorLayout({ children, content, team }: Props) {
+export default function AuthorLayout({ children, content, team, roster }: Props) {
   const { name, avatar, company, email, twitter, linkedin, github } = content
 
   return (
@@ -31,6 +34,9 @@ export default function AuthorLayout({ children, content, team }: Props) {
       <div className="text-center text-base text-gray-500 dark:text-gray-400">
         {team ?? `Team ${name.split(' ')[0]}`}
       </div>
+      {roster && roster.length > 0 && (
+        <RosterModal teamName={team ?? `Team ${name.split(' ')[0]}`} players={roster} />
+      )}
       <div className="text-base text-gray-500 dark:text-gray-400">{company}</div>
       <div className="flex min-h-9 items-center gap-2 pt-5">
         <SocialIcon kind="mail" href={`mailto:${email}`} size={6} />

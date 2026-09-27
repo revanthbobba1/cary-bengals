@@ -24,3 +24,24 @@ class LeagueTeamsResponse(BaseModel):
     fetched_at: str
     teams: list[TeamOut]
     warnings: list[str]
+
+
+class RosterPlayerOut(BaseModel):
+    name: str
+    position: str
+    pro_team: str
+    lineup_slot: str
+    is_starter: bool
+
+
+class TeamRosterOut(BaseModel):
+    espn_team_id: int
+    players: list[RosterPlayerOut]
+
+
+class LeagueRostersResponse(BaseModel):
+    season: int
+    league_id: str
+    fetched_at: str
+    teams: list[TeamRosterOut]
+    warnings: list[str]

@@ -275,17 +275,18 @@ this never runs client-side).
 
 ## 9. Sequencing
 
-| Phase | Work                                                                                        | Blocked by                   |
-| ----- | ------------------------------------------------------------------------------------------- | ---------------------------- |
-| 0 ✅  | Answer §8 (public/private, league ID, cookies if needed)                                    | **User**                     |
-| 1 ✅  | Hand-probe the API with `curl`; capture + redact a real payload into `tests/fixtures/`      | 0                            |
-| 2 ✅  | Scaffold FastAPI; delete Flask files; `/healthz` + `/v1/league/{season}/teams`; run locally | 1                            |
-| 3 ✅  | Sanitization + pytest against the captured fixture (`respx` for HTTP mocking)               | 2                            |
-| 4     | Dockerize; deploy to Render; set secrets                                                    | 3                            |
-| 5 ✅  | Migration `034_add_espn_team_ids.sql` (renumbered — `015` was taken by the time this ran)   | independent, can run anytime |
-| 6 ✅  | `lib/espn/client.ts` + Server Actions (commissioner-gated) + preview/diff UI                | 4, 5                         |
-| 7 ✅  | Backfill the 12 existing rows through the preview UI                                        | 6                            |
-| 8     | Layer on: `/rosters`, `/standings` → `poll_results.team_record`, `/scoreboard`, `/schedule` | later                        |
+| Phase | Work                                                                                             | Blocked by                   |
+| ----- | ------------------------------------------------------------------------------------------------ | ---------------------------- |
+| 0 ✅  | Answer §8 (public/private, league ID, cookies if needed)                                         | **User**                     |
+| 1 ✅  | Hand-probe the API with `curl`; capture + redact a real payload into `tests/fixtures/`           | 0                            |
+| 2 ✅  | Scaffold FastAPI; delete Flask files; `/healthz` + `/v1/league/{season}/teams`; run locally      | 1                            |
+| 3 ✅  | Sanitization + pytest against the captured fixture (`respx` for HTTP mocking)                    | 2                            |
+| 4     | Dockerize; deploy to Render; set secrets                                                         | 3                            |
+| 5 ✅  | Migration `034_add_espn_team_ids.sql` (renumbered — `015` was taken by the time this ran)        | independent, can run anytime |
+| 6 ✅  | `lib/espn/client.ts` + Server Actions (commissioner-gated) + preview/diff UI                     | 4, 5                         |
+| 7 ✅  | Backfill the 12 existing rows through the preview UI                                             | 6                            |
+| 8a ✅ | Rosters: `/v1/league/{season}/rosters`, `team_rosters` table, "View Roster" on `/league-members` | 6, 7                         |
+| 8b/c  | Standings → `poll_results.team_record`, `/scoreboard`, `/schedule`                               | later                        |
 
 **Phase 1 notes (2026-09-09):** Captured `?view=mTeam` for season 2026 (12 teams, 13 members —
 one team is co-owned). Real member names, `displayName`s, and GUIDs (`members[].id`,
@@ -483,6 +484,52 @@ headings. Verified live in a browser (worktree dev server, real commissioner ses
 badge renders correctly, `/admin/commissioner` shows both sections, `/admin/poll/manage` is gone.
 Built in an isolated git worktree since another concurrent session had uncommitted changes to
 auth/session files in the main checkout at the time.
+
+**Phase 8a (2026-09-27) — rosters.** Scoped by asking first, not guessing: the plan only ever said
+"layer on rosters" without saying what for. Confirmed with the user: shown as a "View Roster"
+popup per league member on `/league-members` (not inline in the card — a full 16-player roster
+doesn't fit there), synced into Supabase like team data already is (not fetched live — matches
+this plan's own principle that public pages read Supabase directly, never the ESPN service).
+
+Captured a real `?view=mRoster` payload (`backend/tests/fixtures/mroster_2026.json`, trimmed to 2
+teams — real, public NFL player data, no redaction needed unlike the team fixture) before writing
+any schema, same discipline as Phase 1. ESPN's position/lineup-slot/pro-team codes are undocumented
+numeric IDs with no label in the payload; the mappings in `backend/app/services/roster.py` were
+cross-checked against real, identifiable players at each code (e.g. position 2 confirmed as RB via
+Christian McCaffrey, Saquon Barkley, etc.; slot 20 confirmed as Bench).
+
+Backend: `sanitize_name` extracted from `services/league.py` into a shared `app/sanitize.py` once
+`services/roster.py` needed the identical string-hygiene pass (existing `test_sanitize.py` updated
+to import from the new location, not re-exported for back-compat). New `/v1/league/{season}/rosters`
+endpoint, same token-gate/cache/error-mapping shape as the teams endpoint.
+
+Frontend: unlike team-identity sync, roster sync has **no ambiguous pairing step** — a roster
+always matches an already-synced team by its known `espn_team_id` — so `RosterSync.tsx` is a
+single "Sync Rosters" button with no preview/confirm flow, and `sync_team_rosters()` (migration
+`039`) is a one-shot atomic delete-and-reinsert per team, same pattern as `035`. The core fetch →
+match → write logic lives in `lib/espn/rosterSync.ts` as a plain function, not inside the Server
+Action itself, specifically so a future scheduled/cron-triggered Route Handler can call the same
+code without duplicating it — this is also the one piece of ESPN sync that's a reasonable
+automation candidate, discussed with the user as a deliberate follow-up (not built yet): a
+GitHub Actions scheduled workflow POSTing to a new secured Route Handler, re-syncing only teams
+that already have `espn_team_id` set (never auto-pairing, never auto-accepting owner names).
+Extracted `getCommissionerClient()`/`ActionResult<T>` from `teams-sync-actions.ts` into
+`lib/supabase/commissionerAction.ts` once a second Server Action file needed the identical
+auth gate.
+
+Verified live end-to-end in a browser with a real commissioner session: "Sync Rosters" → "Synced
+rosters for 12 teams (200 players)"; `/league-members` renders "View Roster" on every card;
+the modal correctly groups starters/bench (verified against real, identifiable players, including
+an IR-tagged bench player rendering correctly). Migration `039` applied to production before this
+verification, same pattern as `034`/`035`/`038`.
+
+**Cadence clarity fix (2026-09-27):** the two sync widgets look symmetric (same card style, same
+"Sync" button) but have opposite real-world cadence — Team Sync is a one-time pairing step,
+Roster Sync needs re-running whenever there's a trade/waiver/lineup move — and nothing on the page
+said so. Added a small badge next to each heading ("Once per season" / "Run after roster moves"),
+reusing the exact badge style already established for "commissioner-only" elsewhere in this app,
+plus a sentence under each explaining why. Verified live in a browser that both badges render
+correctly.
 
 ## 10. Anticipated friction
 

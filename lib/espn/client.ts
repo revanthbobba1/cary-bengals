@@ -24,14 +24,35 @@ export interface EspnLeagueTeamsResponse {
   warnings: string[]
 }
 
+export interface EspnRosterPlayer {
+  name: string
+  position: string
+  pro_team: string
+  lineup_slot: string
+  is_starter: boolean
+}
+
+export interface EspnTeamRoster {
+  espn_team_id: number
+  players: EspnRosterPlayer[]
+}
+
+export interface EspnLeagueRostersResponse {
+  season: number
+  league_id: string
+  fetched_at: string
+  teams: EspnTeamRoster[]
+  warnings: string[]
+}
+
 // Kept comfortably under Netlify's default 10s synchronous function ceiling so this code's own
 // catch block (a clear, actionable message) gets to run instead of the platform silently killing
-// the Server Action first. §2.6 documents Render's free-tier cold start as up to ~60s -- no
-// timeout value here makes a cold start itself succeed, this only ensures a fast, clear failure
-// instead of an opaque platform-level 502/504.
+// the caller first. §2.6 documents Render's free-tier cold start as up to ~60s -- no timeout
+// value here makes a cold start itself succeed, this only ensures a fast, clear failure instead
+// of an opaque platform-level 502/504.
 const ESPN_FETCH_TIMEOUT_MS = 8_000
 
-export async function fetchEspnTeams(season: number): Promise<EspnLeagueTeamsResponse> {
+async function fetchFromEspnService<T>(path: string): Promise<T> {
   const baseUrl = process.env.ESPN_SERVICE_URL
   const token = process.env.ESPN_SERVICE_TOKEN
 
@@ -41,7 +62,7 @@ export async function fetchEspnTeams(season: number): Promise<EspnLeagueTeamsRes
 
   let response: Response
   try {
-    response = await fetch(`${baseUrl}/v1/league/${season}/teams`, {
+    response = await fetch(`${baseUrl}${path}`, {
       headers: { 'X-Service-Token': token },
       cache: 'no-store',
       signal: AbortSignal.timeout(ESPN_FETCH_TIMEOUT_MS),
@@ -60,5 +81,13 @@ export async function fetchEspnTeams(season: number): Promise<EspnLeagueTeamsRes
     throw new Error(`ESPN service returned ${response.status}${body ? `: ${body}` : ''}`)
   }
 
-  return response.json() as Promise<EspnLeagueTeamsResponse>
+  return response.json() as Promise<T>
+}
+
+export async function fetchEspnTeams(season: number): Promise<EspnLeagueTeamsResponse> {
+  return fetchFromEspnService<EspnLeagueTeamsResponse>(`/v1/league/${season}/teams`)
+}
+
+export async function fetchEspnRosters(season: number): Promise<EspnLeagueRostersResponse> {
+  return fetchFromEspnService<EspnLeagueRostersResponse>(`/v1/league/${season}/rosters`)
 }

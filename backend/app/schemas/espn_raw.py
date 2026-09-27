@@ -52,3 +52,51 @@ class RawLeagueResponse(BaseModel):
     seasonId: int
     members: list[RawMember] = []
     teams: list[RawTeam] = []
+
+
+# --- mRoster view --------------------------------------------------------------------
+# A separate response shape, not a superset of RawLeagueResponse above: with only
+# ?view=mRoster requested, ESPN's team objects carry just `id` + `roster`, none of the
+# name/owner/record fields RawTeam declares.
+
+
+class RawRosterPlayer(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    fullName: str
+    defaultPositionId: int
+    proTeamId: int
+
+
+class RawPlayerPoolEntry(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    player: RawRosterPlayer
+
+
+class RawRosterEntry(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    lineupSlotId: int
+    playerPoolEntry: RawPlayerPoolEntry
+
+
+class RawRoster(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    entries: list[RawRosterEntry] = []
+
+
+class RawRosterTeam(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: int
+    roster: RawRoster
+
+
+class RawLeagueRostersResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: int
+    seasonId: int
+    teams: list[RawRosterTeam] = []
