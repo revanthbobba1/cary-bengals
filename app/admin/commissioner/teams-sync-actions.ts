@@ -11,28 +11,9 @@
 // Next.js redacts thrown Server Action errors in production builds, which would hide the actually
 // useful message ("ESPN credentials expired", a Postgres constraint violation, etc.).
 
-import { createClient } from '@/lib/supabase/server'
-import { isCommissioner } from '@/lib/supabase/roles'
 import { fetchEspnTeams, type EspnTeam } from '@/lib/espn/client'
+import { getCommissionerClient, type ActionResult } from '@/lib/supabase/commissionerAction'
 import type { Team } from '@/lib/types/poll'
-
-type SupabaseServerClient = ReturnType<typeof createClient>
-
-type ActionResult<T> = { data: T; error: null } | { data: null; error: string }
-
-async function getCommissionerClient(): Promise<
-  { supabase: SupabaseServerClient; error: null } | { supabase: null; error: string }
-> {
-  const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user || !isCommissioner(user)) {
-    return { supabase: null, error: 'Commissioner access required.' }
-  }
-  return { supabase, error: null }
-}
 
 function normalizeForMatch(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]/g, '')

@@ -143,8 +143,13 @@ export default function EspnTeamSync({ initialSeasonYear }: Props) {
 
   return (
     <div className="rounded-card border border-gray-200 bg-white p-6 shadow-card dark:border-gray-800 dark:bg-gray-900 dark:shadow-card-dark">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
-        <h2 className="text-xl font-semibold text-ink dark:text-gray-100">Sync Teams from ESPN</h2>
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-4">
+        <h2 className="flex items-center gap-2 text-xl font-semibold text-ink dark:text-gray-100">
+          Sync Teams from ESPN
+          <span className="rounded-full bg-gray-200 px-2 py-0.5 text-[10px] font-semibold text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+            Once per season
+          </span>
+        </h2>
         <div className="flex items-center gap-3">
           <label htmlFor="espn-sync-season" className="text-sm text-gray-600 dark:text-gray-300">
             Season
@@ -170,6 +175,11 @@ export default function EspnTeamSync({ initialSeasonYear }: Props) {
           </button>
         </div>
       </div>
+      <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+        Links each team to its ESPN identity so future syncs (including rosters, below) know which
+        row is which. Run this once per season — after every team is paired, there's rarely a reason
+        to run it again unless a team's ESPN name changes and you want that reflected here.
+      </p>
 
       {error && (
         <div className="mb-4 rounded-control bg-red-50 p-4 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">
