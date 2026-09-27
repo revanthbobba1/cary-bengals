@@ -12,13 +12,14 @@ router = APIRouter(prefix="/v1", tags=["roster"], dependencies=[Depends(verify_s
 @router.get("/league/{season}/rosters", response_model=LeagueRostersResponse)
 async def get_rosters(season: int, request: Request) -> LeagueRostersResponse:
     espn: EspnClient = request.app.state.espn_client
-    cache = request.app.state.cache
 
-    async def fetch() -> LeagueRostersResponse:
-        return await get_league_rosters(espn, season)
-
+    # No caching here, unlike /teams -- that cache exists to avoid double-hitting ESPN within
+    # one preview-then-commit UI flow, which rosters have no equivalent of (a single-click sync,
+    # one fetch). Rosters are also explicitly meant to be re-run often (trades, waivers), so the
+    # shared 15-minute TTL would otherwise let a commissioner's immediate re-sync silently persist
+    # stale data while reporting success.
     try:
-        return await cache.get_or_set(("rosters", season), fetch)
+        return await get_league_rosters(espn, season)
     except EspnAuthError as exc:
         raise HTTPException(
             status_code=502, detail="ESPN credentials expired — re-capture cookies"

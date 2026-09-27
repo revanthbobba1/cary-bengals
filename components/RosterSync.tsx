@@ -30,14 +30,16 @@ export default function RosterSync({ seasonYear }: Props) {
     }
 
     setResult(response.data)
-    if (response.data.warnings.length === 0) {
+    // teamCount > 0 is real progress even alongside warnings (e.g. one team with no ESPN
+    // roster this week) -- only a fully empty sync reads as an actual failure. Warnings, if
+    // any, still show in the banner below regardless of which toast fires.
+    if (response.data.teamCount > 0) {
+      const caveat = response.data.warnings.length > 0 ? ' — see warnings below.' : '.'
       toast.success(
-        `Synced rosters for ${response.data.teamCount} teams (${response.data.playerCount} players).`
+        `Synced rosters for ${response.data.teamCount} teams (${response.data.playerCount} players)${caveat}`
       )
     } else {
-      toast.error(
-        `Synced ${response.data.teamCount} teams, but hit ${response.data.warnings.length} warning(s) — see below.`
-      )
+      toast.error(response.data.warnings[0] ?? 'No rosters were synced.')
     }
     router.refresh()
   }

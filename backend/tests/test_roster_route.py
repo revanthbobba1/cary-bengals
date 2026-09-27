@@ -41,17 +41,18 @@ def test_rosters_returns_sanitized_payload(client: TestClient, espn_payload: dic
 
 
 @respx.mock
-def test_rosters_caches_across_requests(client: TestClient, espn_payload: dict) -> None:
+def test_rosters_does_not_cache_across_requests(client: TestClient, espn_payload: dict) -> None:
+    # Deliberately uncached, unlike /teams -- a commissioner re-syncing rosters shortly after a
+    # trade/waiver move must get fresh data, not a 15-minute-stale cached response.
     route = respx.get(url__regex=_LEAGUE_URL_PATTERN).mock(
         return_value=Response(200, json=espn_payload)
     )
 
     headers = {"X-Service-Token": "test-token"}
-    first = client.get("/v1/league/2026/rosters", headers=headers)
-    second = client.get("/v1/league/2026/rosters", headers=headers)
+    client.get("/v1/league/2026/rosters", headers=headers)
+    client.get("/v1/league/2026/rosters", headers=headers)
 
-    assert first.json()["fetched_at"] == second.json()["fetched_at"]
-    assert route.call_count == 1
+    assert route.call_count == 2
 
 
 @respx.mock
