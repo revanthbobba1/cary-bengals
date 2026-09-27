@@ -2,6 +2,16 @@ import { createClient } from '@/lib/supabase/server'
 import CommissionerPollClient from './CommissionerPollClient'
 import type { PollResultWithTeam } from '@/lib/types/poll'
 
+// Keeps the public poll page usable while styling/testing locally before a Supabase project is
+// available. This is deliberately development-only; production still fails visibly if its data
+// connection is misconfigured instead of silently showing fake content (see the matching
+// useLocalArticleFixtures() in lib/supabase/articles.ts for the same pattern).
+function useLocalPollFixtures() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const isPlaceholder = !url || url.includes('your-project-ref')
+  return process.env.NODE_ENV !== 'production' && isPlaceholder
+}
+
 const localTeams = [
   ['local-team-1', 'Bark For Daddy!🫵🐶', 'Kirk'],
   ['local-team-2', 'Code Monkey', 'Ankith'],
@@ -49,10 +59,7 @@ const localFixtureData = {
 }
 
 export default async function CommissionerPoll() {
-  if (
-    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    process.env.NEXT_PUBLIC_SUPABASE_URL.includes('your-project-ref')
-  ) {
+  if (useLocalPollFixtures()) {
     return <CommissionerPollClient {...localFixtureData} />
   }
 
