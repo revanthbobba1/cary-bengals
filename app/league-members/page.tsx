@@ -9,6 +9,11 @@ import type { RosterPlayer } from '@/lib/types/roster'
 
 export const metadata = genPageMetadata({ title: 'League Members' })
 
+// Rendered on every request, like /poll and /admin: rosters, team names, and records change when
+// the commissioner runs an ESPN refresh, and a prerendered copy stayed stale on Netlify even after
+// revalidatePath() ran. The two small Supabase queries per visit are cheap at this league's size.
+export const dynamic = 'force-dynamic'
+
 function normalizeName(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]/g, '')
 }
