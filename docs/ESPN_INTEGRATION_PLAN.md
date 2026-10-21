@@ -275,18 +275,19 @@ this never runs client-side).
 
 ## 9. Sequencing
 
-| Phase | Work                                                                                             | Blocked by                   |
-| ----- | ------------------------------------------------------------------------------------------------ | ---------------------------- |
-| 0 ✅  | Answer §8 (public/private, league ID, cookies if needed)                                         | **User**                     |
-| 1 ✅  | Hand-probe the API with `curl`; capture + redact a real payload into `tests/fixtures/`           | 0                            |
-| 2 ✅  | Scaffold FastAPI; delete Flask files; `/healthz` + `/v1/league/{season}/teams`; run locally      | 1                            |
-| 3 ✅  | Sanitization + pytest against the captured fixture (`respx` for HTTP mocking)                    | 2                            |
-| 4 ✅  | Dockerize; deploy to Render; set secrets                                                         | 3                            |
-| 5 ✅  | Migration `034_add_espn_team_ids.sql` (renumbered — `015` was taken by the time this ran)        | independent, can run anytime |
-| 6 ✅  | `lib/espn/client.ts` + Server Actions (commissioner-gated) + preview/diff UI                     | 4, 5                         |
-| 7 ✅  | Backfill the 12 existing rows through the preview UI                                             | 6                            |
-| 8a ✅ | Rosters: `/v1/league/{season}/rosters`, `team_rosters` table, "View Roster" on `/league-members` | 6, 7                         |
-| 8b/c  | Standings → `poll_results.team_record`, `/scoreboard`, `/schedule`                               | later                        |
+| Phase | Work                                                                                                                                            | Blocked by                   |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| 0 ✅  | Answer §8 (public/private, league ID, cookies if needed)                                                                                        | **User**                     |
+| 1 ✅  | Hand-probe the API with `curl`; capture + redact a real payload into `tests/fixtures/`                                                          | 0                            |
+| 2 ✅  | Scaffold FastAPI; delete Flask files; `/healthz` + `/v1/league/{season}/teams`; run locally                                                     | 1                            |
+| 3 ✅  | Sanitization + pytest against the captured fixture (`respx` for HTTP mocking)                                                                   | 2                            |
+| 4 ✅  | Dockerize; deploy to Render; set secrets                                                                                                        | 3                            |
+| 5 ✅  | Migration `034_add_espn_team_ids.sql` (renumbered — `015` was taken by the time this ran)                                                       | independent, can run anytime |
+| 6 ✅  | `lib/espn/client.ts` + Server Actions (commissioner-gated) + preview/diff UI                                                                    | 4, 5                         |
+| 7 ✅  | Backfill the 12 existing rows through the preview UI                                                                                            | 6                            |
+| 8a ✅ | Rosters: `/v1/league/{season}/rosters`, `team_rosters` table, "View Roster" on `/league-members`                                                | 6, 7                         |
+| 8b ✅ | Real team records: `teams.wins/losses/ties` synced from ESPN, `poll_results.team_record` sourced from there instead of a self-perpetuating echo | 6, 7                         |
+| 8c    | `/scoreboard`, `/schedule`                                                                                                                      | later                        |
 
 **Phase 1 notes (2026-09-09):** Captured `?view=mTeam` for season 2026 (12 teams, 13 members —
 one team is co-owned). Real member names, `displayName`s, and GUIDs (`members[].id`,
@@ -565,6 +566,36 @@ equally. Re-split the UI along that line instead of the old team/roster line:
   back-compat shims.
 
 `yarn lint` and `yarn build` both clean after the refactor.
+
+**Phase 8b (2026-10-21) — real team records.** Traced `poll_results.team_record` end to end before
+writing any code and found it was fake: `app/admin/poll/page.tsx` showed voters last week's
+`poll_results.team_record`, `PollSubmissionForm.tsx` silently copied that same value back into
+every submitted ranking unedited, `submit_poll_ballot` wrote whatever the client sent with no
+validation, and the finalize trigger computed `poll_results.team_record` as `MODE()` over
+`poll_submissions` — which trivially returned the value every voter was shown, since none of them
+ever changed it. ESPN's already-fetched `record{wins,losses,ties}` (`lib/espn/client.ts`, present
+since Phase 2) had never been wired into any of this.
+
+Fix landed as one migration (`041_team_records_from_espn.sql`) rather than a patch-in-place, since
+the risky part (rewriting the finalize trigger) already required touching that function regardless:
+adds `wins`/`losses`/`ties` to `teams`; `sync_team_records(p_season_year, p_records)` writes them,
+same per-batch-transaction/commissioner-gated pattern as `sync_espn_teams` (`035`), folded into
+`refreshEspnDataAction()` as a third `Promise.allSettled` branch alongside names and rosters
+(`lib/espn/teamRecordSync.ts`, same shape as `teamNameSync.ts`/`rosterSync.ts`); the poll page now
+formats the record voters see directly from `teams.wins/losses/ties` instead of last week's
+results; and `poll_submissions.team_record` — confirmed fully dead, voters never edited it — is
+dropped entirely (column + `submit_poll_ballot` param), with `recalculate_poll_results` (`027`)
+rewritten to join `teams` for the record instead of aggregating over submissions.
+`CommissionerPollClient.tsx` needed no change — it already just reads `poll_results.team_record`.
+
+`supabase/tests/verify_041.sql` exercises all three pieces end to end (BEGIN/ROLLBACK, same
+pattern as `verify_028.sql`/`verify_036.sql`): a non-commissioner is refused, `sync_team_records`
+writes only the right season's rows, `submit_poll_ballot` succeeds with no `team_record` field at
+all, and `recalculate_poll_results` produces the right `"W-L"`/`"W-L-T"` string straight from
+`teams`. Not yet run against the linked project — per this plan's own precedent (`034`'s "applied
+to production ... as a separate deliberate step after PR merge"), migration + verify script are
+meant to be applied via `supabase db push` and checked via `supabase db query --linked` after this
+PR merges, not before.
 
 ## 10. Anticipated friction
 
