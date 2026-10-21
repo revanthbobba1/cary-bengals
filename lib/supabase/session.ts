@@ -20,12 +20,12 @@
  * against Supabase directly never passes through these checks at all.
  *
  * Timestamps are written by the browser's clock and read by the server's, which assumes clocks agree
- * to well within the timeout. An ordinary NTP-synced device is off by seconds, against a 4-hour limit.
+ * to well within the timeout. An ordinary NTP-synced device is off by seconds, against a 30-minute limit.
  */
 
-export const IDLE_TIMEOUT_SECONDS = 4 * 60 * 60
+export const IDLE_TIMEOUT_SECONDS = 30 * 60
 
-/** The timeout as people read it: "4 hours", "90 minutes", "1 hour". */
+/** The timeout as people read it: "30 minutes", "90 minutes", "1 hour". */
 export function describeDuration(seconds: number): string {
   if (seconds % 3600 === 0) {
     const hours = seconds / 3600
