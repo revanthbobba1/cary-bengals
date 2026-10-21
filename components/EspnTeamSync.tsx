@@ -75,7 +75,11 @@ export default function EspnTeamSync({ initialSeasonYear }: Props) {
 
     // The in-card message below says the same thing, but it's easy to miss since nothing else on
     // the page changes -- a toast is the only way to reliably catch the commissioner's attention.
-    if (result.data.rows.every((row) => row.dbTeam.espn_team_id !== null)) {
+    // rows.every(...) on an empty array is vacuously true, so the zero-teams case is checked
+    // first rather than falling into the "already paired" message.
+    if (result.data.rows.length === 0) {
+      toast.error(`No teams found for season ${seasonYear} — add teams before pairing with ESPN.`)
+    } else if (result.data.rows.every((row) => row.dbTeam.espn_team_id !== null)) {
       toast.success('Every team is already paired with ESPN — nothing left to link.')
     }
   }
@@ -209,7 +213,13 @@ export default function EspnTeamSync({ initialSeasonYear }: Props) {
         </div>
       )}
 
-      {preview && unpairedRows.length === 0 && (
+      {preview && preview.rows.length === 0 && (
+        <p className="text-sm text-red-600 dark:text-red-400">
+          No teams found for season {seasonYear} — add teams in Supabase before pairing with ESPN.
+        </p>
+      )}
+
+      {preview && preview.rows.length > 0 && unpairedRows.length === 0 && (
         <p className="text-sm text-gray-600 dark:text-gray-400">
           Every team for this season is already paired with ESPN — nothing left to link here. Use
           Refresh ESPN Data below to keep names and rosters current.
