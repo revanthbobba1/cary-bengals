@@ -275,20 +275,20 @@ this never runs client-side).
 
 ## 9. Sequencing
 
-| Phase   | Work                                                                                                                                            | Blocked by                   |
-| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| 0 ✅    | Answer §8 (public/private, league ID, cookies if needed)                                                                                        | **User**                     |
-| 1 ✅    | Hand-probe the API with `curl`; capture + redact a real payload into `tests/fixtures/`                                                          | 0                            |
-| 2 ✅    | Scaffold FastAPI; delete Flask files; `/healthz` + `/v1/league/{season}/teams`; run locally                                                     | 1                            |
-| 3 ✅    | Sanitization + pytest against the captured fixture (`respx` for HTTP mocking)                                                                   | 2                            |
-| 4 ✅    | Dockerize; deploy to Render; set secrets                                                                                                        | 3                            |
-| 5 ✅    | Migration `034_add_espn_team_ids.sql` (renumbered — `015` was taken by the time this ran)                                                       | independent, can run anytime |
-| 6 ✅    | `lib/espn/client.ts` + Server Actions (commissioner-gated) + preview/diff UI                                                                    | 4, 5                         |
-| 7 ✅    | Backfill the 12 existing rows through the preview UI                                                                                            | 6                            |
-| 8a ✅   | Rosters: `/v1/league/{season}/rosters`, `team_rosters` table, "View Roster" on `/league-members`                                                | 6, 7                         |
-| 8b ✅   | Real team records: `teams.wins/losses/ties` synced from ESPN, `poll_results.team_record` sourced from there instead of a self-perpetuating echo | 6, 7                         |
-| 8c ✅   | `/scoreboard`, `/schedule`: matchups synced from ESPN, shown on two new public pages                                                            | 6, 7                         |
-| 8c-cron | Scheduled auto-sync (GitHub Actions + service-role key) so scores update during live games without a commissioner clicking refresh              | 8c                           |
+| Phase      | Work                                                                                                                                            | Blocked by                   |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| 0 ✅       | Answer §8 (public/private, league ID, cookies if needed)                                                                                        | **User**                     |
+| 1 ✅       | Hand-probe the API with `curl`; capture + redact a real payload into `tests/fixtures/`                                                          | 0                            |
+| 2 ✅       | Scaffold FastAPI; delete Flask files; `/healthz` + `/v1/league/{season}/teams`; run locally                                                     | 1                            |
+| 3 ✅       | Sanitization + pytest against the captured fixture (`respx` for HTTP mocking)                                                                   | 2                            |
+| 4 ✅       | Dockerize; deploy to Render; set secrets                                                                                                        | 3                            |
+| 5 ✅       | Migration `034_add_espn_team_ids.sql` (renumbered — `015` was taken by the time this ran)                                                       | independent, can run anytime |
+| 6 ✅       | `lib/espn/client.ts` + Server Actions (commissioner-gated) + preview/diff UI                                                                    | 4, 5                         |
+| 7 ✅       | Backfill the 12 existing rows through the preview UI                                                                                            | 6                            |
+| 8a ✅      | Rosters: `/v1/league/{season}/rosters`, `team_rosters` table, "View Roster" on `/league-members`                                                | 6, 7                         |
+| 8b ✅      | Real team records: `teams.wins/losses/ties` synced from ESPN, `poll_results.team_record` sourced from there instead of a self-perpetuating echo | 6, 7                         |
+| 8c ✅      | `/scoreboard`, `/schedule`: matchups synced from ESPN, shown on two new public pages                                                            | 6, 7                         |
+| 8c-cron ✅ | Scheduled auto-sync (GitHub Actions + service-role key) so scores update during live games without a commissioner clicking refresh              | 8c                           |
 
 **Phase 1 notes (2026-09-09):** Captured `?view=mTeam` for season 2026 (12 teams, 13 members —
 one team is co-owned). Real member names, `displayName`s, and GUIDs (`members[].id`,
@@ -644,6 +644,65 @@ no commissioner session) and two new GitHub Actions workflows — enough additio
 (new trusted-backend credential, cold-start handling, NFL-game-window cron math) that it's a
 clearly separate follow-up PR once this core path is verified end-to-end against real data, not
 bundled into the same migration or PR as the schema/pages above.
+
+**Phase 8c-cron (2026-10-21) — scheduled auto-sync.** A scheduled job has no commissioner session,
+but every sync RPC (`sync_espn_teams`, `sync_team_rosters`, `sync_team_records`, `sync_matchups`)
+is gated on `jwt_has_role('commissioner')`. Considered a dedicated bot Supabase Auth account
+scoped to exactly `commissioner`, and rejected it: it needs real token-refresh handling in a
+stateless GitHub Actions runner (access tokens expire ~1hr) — new code and a new silent-failure
+mode — for a security benefit smaller than it first appears, since this schema's only role above
+`authenticated` is `commissioner` itself; a compromised bot credential would already reach
+everything commissioner-gated.
+
+Chose a **Supabase service-role key** instead, stated honestly rather than minimized: it is
+_strictly more_ powerful than `commissioner`, not role-equivalent — it bypasses Row Level Security
+on every table in the project, not just the ones a `jwt_has_role('commissioner')` policy
+explicitly covers. Contained by scoping, not by the credential being narrow:
+`lib/supabase/serviceRole.ts` is the only file that ever reads `SUPABASE_SERVICE_ROLE_KEY`, and
+both Route Handlers (`app/api/espn/sync-matchups/route.ts`, `app/api/espn/sync-all/route.ts`)
+check a _separate_ shared secret (`x-cron-secret` against `ESPN_SYNC_CRON_SECRET`, compared with
+`crypto.timingSafeEqual` in `lib/espn/cronAuth.ts`) before that key is ever constructed. The
+service-role key lives only in Netlify's env vars — never in GitHub, which only ever holds
+`ESPN_SYNC_CRON_SECRET` and the deployed URLs.
+
+New migration (`043_espn_cron_service_role.sql`): `OR auth.role() = 'service_role'` added to all
+four RPCs' commissioner guard, identical one-line change, no other body changes. The daily full
+refresh needs all four (not just matchups) because this league processes waiver claims most days,
+which only ever got caught before by a commissioner remembering to click refresh.
+
+Cold starts (Render free tier, up to ~60s) are absorbed in the GitHub Actions job, not the Route
+Handler: a `curl --max-time 70` against the backend's `/healthz` first (`|| true`, so a slow wake
+doesn't abort the job), then the real sync call — a Route Handler invoked by cron is still bound
+by Netlify's synchronous-function timeout and can't run a retry-with-backoff loop itself.
+
+Two workflows, two cadences: `.github/workflows/espn-matchup-sync.yml` polls every 10 minutes
+across four real NFL game windows (Thu/Sun-afternoon/Sun-night/Mon-night — each confirmed a
+genuinely distinct window once translated from UTC cron syntax to ET, not a redundant extra one),
+calling only `syncMatchups`. `.github/workflows/espn-full-sync.yml` runs once each Tuesday,
+Wednesday, and Thursday morning, calling the newly-extracted `lib/espn/refreshAll.ts` (the same
+four-sync orchestration the commissioner's manual "Refresh ESPN Data" button already used —
+extracted out of `app/admin/commissioner/espn-refresh-actions.ts` now that this second caller
+exists, rather than duplicating it).
+
+Researched and confirmed: no documented ESPN real-time/push API exists for fantasy data; every
+known community library (ffscrapr, espn-ff-api, espyn-api) polls the same undocumented REST
+endpoints this project already uses. Scheduled polling is the actual state of the art here, not a
+shortcut.
+
+`supabase/tests/verify_043.sql` (BEGIN/ROLLBACK) focuses on the new coverage this migration adds —
+a simulated `service_role` request (`set_config` + `SET LOCAL ROLE service_role`) succeeding on
+all four RPCs where it would have been refused before — plus one quick non-commissioner-refused
+and one commissioner-succeeds check as a backstop that the guard rewrite didn't break the existing
+paths (full behavioral coverage of those already lives in `verify_041.sql`/`verify_042.sql`).
+
+**Manual setup required before the schedules actually run** (not something this PR can do from
+inside the repo): the real `SUPABASE_SERVICE_ROLE_KEY` value (Supabase dashboard → Project
+Settings → API) needs to be set as a Netlify env var; a newly-generated `ESPN_SYNC_CRON_SECRET`
+needs to be set identically in both Netlify and GitHub Actions secrets; and
+`ESPN_SERVICE_URL`/`ESPN_SYNC_URL`/`ESPN_SYNC_ALL_URL` need to be added as GitHub Actions secrets
+(the first duplicates the existing Netlify env var so the workflow can ping it directly; the
+latter two are this app's own deployed Route Handler URLs, which only exist once `develop` is
+released to `main`).
 
 ## 10. Anticipated friction
 

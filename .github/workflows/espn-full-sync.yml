@@ -1,0 +1,25 @@
+name: ESPN full sync (daily)
+
+# Waiver-driven daily refresh -- this league processes waiver claims most days, and until now
+# that was only ever caught by a commissioner remembering to click "Refresh ESPN Data." 8am ET is
+# a placeholder giving overnight waiver processing a comfortable margin; easy to adjust once real
+# waiver-processing timing for this league is confirmed. See docs/ESPN_INTEGRATION_PLAN.md's
+# Phase 8c-cron notes.
+on:
+  schedule:
+    - cron: '0 12 * * 2,3,4' # 8:00am ET Tue/Wed/Thu (EDT; ~7am once EST begins)
+  workflow_dispatch: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      # Same cold-start handling as espn-matchup-sync.yml -- see its comment for why this lives
+      # in the workflow and not the Route Handler.
+      - name: Wake the ESPN backend
+        run: curl -sf --max-time 70 "${{ secrets.ESPN_SERVICE_URL }}/healthz" || true
+
+      - name: Full ESPN refresh (names, rosters, records, matchups)
+        run: |
+          curl -sf --max-time 20 -X POST "${{ secrets.ESPN_SYNC_ALL_URL }}" \
+            -H "x-cron-secret: ${{ secrets.ESPN_SYNC_CRON_SECRET }}"
