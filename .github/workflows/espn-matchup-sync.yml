@@ -1,0 +1,34 @@
+name: ESPN matchup sync (live windows)
+
+# Live-feeling scores during actual NFL games -- every 10 minutes across the four real game
+# windows, translated from their ET kickoff times to UTC cron. Each window's END hour is padded
+# by 1 to cover both EDT (UTC-4) and EST (UTC-5) without drifting -- the NFL season runs well past
+# the November DST changeover, and a window aligned only to EDT would silently miss the last hour
+# of live scoring once EST begins. The START hour doesn't need padding: EDT's UTC start is always
+# earlier than EST's for the same ET time, so the existing start already covers both. See
+# docs/ESPN_INTEGRATION_PLAN.md's Phase 8c-cron notes for why these four windows (not five, and
+# not a single always-on schedule).
+on:
+  schedule:
+    - cron: '*/10 0-5 * * 5' # Thu Night Football: Thu 8pm-12:59am ET (EDT ends 4:59, EST 5:59 UTC)
+    - cron: '*/10 17-23 * * 0' # Sun early/late afternoon games: Sun 1pm-7:59pm ET (EDT portion)
+    - cron: '*/10 0 * * 1' # ...EST spillover: same 7:59pm ET end, 1hr later in UTC, lands Monday
+    - cron: '*/10 0-6 * * 1' # Sun Night Football: Sun 8pm-1:59am ET (lands on Monday's UTC date)
+    - cron: '*/10 0-5 * * 2' # Mon Night Football: Mon 8pm-12:59am ET (lands on Tuesday's UTC date)
+  workflow_dispatch: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      # Absorbs a cold Render instance (free tier, up to ~60s after 15min idle) here, not inside
+      # the Route Handler -- that handler is bound by Netlify's sync-function timeout and can't
+      # run a retry-with-backoff loop. `|| true` means a slow/failed wake-up ping doesn't abort
+      # the job; the real sync call below still runs against a (by then) warm backend.
+      - name: Wake the ESPN backend
+        run: curl -sf --max-time 70 "${{ secrets.ESPN_SERVICE_URL }}/healthz" || true
+
+      - name: Sync matchups
+        run: |
+          curl -sf --max-time 20 -X POST "${{ secrets.ESPN_SYNC_URL }}" \
+            -H "x-cron-secret: ${{ secrets.ESPN_SYNC_CRON_SECRET }}"
