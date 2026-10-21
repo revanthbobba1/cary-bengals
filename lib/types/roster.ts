@@ -6,5 +6,6 @@ export interface RosterPlayer {
   pro_team: string
   lineup_slot: string
   is_starter: boolean
+  sort_order: number
   synced_at: string
 }

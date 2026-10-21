@@ -72,6 +72,12 @@ export default function EspnTeamSync({ initialSeasonYear }: Props) {
         acceptOwnerName: false,
       }))
     )
+
+    // The in-card message below says the same thing, but it's easy to miss since nothing else on
+    // the page changes -- a toast is the only way to reliably catch the commissioner's attention.
+    if (result.data.rows.every((row) => row.dbTeam.espn_team_id !== null)) {
+      toast.success('Every team is already paired with ESPN — nothing left to link.')
+    }
   }
 
   const usedEspnIds = new Set(
