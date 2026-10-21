@@ -113,6 +113,11 @@ class RawMatchupTeam(BaseModel):
 
     teamId: int
     totalPoints: float = 0.0
+    # Both null outside the current matchup period -- ESPN only computes a live projection/win
+    # probability for the week that's actually in progress, not past (already final) or future
+    # (not yet reached) weeks. Confirmed against a real captured payload, not assumed.
+    totalProjectedPoints: float | None = None
+    winProbability: float | None = None
 
 
 class RawMatchup(BaseModel):

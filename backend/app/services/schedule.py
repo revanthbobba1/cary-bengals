@@ -33,6 +33,10 @@ async def get_league_schedule(espn: EspnClient, season: int) -> LeagueScheduleRe
                 away_espn_team_id=matchup.away.teamId,
                 away_score=matchup.away.totalPoints,
                 winner=matchup.winner,
+                home_projected_score=matchup.home.totalProjectedPoints,
+                away_projected_score=matchup.away.totalProjectedPoints,
+                home_win_probability=matchup.home.winProbability,
+                away_win_probability=matchup.away.winProbability,
             )
         )
 

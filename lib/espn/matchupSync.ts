@@ -47,6 +47,10 @@ export async function syncMatchups(
     home_score: number
     away_score: number
     winner: string
+    home_projected_score: number | null
+    away_projected_score: number | null
+    home_win_probability: number | null
+    away_win_probability: number | null
   }> = []
 
   for (const matchup of espnResponse.matchups) {
@@ -71,6 +75,10 @@ export async function syncMatchups(
       home_score: matchup.home_score,
       away_score: matchup.away_score,
       winner: matchup.winner,
+      home_projected_score: matchup.home_projected_score,
+      away_projected_score: matchup.away_projected_score,
+      home_win_probability: matchup.home_win_probability,
+      away_win_probability: matchup.away_win_probability,
     })
   }
 
