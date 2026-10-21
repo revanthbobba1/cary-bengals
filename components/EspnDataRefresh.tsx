@@ -33,15 +33,19 @@ export default function EspnDataRefresh({ seasonYear }: Props) {
 
     setResult(response.data)
     const { namesUpdated, teamCount, playerCount, warnings } = response.data
-    // teamCount (rosters) > 0 is real progress even if no names changed this time -- most
-    // refreshes won't touch any names, that's expected, not a failure.
-    if (teamCount > 0) {
+    // Names and rosters now refresh independently (Promise.allSettled in the action) -- either
+    // one succeeding on its own is real progress and must show as success, not get masked by the
+    // other one failing or simply having nothing to update this time.
+    if (teamCount > 0 || namesUpdated > 0) {
+      const rosterNote =
+        teamCount > 0
+          ? `${teamCount} team${teamCount === 1 ? '' : 's'} (${playerCount} players)`
+          : null
       const nameNote =
-        namesUpdated > 0 ? `, ${namesUpdated} name${namesUpdated === 1 ? '' : 's'} updated` : ''
+        namesUpdated > 0 ? `${namesUpdated} name${namesUpdated === 1 ? '' : 's'}` : null
+      const parts = [rosterNote, nameNote].filter(Boolean).join(', ')
       const caveat = warnings.length > 0 ? ' — see warnings below.' : '.'
-      toast.success(
-        `Refreshed ${teamCount} team${teamCount === 1 ? '' : 's'} (${playerCount} players${nameNote})${caveat}`
-      )
+      toast.success(`Refreshed ${parts}${caveat}`)
     } else {
       toast.error(warnings[0] ?? 'Nothing was refreshed.')
     }

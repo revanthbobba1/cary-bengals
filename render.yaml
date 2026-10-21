@@ -28,4 +28,4 @@ services:
       - key: SERVICE_TOKEN
         generateValue: true
       - key: CACHE_TTL_SECONDS
-        value: '900'
+        value: '60'
