@@ -39,12 +39,14 @@ export default async function Page() {
       const teamIds = (teams ?? []).map((team) => team.id)
       if (teamIds.length > 0) {
         // Starters first within each team, matching the grouping RosterModal itself renders.
+        // sort_order (not player_name) preserves ESPN's own roster-entry order, which
+        // RosterModal needs as the tiebreaker for its own slot/position-based ordering.
         const { data: rosterRows } = await supabase
           .from('team_rosters')
           .select('*')
           .in('team_id', teamIds)
           .order('is_starter', { ascending: false })
-          .order('player_name')
+          .order('sort_order')
 
         for (const row of (rosterRows as RosterPlayer[] | null) ?? []) {
           const players = rosterByTeamId.get(row.team_id) ?? []

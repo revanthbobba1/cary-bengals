@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { isCommissioner } from '@/lib/supabase/roles'
 import PollWeekManager from '@/components/PollWeekManager'
 import EspnTeamSync from '@/components/EspnTeamSync'
-import RosterSync from '@/components/RosterSync'
+import EspnDataRefresh from '@/components/EspnDataRefresh'
 import AdminSubNav from '@/components/AdminSubNav'
 
 export default async function CommissionerToolsPage() {
@@ -69,7 +69,7 @@ export default async function CommissionerToolsPage() {
               default, not the only source of truth. */}
           <EspnTeamSync initialSeasonYear={new Date().getFullYear()} />
           <div className="mt-6">
-            <RosterSync seasonYear={new Date().getFullYear()} />
+            <EspnDataRefresh seasonYear={new Date().getFullYear()} />
           </div>
         </section>
 

@@ -6,8 +6,8 @@ from typing import Any
 
 class TTLCache:
     """A tiny in-process async cache. Traffic here is a commissioner clicking
-    "sync" a handful of times a season, so a single lock guarding the whole
-    store (rather than per-key locking) is more than sufficient."""
+    a sync/refresh button a few times per session, so a single lock guarding
+    the whole store (rather than per-key locking) is more than sufficient."""
 
     def __init__(self, ttl_seconds: int) -> None:
         self._ttl = ttl_seconds

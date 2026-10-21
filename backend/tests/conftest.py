@@ -11,7 +11,7 @@ _TEST_ENV = {
     "ESPN_S2": "test-s2",
     "ESPN_SWID": "{TEST-SWID}",
     "SERVICE_TOKEN": "test-token",
-    "CACHE_TTL_SECONDS": "900",
+    "CACHE_TTL_SECONDS": "60",
 }
 
 

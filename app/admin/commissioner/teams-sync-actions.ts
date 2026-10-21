@@ -11,6 +11,7 @@
 // Next.js redacts thrown Server Action errors in production builds, which would hide the actually
 // useful message ("ESPN credentials expired", a Postgres constraint violation, etc.).
 
+import { revalidatePath } from 'next/cache'
 import { fetchEspnTeams, type EspnTeam } from '@/lib/espn/client'
 import { getCommissionerClient, type ActionResult } from '@/lib/supabase/commissionerAction'
 import type { Team } from '@/lib/types/poll'
@@ -184,6 +185,13 @@ export async function commitEspnTeamSyncAction(
           dbTeamId: item.db_team_id,
           status: updatedByDbTeamId.get(item.db_team_id) ? 'updated' : 'no-matching-row',
         })
+      }
+
+      // A newly-paired team's name now shows on the public /league-members page -- that page is
+      // fully static (see espn-refresh-actions.ts's comment) and wouldn't otherwise pick this up
+      // until the next deploy.
+      if (results.some((row) => row.status === 'updated')) {
+        revalidatePath('/league-members')
       }
     }
 

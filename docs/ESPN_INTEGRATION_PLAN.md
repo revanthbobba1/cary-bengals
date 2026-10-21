@@ -281,7 +281,7 @@ this never runs client-side).
 | 1 ✅  | Hand-probe the API with `curl`; capture + redact a real payload into `tests/fixtures/`           | 0                            |
 | 2 ✅  | Scaffold FastAPI; delete Flask files; `/healthz` + `/v1/league/{season}/teams`; run locally      | 1                            |
 | 3 ✅  | Sanitization + pytest against the captured fixture (`respx` for HTTP mocking)                    | 2                            |
-| 4     | Dockerize; deploy to Render; set secrets                                                         | 3                            |
+| 4 ✅  | Dockerize; deploy to Render; set secrets                                                         | 3                            |
 | 5 ✅  | Migration `034_add_espn_team_ids.sql` (renumbered — `015` was taken by the time this ran)        | independent, can run anytime |
 | 6 ✅  | `lib/espn/client.ts` + Server Actions (commissioner-gated) + preview/diff UI                     | 4, 5                         |
 | 7 ✅  | Backfill the 12 existing rows through the preview UI                                             | 6                            |
@@ -530,6 +530,41 @@ said so. Added a small badge next to each heading ("Once per season" / "Run afte
 reusing the exact badge style already established for "commissioner-only" elsewhere in this app,
 plus a sentence under each explaining why. Verified live in a browser that both badges render
 correctly.
+
+**Phase 4 (2026-10-21) — Dockerize, deploy to Render, wire Netlify.** Shell-form `CMD` in
+`backend/Dockerfile` (`uvicorn ... --port ${PORT:-8000}`) since Render injects `$PORT` at runtime
+and the exec-array form can't expand it. Deployed as a manual Render "Web Service" (the Blueprint
+option in `render.yaml` wasn't exposed in Render's UI at setup time; the file stays committed as
+infra-as-code intent for later). `SERVICE_TOKEN` generated locally and never typed by the
+assistant into any form — the user pasted it into both Render and Netlify. Verified live against
+the real league (12 teams, real rosters) immediately after deploy, and again after a later
+`develop → main` release when the Render service's tracked branch was switched from `develop` to
+`main` to match what Netlify actually builds from.
+
+**Pairing vs. refreshing, and combining the two refreshes (2026-10-20).** Prompted by a question
+about team-name cadence: a team's ESPN name can change many times a season (not "once per
+season" as the original badge implied), the same as rosters. The real distinction isn't
+team-identity vs. rosters — it's **pairing** (matching an ESPN team to a DB row; ambiguous,
+needs a human, genuinely once per team) vs. **refreshing already-paired data** (deterministic,
+safe to repeat, no review needed) — and that second category covers both names and rosters
+equally. Re-split the UI along that line instead of the old team/roster line:
+
+- `EspnTeamSync.tsx` ("Pair New Teams with ESPN") now only handles un-paired teams — its preview
+  table filters out any `dbTeam` that already has an `espn_team_id`, and `handleCommit` only
+  submits still-unpaired rows, so re-running it can't accidentally resubmit an already-paired
+  team through the manual pairing flow.
+- New `lib/espn/teamNameSync.ts#syncTeamNames()` — a plain function, same shape as
+  `rosterSync.ts#syncRosters()`, that refreshes only the name field on teams that already have an
+  `espn_team_id`, skipping any row whose name hasn't changed. Never touches `owner_name` — that
+  acceptance is still a judgment call gated behind the pairing flow's checkbox.
+- New combined Server Action `app/admin/commissioner/espn-refresh-actions.ts#refreshEspnDataAction()`
+  calls `syncTeamNames()` and `syncRosters()` together, and a single new component
+  `EspnDataRefresh.tsx` ("Refresh ESPN Data", badge: "Safe to run anytime") replaced the old
+  `RosterSync.tsx` on the commissioner page — one button for both, since neither needs manual
+  review. `roster-sync-actions.ts` and `RosterSync.tsx` were deleted rather than kept as unused
+  back-compat shims.
+
+`yarn lint` and `yarn build` both clean after the refactor.
 
 ## 10. Anticipated friction
 
