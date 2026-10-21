@@ -6,6 +6,9 @@ export interface Team {
   espn_team_id: number | null
   espn_owner_id: string | null
   espn_synced_at: string | null
+  wins: number
+  losses: number
+  ties: number
   created_at: string
   updated_at: string
 }
@@ -26,7 +29,6 @@ export interface PollSubmission {
   user_id: string
   team_id: string
   rank: number
-  team_record: string | null
   submitted_at: string
   updated_at: string
 }
@@ -65,6 +67,5 @@ export interface PollSubmissionForm {
   rankings: Array<{
     team_id: string
     rank: number
-    team_record: string
   }>
 }

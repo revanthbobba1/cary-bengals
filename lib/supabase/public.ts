@@ -6,8 +6,9 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js'
  * reads `next/headers` cookies, which opts the calling route out of static rendering entirely.
  *
  * Using this instead lets public pages set `export const revalidate = ...` and be served from
- * the ISR cache between publishes, with `revalidatePath()` from the admin publish action making
- * a new article appear immediately rather than at the next revalidation.
+ * the ISR cache. Pages whose data changes on an admin action (articles, league members) are
+ * `force-dynamic` instead, since `revalidatePath()` did not reliably purge Netlify's cache --
+ * see docs/NETLIFY_DEPLOYMENT.md, "Page Caching and Freshness".
  *
  * Only for data any visitor may see — it carries no session, so RLS evaluates it as `anon`.
  */
