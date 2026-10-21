@@ -4,8 +4,10 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/lib/hooks/useToast'
 import { focusRingClasses } from '@/lib/focusRing'
-import { syncRostersAction } from 'app/admin/commissioner/roster-sync-actions'
-import type { RosterSyncResult } from '@/lib/espn/rosterSync'
+import {
+  refreshEspnDataAction,
+  type EspnDataRefreshResult,
+} from 'app/admin/commissioner/espn-refresh-actions'
 
 interface Props {
   seasonYear: number
@@ -13,16 +15,16 @@ interface Props {
 
 const primaryButtonClasses = `rounded-full bg-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_6px_16px_-4px_rgba(249,115,22,0.4)] transition-all duration-150 ease-out-expo hover:-translate-y-px hover:bg-primary-600 hover:shadow-[0_8px_20px_-4px_rgba(249,115,22,0.5)] ${focusRingClasses} active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50`
 
-export default function RosterSync({ seasonYear }: Props) {
+export default function EspnDataRefresh({ seasonYear }: Props) {
   const router = useRouter()
   const toast = useToast()
-  const [syncing, setSyncing] = useState(false)
-  const [result, setResult] = useState<RosterSyncResult | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
+  const [result, setResult] = useState<EspnDataRefreshResult | null>(null)
 
-  const handleSync = async () => {
-    setSyncing(true)
-    const response = await syncRostersAction(seasonYear)
-    setSyncing(false)
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    const response = await refreshEspnDataAction(seasonYear)
+    setRefreshing(false)
 
     if (response.data === null) {
       toast.error(response.error)
@@ -30,16 +32,18 @@ export default function RosterSync({ seasonYear }: Props) {
     }
 
     setResult(response.data)
-    // teamCount > 0 is real progress even alongside warnings (e.g. one team with no ESPN
-    // roster this week) -- only a fully empty sync reads as an actual failure. Warnings, if
-    // any, still show in the banner below regardless of which toast fires.
-    if (response.data.teamCount > 0) {
-      const caveat = response.data.warnings.length > 0 ? ' — see warnings below.' : '.'
+    const { namesUpdated, teamCount, playerCount, warnings } = response.data
+    // teamCount (rosters) > 0 is real progress even if no names changed this time -- most
+    // refreshes won't touch any names, that's expected, not a failure.
+    if (teamCount > 0) {
+      const nameNote =
+        namesUpdated > 0 ? `, ${namesUpdated} name${namesUpdated === 1 ? '' : 's'} updated` : ''
+      const caveat = warnings.length > 0 ? ' — see warnings below.' : '.'
       toast.success(
-        `Synced rosters for ${response.data.teamCount} teams (${response.data.playerCount} players)${caveat}`
+        `Refreshed ${teamCount} team${teamCount === 1 ? '' : 's'} (${playerCount} players${nameNote})${caveat}`
       )
     } else {
-      toast.error(response.data.warnings[0] ?? 'No rosters were synced.')
+      toast.error(warnings[0] ?? 'Nothing was refreshed.')
     }
     router.refresh()
   }
@@ -49,25 +53,25 @@ export default function RosterSync({ seasonYear }: Props) {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h3 className="flex items-center gap-2 text-lg font-semibold text-ink dark:text-gray-100">
-            Sync Rosters
+            Refresh ESPN Data
             <span className="rounded-full bg-gray-200 px-2 py-0.5 text-[10px] font-semibold text-gray-600 dark:bg-gray-700 dark:text-gray-300">
-              Run after roster moves
+              Safe to run anytime
             </span>
           </h3>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Pulls each already-synced team&apos;s current roster from ESPN. No manual pairing needed
-            — only teams with an ESPN team ID (see Team Sync above) get a roster. Unlike Team Sync,
-            this changes often — re-run it any time there are trades, waivers, or lineup moves you
-            want reflected on the public League Members page.
+            Updates team names and rosters together for every team already paired with ESPN (see
+            Pair New Teams above for first-time linking). No manual review needed — run this any
+            time a manager renames their team or makes a roster move you want reflected on the
+            public League Members page.
           </p>
         </div>
         <button
           type="button"
-          onClick={handleSync}
-          disabled={syncing}
+          onClick={handleRefresh}
+          disabled={refreshing}
           className={primaryButtonClasses}
         >
-          {syncing ? 'Syncing...' : 'Sync Rosters'}
+          {refreshing ? 'Refreshing...' : 'Refresh ESPN Data'}
         </button>
       </div>
 
