@@ -32,18 +32,20 @@ export default function EspnDataRefresh({ seasonYear }: Props) {
     }
 
     setResult(response.data)
-    const { namesUpdated, teamCount, playerCount, warnings } = response.data
-    // Names and rosters now refresh independently (Promise.allSettled in the action) -- either
-    // one succeeding on its own is real progress and must show as success, not get masked by the
-    // other one failing or simply having nothing to update this time.
-    if (teamCount > 0 || namesUpdated > 0) {
+    const { namesUpdated, teamCount, playerCount, recordsUpdated, warnings } = response.data
+    // Names, rosters, and records now refresh independently (Promise.allSettled in the action) --
+    // any one succeeding on its own is real progress and must show as success, not get masked by
+    // another one failing or simply having nothing to update this time.
+    if (teamCount > 0 || namesUpdated > 0 || recordsUpdated > 0) {
       const rosterNote =
         teamCount > 0
           ? `${teamCount} team${teamCount === 1 ? '' : 's'} (${playerCount} players)`
           : null
       const nameNote =
         namesUpdated > 0 ? `${namesUpdated} name${namesUpdated === 1 ? '' : 's'}` : null
-      const parts = [rosterNote, nameNote].filter(Boolean).join(', ')
+      const recordNote =
+        recordsUpdated > 0 ? `${recordsUpdated} record${recordsUpdated === 1 ? '' : 's'}` : null
+      const parts = [rosterNote, nameNote, recordNote].filter(Boolean).join(', ')
       const caveat = warnings.length > 0 ? ' — see warnings below.' : '.'
       toast.success(`Refreshed ${parts}${caveat}`)
     } else {

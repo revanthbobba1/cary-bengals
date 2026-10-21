@@ -11,7 +11,7 @@ import { useToast } from '@/lib/hooks/useToast'
 interface Props {
   pollWeek: PollWeek
   teams: Team[]
-  teamRecords: Record<string, { record: string | null; prevRank: number }>
+  teamRecords: Record<string, { record: string; prevRank: number | undefined }>
   existingSubmission: Partial<PollSubmission>[]
 }
 
@@ -110,7 +110,6 @@ export default function PollSubmissionForm({
         p_rankings: rankings.map((r) => ({
           team_id: r.team_id,
           rank: r.rank,
-          team_record: teamRecords[r.team_id]?.record || null,
         })),
       })
 
@@ -204,7 +203,7 @@ interface RankingRowProps {
   ranking: Ranking
   index: number
   isLast: boolean
-  teamData?: { record: string | null; prevRank: number }
+  teamData?: { record: string; prevRank: number | undefined }
   onMove: (teamId: string, direction: -1 | 1) => void
   isDragging: boolean
   onDragHandleDown: () => void

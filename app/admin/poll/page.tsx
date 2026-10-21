@@ -37,12 +37,13 @@ export default async function AdminPollPage() {
     )
   }
 
-  // Teams, the prior-week-results lookup, and this user's existing submission are all
-  // independent of each other -- run them together instead of one sequential round trip
-  // apiece, which was the biggest contributor to this page feeling slow.
+  // Teams, the prior-week rank lookup, and this user's existing submission are all independent
+  // of each other -- run them together instead of one sequential round trip apiece, which was
+  // the biggest contributor to this page feeling slow.
   const [{ data: teams }, { data: existingSubmission }, { data: previousWeekResults }] =
     await Promise.all([
-      // Get teams for this season with their current records from last week's poll
+      // Get teams for this season -- wins/losses/ties come from here now (ESPN-synced), not
+      // from last week's poll_results, which only ever echoed back whatever a voter was shown.
       supabase.from('teams').select('*').eq('season_year', openWeek.season_year).order('name'),
       // Check if user has already submitted
       supabase
@@ -50,9 +51,10 @@ export default async function AdminPollPage() {
         .select('id, team_id, rank')
         .eq('poll_week_id', openWeek.id)
         .eq('user_id', user.id),
-      // Get team records from previous week's results (if available) -- a genuine two-step
-      // chain (need the previous week's id before its results), so this one branch still
-      // pays two sequential round trips, but no longer blocks the two queries above.
+      // Get each team's prior rank from last week's results (if available), to pre-order teams
+      // with no existing submission -- a genuine two-step chain (need the previous week's id
+      // before its results), so this one branch still pays two sequential round trips, but no
+      // longer blocks the two queries above.
       (async () => {
         const prevWeekData = await supabase
           .from('poll_weeks')
@@ -63,17 +65,25 @@ export default async function AdminPollPage() {
 
         return supabase
           .from('poll_results')
-          .select('team_id, team_record, final_rank')
+          .select('team_id, final_rank')
           .eq('poll_week_id', prevWeekData?.data?.id || '')
       })(),
     ])
 
-  // Create a plain object of team records (not Map - Maps don't serialize to client)
+  const prevRankByTeam = Object.fromEntries(
+    previousWeekResults?.map((r) => [r.team_id, r.final_rank]) || []
+  )
+
+  // Create a plain object of team records (not Map - Maps don't serialize to client), formatted
+  // the same "W-L" / "W-L-T" shape the finalize trigger uses for poll_results.team_record.
   const teamRecords = Object.fromEntries(
-    previousWeekResults?.map((r) => [
-      r.team_id,
-      { record: r.team_record, prevRank: r.final_rank },
-    ]) || []
+    (teams || []).map((t) => [
+      t.id,
+      {
+        record: t.ties > 0 ? `${t.wins}-${t.losses}-${t.ties}` : `${t.wins}-${t.losses}`,
+        prevRank: prevRankByTeam[t.id],
+      },
+    ])
   )
 
   return (
