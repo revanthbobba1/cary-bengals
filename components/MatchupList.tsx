@@ -23,8 +23,12 @@ export default function MatchupList({ matchups, teamNameById }: Props) {
         // Projected score/win probability are only ever non-null for the current matchup period
         // (see lib/types/matchup.ts) -- so this subline naturally disappears once a week is
         // final and never appears for a future week, with no "is this the current week" check
-        // needed here.
-        const hasProjection = matchup.home_projected_score !== null
+        // needed here. `!= null` (not `!==`) also tolerates a row read before migration 044 is
+        // applied, where these columns are absent (`undefined`) rather than `null`. Both sides
+        // are checked, not just home -- nothing in the ESPN schema guarantees they're always
+        // both-or-neither populated.
+        const hasProjection =
+          matchup.home_projected_score != null && matchup.away_projected_score != null
 
         return (
           <li
@@ -38,7 +42,7 @@ export default function MatchupList({ matchups, teamNameById }: Props) {
                 >
                   {homeName}
                 </p>
-                {matchup.home_win_probability !== null && (
+                {matchup.home_win_probability != null && (
                   <p className="text-xs text-gray-400 dark:text-gray-500">
                     {Math.round(matchup.home_win_probability * 100)}% win
                   </p>
@@ -50,6 +54,7 @@ export default function MatchupList({ matchups, teamNameById }: Props) {
                 </p>
                 {hasProjection && (
                   <p className="font-mono text-xs tabular-nums text-gray-400 dark:text-gray-500">
+                    {/* Non-null: hasProjection already confirmed both sides are non-null above. */}
                     Proj {matchup.home_projected_score!.toFixed(1)} –{' '}
                     {matchup.away_projected_score!.toFixed(1)}
                   </p>
@@ -61,7 +66,7 @@ export default function MatchupList({ matchups, teamNameById }: Props) {
                 >
                   {awayName}
                 </p>
-                {matchup.away_win_probability !== null && (
+                {matchup.away_win_probability != null && (
                   <p className="text-xs text-gray-400 dark:text-gray-500">
                     {Math.round(matchup.away_win_probability * 100)}% win
                   </p>
