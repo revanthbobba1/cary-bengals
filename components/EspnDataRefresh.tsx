@@ -80,9 +80,14 @@ export default function EspnDataRefresh({ seasonYear }: Props) {
       </div>
 
       {result && result.warnings.length > 0 && (
-        <div className="mt-4 rounded-control bg-yellow-50 p-4 text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400">
-          {result.warnings.join(' ')}
-        </div>
+        <ul className="mt-4 space-y-2 rounded-control bg-yellow-50 p-4 text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400">
+          {result.warnings.map((warning, i) => (
+            <li key={i} className="flex gap-2">
+              <span aria-hidden="true">•</span>
+              <span>{warning}</span>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   )
