@@ -208,9 +208,14 @@ export default function EspnTeamSync({ initialSeasonYear }: Props) {
       )}
 
       {preview && preview.warnings.length > 0 && (
-        <div className="mb-4 rounded-control bg-yellow-50 p-4 text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400">
-          {preview.warnings.join(' ')}
-        </div>
+        <ul className="mb-4 space-y-2 rounded-control bg-yellow-50 p-4 text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400">
+          {preview.warnings.map((warning, i) => (
+            <li key={i} className="flex gap-2">
+              <span aria-hidden="true">•</span>
+              <span>{warning}</span>
+            </li>
+          ))}
+        </ul>
       )}
 
       {preview && preview.rows.length === 0 && (
