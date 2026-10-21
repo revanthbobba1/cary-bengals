@@ -65,10 +65,10 @@ export default function EspnDataRefresh({ seasonYear }: Props) {
             </span>
           </h3>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Updates team names and rosters together for every team already paired with ESPN (see
-            Pair New Teams above for first-time linking). No manual review needed — run this any
-            time a manager renames their team or makes a roster move you want reflected on the
-            public League Members page.
+            Updates team names, rosters, and win-loss records together for every team already paired
+            with ESPN (see Pair New Teams above for first-time linking). No manual review needed —
+            run this any time a manager renames their team, makes a roster move, or a game result
+            changes a record you want reflected on the public League Members page or the poll.
           </p>
         </div>
         <button

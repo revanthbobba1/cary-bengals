@@ -6,7 +6,7 @@
 // espn_team_id, so there's nothing here that specifically requires a human in the loop.
 
 import type { createClient } from '@/lib/supabase/server'
-import { fetchEspnTeams } from '@/lib/espn/client'
+import { fetchEspnTeams, type EspnLeagueTeamsResponse } from '@/lib/espn/client'
 
 type SupabaseServerClient = ReturnType<typeof createClient>
 
@@ -17,7 +17,12 @@ export interface TeamRecordSyncResult {
 
 export async function syncTeamRecords(
   supabase: SupabaseServerClient,
-  seasonYear: number
+  seasonYear: number,
+  // espn-refresh-actions.ts already fetches this same endpoint for syncTeamNames -- passing its
+  // response through here avoids firing two concurrent requests for identical data against a
+  // Render free-tier service that can cold-start. Falls back to its own fetch so this stays
+  // independently callable (e.g. a future cron/Route Handler syncing records alone).
+  espnResponse?: EspnLeagueTeamsResponse
 ): Promise<TeamRecordSyncResult> {
   const { data: teams, error } = await supabase
     .from('teams')
@@ -31,7 +36,7 @@ export async function syncTeamRecords(
     return { teamCount: 0, warnings: [] }
   }
 
-  const espnResponse = await fetchEspnTeams(seasonYear)
+  espnResponse ??= await fetchEspnTeams(seasonYear)
   const espnTeamById = new Map(espnResponse.teams.map((team) => [team.espn_team_id, team]))
 
   const warnings = [...espnResponse.warnings]

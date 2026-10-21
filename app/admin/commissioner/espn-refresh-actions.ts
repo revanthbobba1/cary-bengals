@@ -10,6 +10,7 @@
 // Server Action at all).
 
 import { revalidatePath } from 'next/cache'
+import { fetchEspnTeams } from '@/lib/espn/client'
 import { syncTeamNames } from '@/lib/espn/teamNameSync'
 import { syncRosters } from '@/lib/espn/rosterSync'
 import { syncTeamRecords } from '@/lib/espn/teamRecordSync'
@@ -34,13 +35,26 @@ export async function refreshEspnDataAction(
   if (auth.supabase === null) return { data: null, error: auth.error }
   const { supabase } = auth
 
+  // Names and records both read ESPN's /teams endpoint -- fetched once here and handed to both,
+  // rather than each firing its own request for identical data against a Render free-tier service
+  // that can cold-start. A fetch failure here is reported as both syncs failing (they'd have
+  // hit the same failure independently anyway) without blocking the unrelated roster fetch.
+  const teamsFetch = await fetchEspnTeams(seasonYear).then(
+    (value) => ({ ok: true as const, value }),
+    (err) => ({ ok: false as const, err })
+  )
+
   // allSettled, not all -- a rejection in one refresh must not mask a committed success in
   // another. All three already wrote to the DB by the time their promise resolves/rejects, so
   // losing track of which ones succeeded would misreport real progress as a total failure.
   const [nameSettled, rosterSettled, recordSettled] = await Promise.allSettled([
-    syncTeamNames(supabase, seasonYear),
+    teamsFetch.ok
+      ? syncTeamNames(supabase, seasonYear, teamsFetch.value)
+      : Promise.reject(teamsFetch.err),
     syncRosters(supabase, seasonYear),
-    syncTeamRecords(supabase, seasonYear),
+    teamsFetch.ok
+      ? syncTeamRecords(supabase, seasonYear, teamsFetch.value)
+      : Promise.reject(teamsFetch.err),
   ])
 
   const warnings: string[] = []
