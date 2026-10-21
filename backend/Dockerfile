@@ -13,4 +13,7 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Shell form, not exec-array -- Render assigns the listen port dynamically via $PORT and expects
+# the service to bind to it; the array form can't expand env vars. Falls back to 8000 for local
+# `docker run` without -e PORT=...
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
