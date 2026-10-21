@@ -33,7 +33,9 @@ export default async function Page() {
       .select('id, name, owner_name')
       .eq('season_year', currentSeason)
 
-    if (!error) {
+    if (error) {
+      console.error('Failed to load teams for League Members:', error)
+    } else {
       for (const team of teams ?? []) {
         const owner = normalizeName(team.owner_name)
         if (owner && !teamByOwner.has(owner)) {
@@ -46,12 +48,14 @@ export default async function Page() {
         // Starters first within each team, matching the grouping RosterModal itself renders.
         // sort_order (not player_name) preserves ESPN's own roster-entry order, which
         // RosterModal needs as the tiebreaker for its own slot/position-based ordering.
-        const { data: rosterRows } = await supabase
+        const { data: rosterRows, error: rosterError } = await supabase
           .from('team_rosters')
           .select('*')
           .in('team_id', teamIds)
           .order('is_starter', { ascending: false })
           .order('sort_order')
+
+        if (rosterError) console.error('Failed to load rosters for League Members:', rosterError)
 
         for (const row of (rosterRows as RosterPlayer[] | null) ?? []) {
           const players = rosterByTeamId.get(row.team_id) ?? []
