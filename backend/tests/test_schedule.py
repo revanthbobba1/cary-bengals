@@ -76,3 +76,17 @@ async def test_get_league_schedule_marks_playoffs(raw_payload: dict) -> None:
 
     assert result.matchups[0].is_playoffs is True
     assert all(m.is_playoffs is False for m in result.matchups[1:])
+
+
+async def test_get_league_schedule_skips_bye_matchup(raw_payload: dict) -> None:
+    # An odd team count (a future season) has ESPN omit one side of a matchup entirely rather
+    # than send a placeholder -- confirm that's skipped with a warning, not a hard failure for
+    # the whole response.
+    payload = json.loads(json.dumps(raw_payload))
+    original_count = len(payload["schedule"])
+    del payload["schedule"][0]["away"]
+
+    result = await get_league_schedule(_StubEspnClient(payload), season=2026)
+
+    assert len(result.matchups) == original_count - 1
+    assert any("missing a home or away team" in warning for warning in result.warnings)

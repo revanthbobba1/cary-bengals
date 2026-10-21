@@ -128,8 +128,11 @@ class RawMatchup(BaseModel):
     # season. Kept as a plain string (not an enum) so an unanticipated value round-trips
     # instead of raising.
     winner: str
-    home: RawMatchupTeam
-    away: RawMatchupTeam
+    # Optional, not required: an odd team count (a future season's bye week) has ESPN omit one
+    # side entirely rather than send a placeholder. See services/schedule.py for the skip+warn
+    # handling -- the current fixture (12 teams, no byes) never exercises this path.
+    home: RawMatchupTeam | None = None
+    away: RawMatchupTeam | None = None
 
 
 class RawLeagueStatus(BaseModel):

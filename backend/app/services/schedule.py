@@ -15,19 +15,26 @@ async def get_league_schedule(espn: EspnClient, season: int) -> LeagueScheduleRe
     raw = await espn.fetch_league(season, views=["mMatchupScore"])
     parsed = RawLeagueScheduleResponse.model_validate(raw)
 
-    matchups = [
-        MatchupOut(
-            espn_matchup_id=matchup.id,
-            week=matchup.matchupPeriodId,
-            is_playoffs=matchup.playoffTierType != "NONE",
-            home_espn_team_id=matchup.home.teamId,
-            home_score=matchup.home.totalPoints,
-            away_espn_team_id=matchup.away.teamId,
-            away_score=matchup.away.totalPoints,
-            winner=matchup.winner,
+    matchups: list[MatchupOut] = []
+    warnings: list[str] = []
+
+    for matchup in parsed.schedule:
+        if matchup.home is None or matchup.away is None:
+            warnings.append(f"Skipped matchup id={matchup.id}: missing a home or away team (bye?)")
+            continue
+
+        matchups.append(
+            MatchupOut(
+                espn_matchup_id=matchup.id,
+                week=matchup.matchupPeriodId,
+                is_playoffs=matchup.playoffTierType != "NONE",
+                home_espn_team_id=matchup.home.teamId,
+                home_score=matchup.home.totalPoints,
+                away_espn_team_id=matchup.away.teamId,
+                away_score=matchup.away.totalPoints,
+                winner=matchup.winner,
+            )
         )
-        for matchup in parsed.schedule
-    ]
 
     return LeagueScheduleResponse(
         season=season,
@@ -35,5 +42,5 @@ async def get_league_schedule(espn: EspnClient, season: int) -> LeagueScheduleRe
         fetched_at=datetime.now(UTC).isoformat(),
         current_week=parsed.status.currentMatchupPeriod,
         matchups=matchups,
-        warnings=[],
+        warnings=warnings,
     )

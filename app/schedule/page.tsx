@@ -1,6 +1,6 @@
 import { genPageMetadata } from 'app/seo'
-import { createPublicClient } from '@/lib/supabase/public'
 import siteMetadata from '@/data/siteMetadata'
+import { loadScheduleData } from '@/lib/espn/scheduleData'
 import MatchupList from '@/components/MatchupList'
 import type { Matchup } from '@/lib/types/matchup'
 
@@ -11,57 +11,14 @@ export const metadata = genPageMetadata({ title: 'Schedule' })
 export const dynamic = 'force-dynamic'
 
 export default async function Page() {
+  const { currentWeek, teamNameById, matchups } = await loadScheduleData(siteMetadata.currentSeason)
+
   const matchupsByWeek = new Map<number, Matchup[]>()
-  const teamNameById = new Map<string, string>()
-  let currentWeek: number | null = null
-
-  if (
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('your-project-ref')
-  ) {
-    const supabase = createPublicClient()
-    const currentSeason = siteMetadata.currentSeason
-
-    const [scheduleStateResult, teamsResult, matchupsResult] = await Promise.all([
-      supabase
-        .from('espn_schedule_state')
-        .select('current_week')
-        .eq('season_year', currentSeason)
-        .maybeSingle(),
-      supabase.from('teams').select('id, name').eq('season_year', currentSeason),
-      supabase
-        .from('matchups')
-        .select('*')
-        .eq('season_year', currentSeason)
-        .order('week_number')
-        .order('espn_matchup_id'),
-    ])
-
-    if (scheduleStateResult.error) {
-      console.error('Failed to load schedule state for Schedule:', scheduleStateResult.error)
-    } else {
-      currentWeek = scheduleStateResult.data?.current_week ?? null
-    }
-
-    if (teamsResult.error) {
-      console.error('Failed to load teams for Schedule:', teamsResult.error)
-    } else {
-      for (const team of teamsResult.data ?? []) {
-        teamNameById.set(team.id, team.name)
-      }
-    }
-
-    if (matchupsResult.error) {
-      console.error('Failed to load matchups for Schedule:', matchupsResult.error)
-    } else {
-      for (const matchup of (matchupsResult.data as Matchup[] | null) ?? []) {
-        const weekMatchups = matchupsByWeek.get(matchup.week_number) ?? []
-        weekMatchups.push(matchup)
-        matchupsByWeek.set(matchup.week_number, weekMatchups)
-      }
-    }
+  for (const matchup of matchups) {
+    const weekMatchups = matchupsByWeek.get(matchup.week_number) ?? []
+    weekMatchups.push(matchup)
+    matchupsByWeek.set(matchup.week_number, weekMatchups)
   }
-
   const weeks = Array.from(matchupsByWeek.keys()).sort((a, b) => a - b)
 
   return (

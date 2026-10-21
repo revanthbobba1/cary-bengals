@@ -53,6 +53,9 @@ export async function syncMatchups(
     const homeTeamId = dbTeamIdByEspnTeamId.get(matchup.home_espn_team_id)
     const awayTeamId = dbTeamIdByEspnTeamId.get(matchup.away_espn_team_id)
     if (!homeTeamId || !awayTeamId) {
+      // Also means a matchup already synced under a since-unpaired team's old espn_team_id is
+      // never cleaned up (this only upserts, never deletes) -- accepted for now since nothing in
+      // the normal pairing flow un-pairs a team once set; worth revisiting if that changes.
       warnings.push(
         `Skipped matchup ${matchup.espn_matchup_id}: unpaired ESPN team id (home=${matchup.home_espn_team_id}, away=${matchup.away_espn_team_id})`
       )
@@ -71,10 +74,10 @@ export async function syncMatchups(
     })
   }
 
-  if (payload.length === 0) {
-    return { matchupCount: 0, warnings }
-  }
-
+  // No early return when payload is empty (e.g. every matchup this week still references an
+  // unpaired team) -- the RPC call below still needs to run with an empty array so
+  // espn_schedule_state.current_week gets persisted from this already-successful ESPN fetch,
+  // rather than silently staying unset/stale.
   const { data, error: rpcError } = await supabase.rpc('sync_matchups', {
     p_season_year: seasonYear,
     p_current_week: espnResponse.current_week,

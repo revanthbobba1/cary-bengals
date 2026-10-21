@@ -63,6 +63,11 @@ CREATE POLICY "Commissioner can manage schedule state"
 -- difference: an UPSERT (ON CONFLICT), not rosters' delete+reinsert. A matchup has stable
 -- identity across syncs (espn_matchup_id), and reinserting all 84 rows every refresh during live
 -- games would be needless churn for data that's mostly unchanged between polls.
+--
+-- The ON CONFLICT DO UPDATE carries a WHERE clause so a conflict with no actual value change is a
+-- no-op (ROW_COUNT 0), not an unconditional write -- otherwise 'updated' would be true for every
+-- already-synced matchup on every refresh, even ones ESPN hasn't touched since the last poll,
+-- which would make the result unusable for reporting "N matchups actually changed."
 CREATE OR REPLACE FUNCTION public.sync_matchups(
   p_season_year integer, p_current_week integer, p_matchups jsonb
 )
@@ -73,6 +78,7 @@ SET search_path = ''
 AS $$
 DECLARE
   v_matchup jsonb;
+  v_updated_count integer;
   v_results jsonb := '[]'::jsonb;
 BEGIN
   IF NOT public.jwt_has_role('commissioner') THEN
@@ -110,10 +116,20 @@ BEGIN
       home_score = EXCLUDED.home_score,
       away_score = EXCLUDED.away_score,
       winner = EXCLUDED.winner,
-      synced_at = now();
+      synced_at = now()
+    WHERE
+      public.matchups.week_number IS DISTINCT FROM EXCLUDED.week_number
+      OR public.matchups.is_playoffs IS DISTINCT FROM EXCLUDED.is_playoffs
+      OR public.matchups.home_team_id IS DISTINCT FROM EXCLUDED.home_team_id
+      OR public.matchups.away_team_id IS DISTINCT FROM EXCLUDED.away_team_id
+      OR public.matchups.home_score IS DISTINCT FROM EXCLUDED.home_score
+      OR public.matchups.away_score IS DISTINCT FROM EXCLUDED.away_score
+      OR public.matchups.winner IS DISTINCT FROM EXCLUDED.winner;
+
+    GET DIAGNOSTICS v_updated_count = ROW_COUNT;
 
     v_results := v_results || jsonb_build_object(
-      'espn_matchup_id', v_matchup->>'espn_matchup_id', 'updated', true
+      'espn_matchup_id', v_matchup->>'espn_matchup_id', 'updated', v_updated_count > 0
     );
   END LOOP;
 

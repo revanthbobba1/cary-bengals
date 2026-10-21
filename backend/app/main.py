@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from app.cache import TTLCache
 from app.clients.espn import EspnClient
 from app.config import get_settings
+from app.error_handlers import register_espn_error_handlers
 from app.routers import health, league, roster, schedule
 
 
@@ -33,6 +34,8 @@ def create_app() -> FastAPI:
         version="0.1.0",
         lifespan=lifespan,
     )
+
+    register_espn_error_handlers(app)
 
     app.include_router(health.router)
     app.include_router(league.router)
