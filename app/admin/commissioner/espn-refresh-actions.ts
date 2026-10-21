@@ -9,7 +9,6 @@
 // into this file, so a future cron/Route Handler can call them directly without going through a
 // Server Action at all).
 
-import { revalidatePath } from 'next/cache'
 import { fetchEspnTeams } from '@/lib/espn/client'
 import { syncTeamNames } from '@/lib/espn/teamNameSync'
 import { syncRosters } from '@/lib/espn/rosterSync'
@@ -83,13 +82,6 @@ export async function refreshEspnDataAction(
     warnings.push(...recordSettled.value.warnings)
   } else {
     warnings.push(`Team record refresh failed: ${errorMessage(recordSettled.reason)}`)
-  }
-
-  // All three already-committed writes only reach visitors once Next's cache for the static
-  // /league-members page is cleared -- without this it wouldn't update until the next deploy,
-  // same reasoning as publishArticleAction's revalidatePath calls.
-  if (namesUpdated > 0 || teamCount > 0 || recordsUpdated > 0) {
-    revalidatePath('/league-members')
   }
 
   return { data: { namesUpdated, teamCount, playerCount, recordsUpdated, warnings }, error: null }
