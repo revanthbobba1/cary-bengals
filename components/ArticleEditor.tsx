@@ -218,7 +218,7 @@ export default function ArticleEditor({
     setError(null)
     setPublishing(true)
     try {
-      const result = await publishArticleAction(article.id, article.slug)
+      const result = await publishArticleAction(article.id)
       if (result.error) throw new Error(result.error)
       toast.success('Article published.')
       router.refresh()
@@ -233,7 +233,7 @@ export default function ArticleEditor({
     setError(null)
     setUnpublishing(true)
     try {
-      const result = await unpublishArticleAction(article.id, article.slug)
+      const result = await unpublishArticleAction(article.id)
       if (result.error) throw new Error(result.error)
       toast.success('Article unpublished.')
       router.refresh()

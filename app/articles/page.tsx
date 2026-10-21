@@ -2,14 +2,12 @@ import ArticlesList from '@/components/articles/ArticlesList'
 import { getPublishedArticles } from '@/lib/supabase/articles'
 import { genPageMetadata } from 'app/seo'
 
-// This no longer caches the page's HTML -- reading `searchParams` below makes the route dynamic,
-// so it re-renders per request -- but it very much still caches the data. `postgrest-js` calls
-// global `fetch` with only method/headers/body/signal, so under Next's patched fetch the Supabase
-// GET lands in the Data Cache with this value as its TTL. A dynamic render can therefore still
-// serve a response up to 300s stale, which means `revalidatePath('/articles')` in the admin
-// publish action stays load-bearing: without it a freshly published article can be missing for up
-// to five minutes. Don't delete either this or that call on the assumption the other covers it.
-export const revalidate = 300
+// Rendered on every request, with Next's Data Cache disabled for the Supabase reads (that is what
+// `force-dynamic` does to every fetch). Reading `searchParams` below already made the route
+// dynamic, but `revalidate = 300` still cached the Supabase GET, and the `revalidatePath()` in the
+// publish action that was meant to clear it does not purge Netlify's cache, so a published article
+// could stay missing. See docs/NETLIFY_DEPLOYMENT.md, "Page Caching and Freshness".
+export const dynamic = 'force-dynamic'
 
 export const metadata = genPageMetadata({ title: 'Articles' })
 
