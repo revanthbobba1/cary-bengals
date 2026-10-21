@@ -77,19 +77,31 @@ The plugin enables these features while still providing excellent performance.
 ## Page Caching and Freshness
 
 Pages that read cookies (`/admin/*`, `/poll`) render on every request. Public pages that use the
-cookie-free `createPublicClient` can be prerendered and cached instead: the home page and articles
-use `export const revalidate = 300`.
+cookie-free `createPublicClient` can be prerendered and cached instead, via `export const
+revalidate = <seconds>` -- but only when nothing ever needs to invalidate that cache early. The
+home page is the one page in this app that actually fits that description.
 
-`/league-members` is the exception: it sets `export const dynamic = 'force-dynamic'` even though it
-could be cached. Its data changes when the commissioner runs "Refresh ESPN Data", and on 2026-10-21
-`revalidatePath('/league-members')` was found not to purge the prerendered copy on Netlify -- the
-page stayed stale for ~12 hours after a refresh, served from the "Netlify Durable" and "Netlify
-Edge" caches. Rendering per request avoids depending on cache invalidation; the cost is two small
-Supabase queries per visit, which is negligible at this league's size.
+**Rule: never pair `revalidate` with `revalidatePath()` on a page whose data changes from an
+admin/commissioner action or a cron sync.** This has failed twice, not once:
+
+- `/league-members` (2026-10-21): data changes when the commissioner runs "Refresh ESPN Data".
+  `revalidatePath('/league-members')` was found not to purge the prerendered copy on Netlify -- the
+  page stayed stale for ~12 hours after a refresh, served from the "Netlify Durable" and "Netlify
+  Edge" caches.
+- `app/articles/[...slug]/page.tsx`: same ISR + `revalidatePath()` combination, same failure to
+  purge Netlify's cache after an article publish/edit.
+
+Both were fixed the same way -- drop `revalidate`, set `export const dynamic = 'force-dynamic'`,
+and delete the now-pointless `revalidatePath()` calls. `/scoreboard` and `/schedule` (ESPN matchups)
+were built `force-dynamic` from day one for the same reason, since live scores during a game are the
+one place staleness would be most visible. Rendering per request avoids depending on cache
+invalidation entirely; the cost is a couple of small Supabase queries per visit, negligible at this
+league's size.
 
 To check whether a page is being served from cache, run `curl -sI <url>` and look at the `age` and
 `cache-status` headers. An `age` that keeps climbing after a data change means the cached copy was
-not purged. Verify this on the deployed site before relying on `revalidatePath` for any other page.
+not purged. Verify this on the deployed site before relying on `revalidatePath` for any new page
+whose data isn't purely static.
 
 ## Troubleshooting
 

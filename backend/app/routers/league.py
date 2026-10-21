@@ -1,7 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import ValidationError
+from fastapi import APIRouter, Depends, Request
 
-from app.clients.espn import EspnAuthError, EspnClient, EspnNotFoundError, EspnRequestError
+from app.clients.espn import EspnClient
 from app.schemas.api import LeagueTeamsResponse
 from app.security import verify_service_token
 from app.services.league import get_league_teams
@@ -17,19 +16,5 @@ async def get_teams(season: int, request: Request) -> LeagueTeamsResponse:
     async def fetch() -> LeagueTeamsResponse:
         return await get_league_teams(espn, season)
 
-    try:
-        return await cache.get_or_set(("teams", season), fetch)
-    except EspnAuthError as exc:
-        raise HTTPException(
-            status_code=502, detail="ESPN credentials expired — re-capture cookies"
-        ) from exc
-    except EspnNotFoundError as exc:
-        raise HTTPException(
-            status_code=502, detail="ESPN league not found — check the league ID"
-        ) from exc
-    except EspnRequestError as exc:
-        raise HTTPException(status_code=502, detail=f"ESPN request failed: {exc}") from exc
-    except ValidationError as exc:
-        raise HTTPException(
-            status_code=502, detail=f"Unexpected ESPN response shape: {exc}"
-        ) from exc
+    # ESPN/validation errors aren't caught here -- see app.error_handlers.
+    return await cache.get_or_set(("teams", season), fetch)

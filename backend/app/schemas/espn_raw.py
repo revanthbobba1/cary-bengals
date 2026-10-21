@@ -100,3 +100,51 @@ class RawLeagueRostersResponse(BaseModel):
     id: int
     seasonId: int
     teams: list[RawRosterTeam] = []
+
+
+# --- mMatchupScore view --------------------------------------------------------------
+# A third, separate response shape -- ?view=mMatchupScore alone carries no `members`/owner
+# fields at all (confirmed against a real captured payload), unlike mTeam. No sanitize_name
+# pass is needed anywhere in this view for that reason.
+
+
+class RawMatchupTeam(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    teamId: int
+    totalPoints: float = 0.0
+
+
+class RawMatchup(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: int
+    matchupPeriodId: int
+    # "NONE" on every entry seen so far. Not hard-enumerated -- ESPN's other known values
+    # (winners/losers/consolation brackets) are handled generically as "is a playoff tier",
+    # not matched by name.
+    playoffTierType: str
+    # HOME/AWAY/UNDECIDED confirmed live; TIE is documented ESPN behavior but not seen this
+    # season. Kept as a plain string (not an enum) so an unanticipated value round-trips
+    # instead of raising.
+    winner: str
+    # Optional, not required: an odd team count (a future season's bye week) has ESPN omit one
+    # side entirely rather than send a placeholder. See services/schedule.py for the skip+warn
+    # handling -- the current fixture (12 teams, no byes) never exercises this path.
+    home: RawMatchupTeam | None = None
+    away: RawMatchupTeam | None = None
+
+
+class RawLeagueStatus(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    currentMatchupPeriod: int
+
+
+class RawLeagueScheduleResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: int
+    seasonId: int
+    status: RawLeagueStatus
+    schedule: list[RawMatchup] = []

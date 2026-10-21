@@ -1,18 +1,19 @@
 'use server'
 
-// Server Action combining the three "already-paired" ESPN refreshes -- team names, rosters, and
-// team records -- into one commissioner-facing action. All three are deterministic updates to
-// teams that already have an espn_team_id (no guessing which team is which), unlike the one-time
-// pairing flow in teams-sync-actions.ts, so there's no reason to make the commissioner run
-// separate buttons for them. See lib/espn/teamNameSync.ts, lib/espn/rosterSync.ts, and
-// lib/espn/teamRecordSync.ts for the reusable core logic (kept as plain functions, not folded
-// into this file, so a future cron/Route Handler can call them directly without going through a
-// Server Action at all).
+// Server Action combining the four "already-paired" ESPN refreshes -- team names, rosters, team
+// records, and matchups -- into one commissioner-facing action. All four are deterministic
+// updates to teams that already have an espn_team_id (no guessing which team is which), unlike
+// the one-time pairing flow in teams-sync-actions.ts, so there's no reason to make the
+// commissioner run separate buttons for them. See lib/espn/teamNameSync.ts, lib/espn/rosterSync.ts,
+// lib/espn/teamRecordSync.ts, and lib/espn/matchupSync.ts for the reusable core logic (kept as
+// plain functions, not folded into this file, so a future cron/Route Handler can call them
+// directly without going through a Server Action at all).
 
 import { fetchEspnTeams } from '@/lib/espn/client'
 import { syncTeamNames } from '@/lib/espn/teamNameSync'
 import { syncRosters } from '@/lib/espn/rosterSync'
 import { syncTeamRecords } from '@/lib/espn/teamRecordSync'
+import { syncMatchups } from '@/lib/espn/matchupSync'
 import { getCommissionerClient, type ActionResult } from '@/lib/supabase/commissionerAction'
 
 export interface EspnDataRefreshResult {
@@ -20,6 +21,7 @@ export interface EspnDataRefreshResult {
   teamCount: number
   playerCount: number
   recordsUpdated: number
+  matchupsUpdated: number
   warnings: string[]
 }
 
@@ -44,9 +46,11 @@ export async function refreshEspnDataAction(
   )
 
   // allSettled, not all -- a rejection in one refresh must not mask a committed success in
-  // another. All three already wrote to the DB by the time their promise resolves/rejects, so
+  // another. All four already wrote to the DB by the time their promise resolves/rejects, so
   // losing track of which ones succeeded would misreport real progress as a total failure.
-  const [nameSettled, rosterSettled, recordSettled] = await Promise.allSettled([
+  // Matchups fetches its own endpoint (schedule, not teams), so it isn't part of the shared
+  // teamsFetch above -- a failure there is independent of team names/records failing.
+  const [nameSettled, rosterSettled, recordSettled, matchupSettled] = await Promise.allSettled([
     teamsFetch.ok
       ? syncTeamNames(supabase, seasonYear, teamsFetch.value)
       : Promise.reject(teamsFetch.err),
@@ -54,6 +58,7 @@ export async function refreshEspnDataAction(
     teamsFetch.ok
       ? syncTeamRecords(supabase, seasonYear, teamsFetch.value)
       : Promise.reject(teamsFetch.err),
+    syncMatchups(supabase, seasonYear),
   ])
 
   const warnings: string[] = []
@@ -61,6 +66,7 @@ export async function refreshEspnDataAction(
   let teamCount = 0
   let playerCount = 0
   let recordsUpdated = 0
+  let matchupsUpdated = 0
 
   if (nameSettled.status === 'fulfilled') {
     namesUpdated = nameSettled.value.teamCount
@@ -84,5 +90,15 @@ export async function refreshEspnDataAction(
     warnings.push(`Team record refresh failed: ${errorMessage(recordSettled.reason)}`)
   }
 
-  return { data: { namesUpdated, teamCount, playerCount, recordsUpdated, warnings }, error: null }
+  if (matchupSettled.status === 'fulfilled') {
+    matchupsUpdated = matchupSettled.value.matchupCount
+    warnings.push(...matchupSettled.value.warnings)
+  } else {
+    warnings.push(`Matchup refresh failed: ${errorMessage(matchupSettled.reason)}`)
+  }
+
+  return {
+    data: { namesUpdated, teamCount, playerCount, recordsUpdated, matchupsUpdated, warnings },
+    error: null,
+  }
 }
