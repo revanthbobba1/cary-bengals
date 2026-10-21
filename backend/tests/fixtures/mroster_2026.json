@@ -1,0 +1,450 @@
+{
+  "id": 19467081,
+  "seasonId": 2026,
+  "scoringPeriodId": 3,
+  "teams": [
+    {
+      "id": 1,
+      "roster": {
+        "entries": [
+          {
+            "lineupSlotId": 2,
+            "acquisitionType": "DRAFT",
+            "playerPoolEntry": {
+              "id": 4362238,
+              "player": {
+                "fullName": "Chase Brown",
+                "defaultPositionId": 2,
+                "proTeamId": 4,
+                "injured": false
+              }
+            }
+          },
+          {
+            "lineupSlotId": 2,
+            "acquisitionType": "DRAFT",
+            "playerPoolEntry": {
+              "id": 3929630,
+              "player": {
+                "fullName": "Saquon Barkley",
+                "defaultPositionId": 2,
+                "proTeamId": 21,
+                "injured": false
+              }
+            }
+          },
+          {
+            "lineupSlotId": 4,
+            "acquisitionType": "DRAFT",
+            "playerPoolEntry": {
+              "id": 4569618,
+              "player": {
+                "fullName": "Garrett Wilson",
+                "defaultPositionId": 3,
+                "proTeamId": 20,
+                "injured": false
+              }
+            }
+          },
+          {
+            "lineupSlotId": 4,
+            "acquisitionType": "DRAFT",
+            "playerPoolEntry": {
+              "id": 4239993,
+              "player": {
+                "fullName": "Tee Higgins",
+                "defaultPositionId": 3,
+                "proTeamId": 4,
+                "injured": false
+              }
+            }
+          },
+          {
+            "lineupSlotId": 20,
+            "acquisitionType": "DRAFT",
+            "playerPoolEntry": {
+              "id": 3915416,
+              "player": {
+                "fullName": "DJ Moore",
+                "defaultPositionId": 3,
+                "proTeamId": 2,
+                "injured": false
+              }
+            }
+          },
+          {
+            "lineupSlotId": 23,
+            "acquisitionType": "DRAFT",
+            "playerPoolEntry": {
+              "id": 16737,
+              "player": {
+                "fullName": "Mike Evans",
+                "defaultPositionId": 3,
+                "proTeamId": 25,
+                "injured": true
+              }
+            }
+          },
+          {
+            "lineupSlotId": 20,
+            "acquisitionType": "DRAFT",
+            "playerPoolEntry": {
+              "id": 4429096,
+              "player": {
+                "fullName": "Blake Corum",
+                "defaultPositionId": 2,
+                "proTeamId": 14,
+                "injured": false
+              }
+            }
+          },
+          {
+            "lineupSlotId": 0,
+            "acquisitionType": "DRAFT",
+            "playerPoolEntry": {
+              "id": 4360310,
+              "player": {
+                "fullName": "Trevor Lawrence",
+                "defaultPositionId": 1,
+                "proTeamId": 30,
+                "injured": false
+              }
+            }
+          },
+          {
+            "lineupSlotId": 21,
+            "acquisitionType": "DRAFT",
+            "playerPoolEntry": {
+              "id": 4360569,
+              "player": {
+                "fullName": "Jordan Mason",
+                "defaultPositionId": 2,
+                "proTeamId": 16,
+                "injured": true
+              }
+            }
+          },
+          {
+            "lineupSlotId": 20,
+            "acquisitionType": "DRAFT",
+            "playerPoolEntry": {
+              "id": 4688813,
+              "player": {
+                "fullName": "Josh Downs",
+                "defaultPositionId": 3,
+                "proTeamId": 11,
+                "injured": false
+              }
+            }
+          },
+          {
+            "lineupSlotId": 20,
+            "acquisitionType": "DRAFT",
+            "playerPoolEntry": {
+              "id": 4429013,
+              "player": {
+                "fullName": "Tank Bigsby",
+                "defaultPositionId": 2,
+                "proTeamId": 21,
+                "injured": false
+              }
+            }
+          },
+          {
+            "lineupSlotId": 20,
+            "acquisitionType": "DRAFT",
+            "playerPoolEntry": {
+              "id": 4361050,
+              "player": {
+                "fullName": "Isaiah Likely",
+                "defaultPositionId": 4,
+                "proTeamId": 19,
+                "injured": false
+              }
+            }
+          },
+          {
+            "lineupSlotId": 20,
+            "acquisitionType": "DRAFT",
+            "playerPoolEntry": {
+              "id": 4870847,
+              "player": {
+                "fullName": "Ja'Kobi Lane",
+                "defaultPositionId": 3,
+                "proTeamId": 33,
+                "injured": true
+              }
+            }
+          },
+          {
+            "lineupSlotId": 17,
+            "acquisitionType": "DRAFT",
+            "playerPoolEntry": {
+              "id": 4567104,
+              "player": {
+                "fullName": "Will Reichard",
+                "defaultPositionId": 5,
+                "proTeamId": 16,
+                "injured": false
+              }
+            }
+          },
+          {
+            "lineupSlotId": 20,
+            "acquisitionType": "ADD",
+            "playerPoolEntry": {
+              "id": 5081432,
+              "player": {
+                "fullName": "Antonio Williams",
+                "defaultPositionId": 3,
+                "proTeamId": 28,
+                "injured": false
+              }
+            }
+          },
+          {
+            "lineupSlotId": 16,
+            "acquisitionType": "ADD",
+            "playerPoolEntry": {
+              "id": -16016,
+              "player": {
+                "fullName": "Vikings D/ST",
+                "defaultPositionId": 16,
+                "proTeamId": 16,
+                "injured": false
+              }
+            }
+          },
+          {
+            "lineupSlotId": 6,
+            "acquisitionType": "ADD",
+            "playerPoolEntry": {
+              "id": 4570037,
+              "player": {
+                "fullName": "Terrance Ferguson",
+                "defaultPositionId": 4,
+                "proTeamId": 14,
+                "injured": false
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "roster": {
+        "entries": [
+          {
+            "lineupSlotId": 2,
+            "acquisitionType": "DRAFT",
+            "playerPoolEntry": {
+              "id": 4430807,
+              "player": {
+                "fullName": "Bijan Robinson",
+                "defaultPositionId": 2,
+                "proTeamId": 1,
+                "injured": false
+              }
+            }
+          },
+          {
+            "lineupSlotId": 2,
+            "acquisitionType": "DRAFT",
+            "playerPoolEntry": {
+              "id": 4567048,
+              "player": {
+                "fullName": "Kenneth Walker III",
+                "defaultPositionId": 2,
+                "proTeamId": 12,
+                "injured": false
+              }
+            }
+          },
+          {
+            "lineupSlotId": 4,
+            "acquisitionType": "DRAFT",
+            "playerPoolEntry": {
+              "id": 4595348,
+              "player": {
+                "fullName": "Malik Nabers",
+                "defaultPositionId": 3,
+                "proTeamId": 19,
+                "injured": false
+              }
+            }
+          },
+          {
+            "lineupSlotId": 20,
+            "acquisitionType": "DRAFT",
+            "playerPoolEntry": {
+              "id": 4723086,
+              "player": {
+                "fullName": "Colston Loveland",
+                "defaultPositionId": 4,
+                "proTeamId": 3,
+                "injured": false
+              }
+            }
+          },
+          {
+            "lineupSlotId": 20,
+            "acquisitionType": "DRAFT",
+            "playerPoolEntry": {
+              "id": 4685278,
+              "player": {
+                "fullName": "Luther Burden III",
+                "defaultPositionId": 3,
+                "proTeamId": 3,
+                "injured": false
+              }
+            }
+          },
+          {
+            "lineupSlotId": 20,
+            "acquisitionType": "DRAFT",
+            "playerPoolEntry": {
+              "id": 3121422,
+              "player": {
+                "fullName": "Terry McLaurin",
+                "defaultPositionId": 3,
+                "proTeamId": 28,
+                "injured": false
+              }
+            }
+          },
+          {
+            "lineupSlotId": 20,
+            "acquisitionType": "DRAFT",
+            "playerPoolEntry": {
+              "id": 4429023,
+              "player": {
+                "fullName": "MarShawn Lloyd",
+                "defaultPositionId": 2,
+                "proTeamId": 9,
+                "injured": false
+              }
+            }
+          },
+          {
+            "lineupSlotId": 20,
+            "acquisitionType": "DRAFT",
+            "playerPoolEntry": {
+              "id": 4429025,
+              "player": {
+                "fullName": "Quentin Johnston",
+                "defaultPositionId": 3,
+                "proTeamId": 24,
+                "injured": false
+              }
+            }
+          },
+          {
+            "lineupSlotId": 4,
+            "acquisitionType": "DRAFT",
+            "playerPoolEntry": {
+              "id": 4701936,
+              "player": {
+                "fullName": "Matthew Golden",
+                "defaultPositionId": 3,
+                "proTeamId": 9,
+                "injured": false
+              }
+            }
+          },
+          {
+            "lineupSlotId": 23,
+            "acquisitionType": "DRAFT",
+            "playerPoolEntry": {
+              "id": 3126486,
+              "player": {
+                "fullName": "Deebo Samuel Sr.",
+                "defaultPositionId": 3,
+                "proTeamId": 25,
+                "injured": false
+              }
+            }
+          },
+          {
+            "lineupSlotId": 20,
+            "acquisitionType": "DRAFT",
+            "playerPoolEntry": {
+              "id": 4241474,
+              "player": {
+                "fullName": "Brian Robinson Jr.",
+                "defaultPositionId": 2,
+                "proTeamId": 1,
+                "injured": false
+              }
+            }
+          },
+          {
+            "lineupSlotId": 20,
+            "acquisitionType": "DRAFT",
+            "playerPoolEntry": {
+              "id": 4696044,
+              "player": {
+                "fullName": "Kaelon Black",
+                "defaultPositionId": 2,
+                "proTeamId": 25,
+                "injured": false
+              }
+            }
+          },
+          {
+            "lineupSlotId": 0,
+            "acquisitionType": "DRAFT",
+            "playerPoolEntry": {
+              "id": 4036378,
+              "player": {
+                "fullName": "Jordan Love",
+                "defaultPositionId": 1,
+                "proTeamId": 9,
+                "injured": false
+              }
+            }
+          },
+          {
+            "lineupSlotId": 17,
+            "acquisitionType": "DRAFT",
+            "playerPoolEntry": {
+              "id": 4697745,
+              "player": {
+                "fullName": "Tyler Loop",
+                "defaultPositionId": 5,
+                "proTeamId": 33,
+                "injured": false
+              }
+            }
+          },
+          {
+            "lineupSlotId": 16,
+            "acquisitionType": "ADD",
+            "playerPoolEntry": {
+              "id": -16030,
+              "player": {
+                "fullName": "Jaguars D/ST",
+                "defaultPositionId": 16,
+                "proTeamId": 30,
+                "injured": false
+              }
+            }
+          },
+          {
+            "lineupSlotId": 6,
+            "acquisitionType": "ADD",
+            "playerPoolEntry": {
+              "id": 4595342,
+              "player": {
+                "fullName": "Oronde Gadsden",
+                "defaultPositionId": 4,
+                "proTeamId": 24,
+                "injured": false
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

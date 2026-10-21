@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { isCommissioner } from '@/lib/supabase/roles'
 import PollWeekManager from '@/components/PollWeekManager'
 import EspnTeamSync from '@/components/EspnTeamSync'
+import RosterSync from '@/components/RosterSync'
 import AdminSubNav from '@/components/AdminSubNav'
 
 export default async function CommissionerToolsPage() {
@@ -67,6 +68,9 @@ export default async function CommissionerToolsPage() {
               ESPN sync. The season field here is editable regardless, so this is just the better
               default, not the only source of truth. */}
           <EspnTeamSync initialSeasonYear={new Date().getFullYear()} />
+          <div className="mt-6">
+            <RosterSync seasonYear={new Date().getFullYear()} />
+          </div>
         </section>
 
         <section aria-labelledby="poll-weeks-section-heading">

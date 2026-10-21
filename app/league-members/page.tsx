@@ -5,6 +5,7 @@ import { coreContent } from 'pliny/utils/contentlayer'
 import { genPageMetadata } from 'app/seo'
 import { createPublicClient } from '@/lib/supabase/public'
 import siteMetadata from '@/data/siteMetadata'
+import type { RosterPlayer } from '@/lib/types/roster'
 
 export const metadata = genPageMetadata({ title: 'League Members' })
 
@@ -13,22 +14,43 @@ function normalizeName(value: string) {
 }
 
 export default async function Page() {
-  const teamByOwner = new Map<string, string>()
+  const teamByOwner = new Map<string, { id: string; name: string }>()
+  const rosterByTeamId = new Map<string, RosterPlayer[]>()
   const currentSeason = siteMetadata.currentSeason
 
   if (
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
     !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('your-project-ref')
   ) {
-    const { data, error } = await createPublicClient()
+    const supabase = createPublicClient()
+    const { data: teams, error } = await supabase
       .from('teams')
-      .select('name, owner_name')
+      .select('id, name, owner_name')
       .eq('season_year', currentSeason)
 
     if (!error) {
-      for (const team of data ?? []) {
+      for (const team of teams ?? []) {
         const owner = normalizeName(team.owner_name)
-        if (owner && !teamByOwner.has(owner)) teamByOwner.set(owner, team.name)
+        if (owner && !teamByOwner.has(owner)) {
+          teamByOwner.set(owner, { id: team.id, name: team.name })
+        }
+      }
+
+      const teamIds = (teams ?? []).map((team) => team.id)
+      if (teamIds.length > 0) {
+        // Starters first within each team, matching the grouping RosterModal itself renders.
+        const { data: rosterRows } = await supabase
+          .from('team_rosters')
+          .select('*')
+          .in('team_id', teamIds)
+          .order('is_starter', { ascending: false })
+          .order('player_name')
+
+        for (const row of (rosterRows as RosterPlayer[] | null) ?? []) {
+          const players = rosterByTeamId.get(row.team_id) ?? []
+          players.push(row)
+          rosterByTeamId.set(row.team_id, players)
+        }
       }
     }
   }
@@ -44,11 +66,13 @@ export default async function Page() {
       <div className="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
         {allAuthors.map((author) => {
           const mainContent = coreContent(author as Authors)
+          const teamInfo = teamByOwner.get(normalizeName(author.name.split(' ')[0]))
           return (
             <div key={author.slug} className="flex flex-col items-center">
               <AuthorLayout
                 content={mainContent}
-                team={teamByOwner.get(normalizeName(author.name.split(' ')[0]))}
+                team={teamInfo?.name}
+                roster={teamInfo ? rosterByTeamId.get(teamInfo.id) : undefined}
               >
                 <MDXLayoutRenderer code={author.body.code} />
               </AuthorLayout>

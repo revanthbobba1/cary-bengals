@@ -4,8 +4,9 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
+from app.sanitize import sanitize_name
 from app.schemas.espn_raw import RawLeagueResponse
-from app.services.league import _sanitize_name, get_league_teams
+from app.services.league import get_league_teams
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "mteam_2026.json"
 
@@ -27,21 +28,21 @@ def raw_payload() -> dict:
 
 
 def test_sanitize_name_strips_control_and_html_and_collapses_whitespace() -> None:
-    assert _sanitize_name("  <b>Team\x07 Name</b>   here  ") == "Team Name here"
+    assert sanitize_name("  <b>Team\x07 Name</b>   here  ") == "Team Name here"
 
 
 def test_sanitize_name_preserves_emoji_and_punctuation() -> None:
-    assert _sanitize_name("Bark For Daddy!🫵🐶") == "Bark For Daddy!🫵🐶"
-    assert _sanitize_name("Ladd's Lads") == "Ladd's Lads"
+    assert sanitize_name("Bark For Daddy!🫵🐶") == "Bark For Daddy!🫵🐶"
+    assert sanitize_name("Ladd's Lads") == "Ladd's Lads"
 
 
 def test_sanitize_name_caps_length() -> None:
-    assert len(_sanitize_name("x" * 500)) == 100
+    assert len(sanitize_name("x" * 500)) == 100
 
 
 def test_sanitize_name_blank_or_none_returns_empty() -> None:
-    assert _sanitize_name(None) == ""
-    assert _sanitize_name("   ") == ""
+    assert sanitize_name(None) == ""
+    assert sanitize_name("   ") == ""
 
 
 def test_raw_model_ignores_unknown_fields() -> None:

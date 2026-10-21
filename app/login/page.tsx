@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { inputClasses, labelClasses } from '@/lib/authFormClasses'
@@ -78,14 +79,21 @@ function LoginForm() {
   }
 
   const handleGoogleLogin = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
-      },
-    })
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
+        },
+      })
 
-    if (error) {
+      if (error) {
+        setError('Failed to sign in with Google')
+      }
+    } catch {
+      // signInWithOAuth can reject instead of resolving with `error` (e.g. a storage write
+      // failure right before the redirect) -- without this, that fails with no visible
+      // feedback at all, indistinguishable from the button doing nothing.
       setError('Failed to sign in with Google')
     }
   }
@@ -135,9 +143,17 @@ function LoginForm() {
             </div>
 
             <div>
-              <label htmlFor="password" className={labelClasses}>
-                Password
-              </label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="password" className={labelClasses}>
+                  Password
+                </label>
+                <Link
+                  href="/forgot-password"
+                  className={`text-sm text-primary-600 hover:underline ${focusRingClasses}`}
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <input
                 id="password"
                 type="password"
