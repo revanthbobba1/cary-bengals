@@ -10,19 +10,9 @@ import { getPollTopFive } from '@/lib/supabase/polls'
 import { focusRingClasses } from '@/lib/focusRing'
 import siteMetadata from '@/data/siteMetadata'
 
-export const revalidate = 300
-
-export async function generateStaticParams() {
-  try {
-    const articles = await getPublishedArticles()
-    return articles.map((a) => ({ slug: a.slug.split('/') }))
-  } catch (error) {
-    // A transient Supabase outage during `next build` shouldn't fail the whole build --
-    // articles just render on-demand at request time instead (dynamicParams defaults to true).
-    console.error('Failed to load published articles for generateStaticParams:', error)
-    return []
-  }
-}
+// Rendered on every request so a publish or unpublish shows up immediately -- prerendering and
+// `revalidatePath()` did not reliably purge Netlify's cache. See docs/NETLIFY_DEPLOYMENT.md.
+export const dynamic = 'force-dynamic'
 
 export async function generateMetadata({
   params,
