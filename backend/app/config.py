@@ -11,7 +11,11 @@ class Settings(BaseSettings):
     espn_s2: str | None = None
     espn_swid: str | None = None
     service_token: str
-    cache_ttl_seconds: int = 900
+    # Only needs to cover the few seconds between the commissioner's pairing preview and commit
+    # (see routers/league.py) -- not a cadence-driven value. 900s predates the commissioner being
+    # told team-name refreshes are "safe to run anytime"; at that length, a real ESPN-side name
+    # change could silently not show up on the very next refresh click.
+    cache_ttl_seconds: int = 60
 
     @model_validator(mode="after")
     def _check_cookie_pair(self) -> "Settings":

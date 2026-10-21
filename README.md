@@ -2,6 +2,33 @@
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/git/external?repository-url=https://github.com/timlrx/tailwind-nextjs-starter-blog)
 
+## External services this app depends on
+
+This is a quick map of everything the live site depends on outside this repo — where it's
+deployed, what each piece is for, and how they connect. See `AGENTS.md` for the full
+repository-instructions version of this (env vars, commands, conventions); this section is the
+plain-English overview for anyone new to the project.
+
+| Service                  | What's deployed there                                | Why                                                                                                                                                                                               |
+| ------------------------ | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Netlify**              | The Next.js app itself (this repo, `yarn build`)     | Hosting + CI deploy target. Builds from `main` on every push; Node 18, Yarn 3.6.1, Next.js runtime plugin (`netlify.toml`).                                                                       |
+| **Supabase**             | Postgres DB, Auth, Row-Level Security, RPC functions | Single source of truth for teams, poll data/weeks, articles, and ESPN-synced team/roster data. Also gates `/admin` login.                                                                         |
+| **Google Cloud Console** | OAuth 2.0 Client (Web application)                   | Lets commissioners/admins sign in with "Sign in with Google" on `/login`. The Client ID/Secret live in Supabase's Google Auth provider config, not in this repo or Netlify.                       |
+| **Render**               | `backend/` — a small FastAPI service (Docker)        | Fetches and sanitizes data from ESPN's Fantasy Football API using the commissioner's ESPN cookies, which must never reach the browser or a public page. Free tier; cold-starts after ~15min idle. |
+| **ESPN Fantasy API**     | Nothing — external, read-only, unofficial            | The actual source of team/roster data. Undocumented, cookie-authenticated; only the Render service ever talks to it directly (see `docs/ESPN_INTEGRATION_PLAN.md`).                               |
+| **GitHub Actions**       | CI only (`.github/workflows/ci.yml`)                 | Runs `yarn lint && yarn build` (frontend) and `ruff`/`black`/`pytest` (backend) on every PR against `develop`/`main`.                                                                             |
+
+**How a request actually flows**, end to end, for the ESPN-backed features:
+commissioner clicks "Refresh ESPN Data" in `/admin/commissioner` → a Next.js Server Action calls
+the Render service with a shared secret (`ESPN_SERVICE_TOKEN`) → Render calls ESPN with the
+commissioner's cookies → Render sanitizes the response and returns it → the Server Action writes
+it into Supabase → public pages (e.g. `/league-members`) read only from Supabase, never from
+Render or ESPN directly.
+
+Two services are configured but optional, enabled only if their env vars are set in Netlify:
+**Umami** (self-hosted analytics, `NEXT_UMAMI_ID`) and **Giscus** (GitHub Discussions-backed
+comments, `NEXT_PUBLIC_GISCUS_*`) — see `data/siteMetadata.js`.
+
 This is a [Next.js](https://nextjs.org/), [Tailwind CSS](https://tailwindcss.com/) blogging starter template. Version 2 is based on Next App directory with [React Server Component](https://nextjs.org/docs/getting-started/react-essentials#server-components) and uses [Contentlayer](https://www.contentlayer.dev/) to manage markdown content.
 
 Probably the most feature-rich Next.js markdown blogging template out there. Easily configurable and customizable. Perfect as a replacement to existing Jekyll and Hugo individual blogs.

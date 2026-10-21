@@ -72,11 +72,22 @@ export default function EspnTeamSync({ initialSeasonYear }: Props) {
         acceptOwnerName: false,
       }))
     )
+
+    // The in-card message below says the same thing, but it's easy to miss since nothing else on
+    // the page changes -- a toast is the only way to reliably catch the commissioner's attention.
+    // rows.every(...) on an empty array is vacuously true, so the zero-teams case is checked
+    // first rather than falling into the "already paired" message.
+    if (result.data.rows.length === 0) {
+      toast.error(`No teams found for season ${seasonYear} — add teams before pairing with ESPN.`)
+    } else if (result.data.rows.every((row) => row.dbTeam.espn_team_id !== null)) {
+      toast.success('Every team is already paired with ESPN — nothing left to link.')
+    }
   }
 
   const usedEspnIds = new Set(
     rows.map((row) => row.selectedEspnTeamId).filter((id): id is number => id !== '')
   )
+  const dbTeamById = new Map((preview?.rows ?? []).map((row) => [row.dbTeam.id, row.dbTeam]))
 
   const handleSelect = (dbTeamId: string, espnTeamId: number | '') => {
     setRows((prev) =>
@@ -98,8 +109,14 @@ export default function EspnTeamSync({ initialSeasonYear }: Props) {
   }
 
   const handleCommit = async () => {
+    // Only rows for still-unpaired db teams -- an already-paired team's selectedEspnTeamId is
+    // pre-filled with its existing pairing (see handlePreview), which would otherwise resubmit it
+    // through this manual flow instead of leaving it to Refresh ESPN Data.
     const pairings = rows
-      .filter((row) => row.selectedEspnTeamId !== '')
+      .filter(
+        (row) =>
+          row.selectedEspnTeamId !== '' && dbTeamById.get(row.dbTeamId)?.espn_team_id === null
+      )
       .map((row) => ({
         dbTeamId: row.dbTeamId,
         espnTeamId: row.selectedEspnTeamId as number,
@@ -125,29 +142,32 @@ export default function EspnTeamSync({ initialSeasonYear }: Props) {
 
     const updatedCount = results.filter((row) => row.status === 'updated').length
     if (updatedCount === results.length) {
-      toast.success(`Synced ${updatedCount} team${updatedCount === 1 ? '' : 's'}.`)
+      toast.success(`Paired ${updatedCount} team${updatedCount === 1 ? '' : 's'}.`)
       setPreview(null)
       setRows([])
     } else {
       // Partial result — leave the table showing per-row status instead of clearing it, so the
       // commissioner can see exactly which pairings need a retry.
       toast.error(
-        `Synced ${updatedCount} of ${results.length} teams — see the status column for what needs another look.`
+        `Paired ${updatedCount} of ${results.length} teams — see the status column for what needs another look.`
       )
     }
     router.refresh()
   }
 
   const espnTeamsById = new Map((preview?.espnTeams ?? []).map((team) => [team.espn_team_id, team]))
-  const dbTeamById = new Map((preview?.rows ?? []).map((row) => [row.dbTeam.id, row.dbTeam]))
+  // Already-paired teams don't belong in this table at all -- they're handled by Refresh ESPN
+  // Data instead, with no manual review. usedEspnIds (above) still accounts for their
+  // espn_team_id so an unpaired row can't be pointed at an ESPN team someone already claimed.
+  const unpairedRows = rows.filter((row) => dbTeamById.get(row.dbTeamId)?.espn_team_id === null)
 
   return (
     <div className="rounded-card border border-gray-200 bg-white p-6 shadow-card dark:border-gray-800 dark:bg-gray-900 dark:shadow-card-dark">
       <div className="mb-1 flex flex-wrap items-center justify-between gap-4">
         <h2 className="flex items-center gap-2 text-xl font-semibold text-ink dark:text-gray-100">
-          Sync Teams from ESPN
+          Pair New Teams with ESPN
           <span className="rounded-full bg-gray-200 px-2 py-0.5 text-[10px] font-semibold text-gray-600 dark:bg-gray-700 dark:text-gray-300">
-            Once per season
+            One-time per team
           </span>
         </h2>
         <div className="flex items-center gap-3">
@@ -176,9 +196,9 @@ export default function EspnTeamSync({ initialSeasonYear }: Props) {
         </div>
       </div>
       <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-        Links each team to its ESPN identity so future syncs (including rosters, below) know which
-        row is which. Run this once per season — after every team is paired, there's rarely a reason
-        to run it again unless a team's ESPN name changes and you want that reflected here.
+        Links a team to its ESPN identity so Refresh ESPN Data (below) knows which row is which.
+        Needed once per team, the first time it&apos;s linked — after that, name and roster updates
+        happen through Refresh ESPN Data instead, with no manual review required.
       </p>
 
       {error && (
@@ -193,7 +213,20 @@ export default function EspnTeamSync({ initialSeasonYear }: Props) {
         </div>
       )}
 
-      {preview && (
+      {preview && preview.rows.length === 0 && (
+        <p className="text-sm text-red-600 dark:text-red-400">
+          No teams found for season {seasonYear} — add teams in Supabase before pairing with ESPN.
+        </p>
+      )}
+
+      {preview && preview.rows.length > 0 && unpairedRows.length === 0 && (
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Every team for this season is already paired with ESPN — nothing left to link here. Use
+          Refresh ESPN Data below to keep names and rosters current.
+        </p>
+      )}
+
+      {preview && unpairedRows.length > 0 && (
         <>
           <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
             Pair each team with its ESPN team. Team names always take ESPN's current value; owner
@@ -213,7 +246,7 @@ export default function EspnTeamSync({ initialSeasonYear }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => {
+                {unpairedRows.map((row) => {
                   const dbTeam = dbTeamById.get(row.dbTeamId)
                   const selectedEspnTeam =
                     row.selectedEspnTeamId !== ''
@@ -282,7 +315,7 @@ export default function EspnTeamSync({ initialSeasonYear }: Props) {
             disabled={committing}
             className={`mt-4 ${primaryButtonClasses}`}
           >
-            {committing ? 'Applying...' : 'Apply Sync'}
+            {committing ? 'Pairing...' : 'Pair Teams'}
           </button>
         </>
       )}
