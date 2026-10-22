@@ -93,11 +93,9 @@ export default function PollRankChart({ history, year, avatarByOwner }: Props) {
         onMouseLeave={() => setActive(null)}
       >
         <defs>
-          {series.map((s) => (
-            <clipPath key={s.key} id={`avatar-clip-${s.key}`} clipPathUnits="objectBoundingBox">
-              <circle cx="0.5" cy="0.5" r="0.5" />
-            </clipPath>
-          ))}
+          <clipPath id="avatar-clip" clipPathUnits="objectBoundingBox">
+            <circle cx="0.5" cy="0.5" r="0.5" />
+          </clipPath>
         </defs>
 
         {Array.from({ length: maxRank }, (_, i) => i + 1).map((rank) => (
@@ -179,7 +177,7 @@ export default function PollRankChart({ history, year, avatarByOwner }: Props) {
                       width={AVATAR_R * 2}
                       height={AVATAR_R * 2}
                       preserveAspectRatio="xMidYMid slice"
-                      clipPath={`url(#avatar-clip-${s.key})`}
+                      clipPath={`url(#avatar-clip)`}
                     />
                   ) : (
                     <text
