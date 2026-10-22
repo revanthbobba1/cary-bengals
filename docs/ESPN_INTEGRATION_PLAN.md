@@ -727,6 +727,26 @@ current week" check needed in the UI, since the nullability already encodes it.
 win-probability-only change being detected, and an omitted projection correctly nulling out the
 stored value (not left stale from the last week it was current).
 
+**Phase 8c-ui (2026-10-21) — consolidated /scoreboard into /schedule; last week's matchups on the
+poll page.** `/scoreboard` and `/schedule` showed the same data at different granularity (current
+week only vs. every week) -- confirmed while reviewing the feature that there was nothing on
+`/scoreboard` that wasn't already a strict subset of `/schedule`. Dropped `/scoreboard` entirely;
+`/schedule` now pins the current week by default (`/schedule`, no query param) with a week-selector
+pill row (`/schedule?week=N`) to browse any other week, the current week still visually marked
+(a ring) even while browsing elsewhere. `searchParams` handling mirrors `/articles`' `season` param
+exactly (repeated-param-as-array type, invalid/missing value falls through to a sane default).
+`lib/espn/scheduleData.ts`'s comment, the two cron Route Handlers' `revalidatePath()` comments,
+`docs/NETLIFY_DEPLOYMENT.md`, and `EspnDataRefresh.tsx`'s toast copy were all updated to stop
+naming a page that no longer exists.
+
+Also added a small "Last Week's Matchups" preview to `/admin/poll` (reusing `loadScheduleData` and
+`MatchupList` as a fourth parallel branch in the page's existing `Promise.all`, no new query shape)
+to give voters real-game context while ranking. Deliberately sourced from
+`espn_schedule_state.current_week - 1`, **not** `poll_weeks.week_number - 1` -- those two "week"
+concepts are independently-managed and only coincidentally aligned most of the time (see Decision 3
+above); conflating them here would have silently shown the wrong week's matchups the first time
+they drift. Hidden entirely (not an empty state) before any matchup has synced or in week 1.
+
 ## 10. Anticipated friction
 
 - **Netlify build gate** — `yarn lint`/Prettier failures break CI (see commit `b7536f5`). New

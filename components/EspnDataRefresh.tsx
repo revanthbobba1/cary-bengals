@@ -72,7 +72,7 @@ export default function EspnDataRefresh({ seasonYear }: Props) {
             for every team already paired with ESPN (see Pair New Teams above for first-time
             linking). No manual review needed — run this any time a manager renames their team,
             makes a roster move, or a game result changes something you want reflected on the public
-            League Members, Scoreboard, or Schedule pages, or the poll.
+            League Members or Schedule pages, or the poll.
           </p>
         </div>
         <button

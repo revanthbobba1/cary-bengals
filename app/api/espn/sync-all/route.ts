@@ -4,8 +4,8 @@
 // Phase 8c-cron notes for the full schedule and cold-start handling (absorbed in the workflow,
 // not here).
 //
-// No revalidatePath() call: /league-members, /scoreboard, and /schedule are all force-dynamic
-// (see docs/NETLIFY_DEPLOYMENT.md's "Page Caching and Freshness"), so there is nothing cached to
+// No revalidatePath() call: /league-members and /schedule are both force-dynamic (see
+// docs/NETLIFY_DEPLOYMENT.md's "Page Caching and Freshness"), so there is nothing cached to
 // invalidate.
 
 import { NextResponse } from 'next/server'

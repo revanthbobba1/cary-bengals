@@ -1,7 +1,12 @@
-// Shared read path for /scoreboard and /schedule -- both need the same three things
-// (current week, team names, all synced matchups), just sliced/grouped differently by the
-// caller. Centralizing the Supabase reads here keeps the two pages' fallback/error-logging
-// behavior identical instead of two hand-maintained copies drifting apart.
+// Shared read path for /schedule and /admin/poll's "last week's matchups" preview -- both need
+// the same three things (current week, team names, all synced matchups), just sliced/grouped
+// differently by the caller. Centralizing the Supabase reads here keeps fallback/error-logging
+// behavior identical instead of hand-maintained copies drifting apart.
+//
+// /scoreboard existed as a separate current-week-only page through Phase 8c, then was folded
+// into /schedule (current week pinned by default, with a week selector) once it became clear the
+// two pages showed the same data at different granularity -- see docs/ESPN_INTEGRATION_PLAN.md's
+// Phase 8c-data notes.
 
 import { createPublicClient } from '@/lib/supabase/public'
 import type { Matchup } from '@/lib/types/matchup'
