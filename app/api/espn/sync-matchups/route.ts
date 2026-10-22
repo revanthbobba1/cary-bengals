@@ -3,9 +3,8 @@
 // the cold-start handling (absorbed in the workflow, not here -- this handler assumes an
 // already-warm backend and is bound by Netlify's sync-function timeout).
 //
-// No revalidatePath() call: /scoreboard and /schedule are both force-dynamic (see
-// docs/NETLIFY_DEPLOYMENT.md's "Page Caching and Freshness"), so there is nothing cached to
-// invalidate.
+// No revalidatePath() call: /schedule is force-dynamic (see docs/NETLIFY_DEPLOYMENT.md's "Page
+// Caching and Freshness"), so there is nothing cached to invalidate.
 
 import { NextResponse } from 'next/server'
 import { verifyCronSecret } from '@/lib/espn/cronAuth'

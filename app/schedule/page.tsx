@@ -1,25 +1,33 @@
 import { genPageMetadata } from 'app/seo'
 import siteMetadata from '@/data/siteMetadata'
 import { loadScheduleData } from '@/lib/espn/scheduleData'
-import MatchupList from '@/components/MatchupList'
-import type { Matchup } from '@/lib/types/matchup'
+import ScheduleWeekBrowser from '@/components/ScheduleWeekBrowser'
 
 export const metadata = genPageMetadata({ title: 'Schedule' })
 
-// Same force-dynamic reasoning as /scoreboard and /league-members -- see
-// docs/NETLIFY_DEPLOYMENT.md, "Page Caching and Freshness".
+// Same force-dynamic reasoning as /league-members -- see docs/NETLIFY_DEPLOYMENT.md, "Page
+// Caching and Freshness". Reading `searchParams` below would opt this route into dynamic
+// rendering on its own anyway (same as /articles), but this is kept explicit since the Supabase
+// reads are the actual reason this page must never be cached.
 export const dynamic = 'force-dynamic'
 
-export default async function Page() {
+export default async function Page({
+  searchParams,
+}: {
+  // A repeated param (`?week=3&week=5`) arrives as an array, so the type can't be just `string`.
+  // Similar in shape to /articles' `season` param, but the two pages' default-resolution logic
+  // isn't identical -- /articles always falls back to the newest season present; /schedule
+  // prefers the current week specifically, only falling further back if that week turns out to
+  // have no synced matchups (see ScheduleWeekBrowser's own comment).
+  searchParams: { week?: string | string[] }
+}) {
   const { currentWeek, teamNameById, matchups } = await loadScheduleData(siteMetadata.currentSeason)
 
-  const matchupsByWeek = new Map<number, Matchup[]>()
-  for (const matchup of matchups) {
-    const weekMatchups = matchupsByWeek.get(matchup.week_number) ?? []
-    weekMatchups.push(matchup)
-    matchupsByWeek.set(matchup.week_number, weekMatchups)
-  }
-  const weeks = Array.from(matchupsByWeek.keys()).sort((a, b) => a - b)
+  // An explicit empty value (`?week=`) must not silently become week 0 -- `Number('')` is `0`,
+  // not `NaN`, so it would otherwise pass straight through as if week 0 had been requested.
+  const rawWeek = typeof searchParams.week === 'string' ? searchParams.week : ''
+  const parsedWeek = rawWeek !== '' ? Number(rawWeek) : Number.NaN
+  const initialWeek = Number.isFinite(parsedWeek) ? parsedWeek : null
 
   return (
     <div className="container py-12">
@@ -28,27 +36,12 @@ export default async function Page() {
           Schedule
         </h1>
       </div>
-      {weeks.length === 0 ? (
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          No matchups synced yet — a commissioner needs to run an ESPN refresh first.
-        </p>
-      ) : (
-        <div className="space-y-10">
-          {weeks.map((week) => (
-            <section key={week}>
-              <h2 className="mb-3 flex items-center gap-2 text-xl font-semibold text-ink dark:text-gray-100">
-                Week {week}
-                {week === currentWeek && (
-                  <span className="rounded-full bg-primary-500 px-2 py-0.5 text-[10px] font-semibold text-white">
-                    Current
-                  </span>
-                )}
-              </h2>
-              <MatchupList matchups={matchupsByWeek.get(week) ?? []} teamNameById={teamNameById} />
-            </section>
-          ))}
-        </div>
-      )}
+      <ScheduleWeekBrowser
+        matchups={matchups}
+        teamNameById={teamNameById}
+        currentWeek={currentWeek}
+        initialWeek={initialWeek}
+      />
     </div>
   )
 }

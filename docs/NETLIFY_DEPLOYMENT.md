@@ -92,9 +92,9 @@ admin/commissioner action or a cron sync.** This has failed twice, not once:
   purge Netlify's cache after an article publish/edit.
 
 Both were fixed the same way -- drop `revalidate`, set `export const dynamic = 'force-dynamic'`,
-and delete the now-pointless `revalidatePath()` calls. `/scoreboard` and `/schedule` (ESPN matchups)
-were built `force-dynamic` from day one for the same reason, since live scores during a game are the
-one place staleness would be most visible. Rendering per request avoids depending on cache
+and delete the now-pointless `revalidatePath()` calls. `/schedule` (ESPN matchups) was built
+`force-dynamic` from day one for the same reason, since live scores during a game are the one
+place staleness would be most visible. Rendering per request avoids depending on cache
 invalidation entirely; the cost is a couple of small Supabase queries per visit, negligible at this
 league's size.
 
