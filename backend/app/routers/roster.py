@@ -1,7 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import ValidationError
+from fastapi import APIRouter, Depends, Request
 
-from app.clients.espn import EspnAuthError, EspnClient, EspnNotFoundError, EspnRequestError
+from app.clients.espn import EspnClient
 from app.schemas.api import LeagueRostersResponse
 from app.security import verify_service_token
 from app.services.roster import get_league_rosters
@@ -18,19 +17,6 @@ async def get_rosters(season: int, request: Request) -> LeagueRostersResponse:
     # one fetch). Rosters are also explicitly meant to be re-run often (trades, waivers), so the
     # shared 15-minute TTL would otherwise let a commissioner's immediate re-sync silently persist
     # stale data while reporting success.
-    try:
-        return await get_league_rosters(espn, season)
-    except EspnAuthError as exc:
-        raise HTTPException(
-            status_code=502, detail="ESPN credentials expired — re-capture cookies"
-        ) from exc
-    except EspnNotFoundError as exc:
-        raise HTTPException(
-            status_code=502, detail="ESPN league not found — check the league ID"
-        ) from exc
-    except EspnRequestError as exc:
-        raise HTTPException(status_code=502, detail=f"ESPN request failed: {exc}") from exc
-    except ValidationError as exc:
-        raise HTTPException(
-            status_code=502, detail=f"Unexpected ESPN response shape: {exc}"
-        ) from exc
+    #
+    # ESPN/validation errors aren't caught here -- see app.error_handlers.
+    return await get_league_rosters(espn, season)

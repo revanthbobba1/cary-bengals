@@ -91,3 +91,33 @@ export async function fetchEspnTeams(season: number): Promise<EspnLeagueTeamsRes
 export async function fetchEspnRosters(season: number): Promise<EspnLeagueRostersResponse> {
   return fetchFromEspnService<EspnLeagueRostersResponse>(`/v1/league/${season}/rosters`)
 }
+
+export interface EspnMatchup {
+  espn_matchup_id: number
+  week: number
+  is_playoffs: boolean
+  home_espn_team_id: number
+  home_score: number
+  away_espn_team_id: number
+  away_score: number
+  winner: string
+  // Populated only for the current matchup period -- null for a past (final) or future (not yet
+  // computed) week.
+  home_projected_score: number | null
+  away_projected_score: number | null
+  home_win_probability: number | null
+  away_win_probability: number | null
+}
+
+export interface EspnLeagueScheduleResponse {
+  season: number
+  league_id: string
+  fetched_at: string
+  current_week: number
+  matchups: EspnMatchup[]
+  warnings: string[]
+}
+
+export async function fetchEspnSchedule(season: number): Promise<EspnLeagueScheduleResponse> {
+  return fetchFromEspnService<EspnLeagueScheduleResponse>(`/v1/league/${season}/schedule`)
+}

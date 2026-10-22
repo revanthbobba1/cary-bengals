@@ -52,8 +52,10 @@ __pycache__/
 # Contentlayer
 .contentlayer
 
-# Claude Code
-.claude/
+# Claude Code -- everything personal/local stays ignored (settings.local.json, worktrees,
+# scheduled_tasks.lock), but skills are project-specific and shared, so they're tracked.
+.claude/*
+!.claude/skills/
 
 # TypeScript incremental build cache
 *.tsbuildinfo

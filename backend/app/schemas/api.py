@@ -45,3 +45,29 @@ class LeagueRostersResponse(BaseModel):
     fetched_at: str
     teams: list[TeamRosterOut]
     warnings: list[str]
+
+
+class MatchupOut(BaseModel):
+    espn_matchup_id: int
+    week: int
+    is_playoffs: bool
+    home_espn_team_id: int
+    home_score: float
+    away_espn_team_id: int
+    away_score: float
+    winner: str
+    # Current-matchup-period-only fields; null for past (final) and future (not yet computed)
+    # weeks -- see RawMatchupTeam's comment in schemas/espn_raw.py.
+    home_projected_score: float | None = None
+    away_projected_score: float | None = None
+    home_win_probability: float | None = None
+    away_win_probability: float | None = None
+
+
+class LeagueScheduleResponse(BaseModel):
+    season: int
+    league_id: str
+    fetched_at: str
+    current_week: int
+    matchups: list[MatchupOut]
+    warnings: list[str]

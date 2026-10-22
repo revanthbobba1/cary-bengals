@@ -275,19 +275,20 @@ this never runs client-side).
 
 ## 9. Sequencing
 
-| Phase | Work                                                                                                                                            | Blocked by                   |
-| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| 0 ✅  | Answer §8 (public/private, league ID, cookies if needed)                                                                                        | **User**                     |
-| 1 ✅  | Hand-probe the API with `curl`; capture + redact a real payload into `tests/fixtures/`                                                          | 0                            |
-| 2 ✅  | Scaffold FastAPI; delete Flask files; `/healthz` + `/v1/league/{season}/teams`; run locally                                                     | 1                            |
-| 3 ✅  | Sanitization + pytest against the captured fixture (`respx` for HTTP mocking)                                                                   | 2                            |
-| 4 ✅  | Dockerize; deploy to Render; set secrets                                                                                                        | 3                            |
-| 5 ✅  | Migration `034_add_espn_team_ids.sql` (renumbered — `015` was taken by the time this ran)                                                       | independent, can run anytime |
-| 6 ✅  | `lib/espn/client.ts` + Server Actions (commissioner-gated) + preview/diff UI                                                                    | 4, 5                         |
-| 7 ✅  | Backfill the 12 existing rows through the preview UI                                                                                            | 6                            |
-| 8a ✅ | Rosters: `/v1/league/{season}/rosters`, `team_rosters` table, "View Roster" on `/league-members`                                                | 6, 7                         |
-| 8b ✅ | Real team records: `teams.wins/losses/ties` synced from ESPN, `poll_results.team_record` sourced from there instead of a self-perpetuating echo | 6, 7                         |
-| 8c    | `/scoreboard`, `/schedule`                                                                                                                      | later                        |
+| Phase      | Work                                                                                                                                            | Blocked by                   |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| 0 ✅       | Answer §8 (public/private, league ID, cookies if needed)                                                                                        | **User**                     |
+| 1 ✅       | Hand-probe the API with `curl`; capture + redact a real payload into `tests/fixtures/`                                                          | 0                            |
+| 2 ✅       | Scaffold FastAPI; delete Flask files; `/healthz` + `/v1/league/{season}/teams`; run locally                                                     | 1                            |
+| 3 ✅       | Sanitization + pytest against the captured fixture (`respx` for HTTP mocking)                                                                   | 2                            |
+| 4 ✅       | Dockerize; deploy to Render; set secrets                                                                                                        | 3                            |
+| 5 ✅       | Migration `034_add_espn_team_ids.sql` (renumbered — `015` was taken by the time this ran)                                                       | independent, can run anytime |
+| 6 ✅       | `lib/espn/client.ts` + Server Actions (commissioner-gated) + preview/diff UI                                                                    | 4, 5                         |
+| 7 ✅       | Backfill the 12 existing rows through the preview UI                                                                                            | 6                            |
+| 8a ✅      | Rosters: `/v1/league/{season}/rosters`, `team_rosters` table, "View Roster" on `/league-members`                                                | 6, 7                         |
+| 8b ✅      | Real team records: `teams.wins/losses/ties` synced from ESPN, `poll_results.team_record` sourced from there instead of a self-perpetuating echo | 6, 7                         |
+| 8c ✅      | `/scoreboard`, `/schedule`: matchups synced from ESPN, shown on two new public pages                                                            | 6, 7                         |
+| 8c-cron ✅ | Scheduled auto-sync (GitHub Actions + service-role key) so scores update during live games without a commissioner clicking refresh              | 8c                           |
 
 **Phase 1 notes (2026-09-09):** Captured `?view=mTeam` for season 2026 (12 teams, 13 members —
 one team is co-owned). Real member names, `displayName`s, and GUIDs (`members[].id`,
@@ -596,6 +597,192 @@ all, and `recalculate_poll_results` produces the right `"W-L"`/`"W-L-T"` string 
 to production ... as a separate deliberate step after PR merge"), migration + verify script are
 meant to be applied via `supabase db push` and checked via `supabase db query --linked` after this
 PR merges, not before.
+
+**Phase 8c (2026-10-21) — matchups, `/scoreboard`, `/schedule`.** Hand-probed `?view=mMatchupScore`
+alone against the real league (confirmed zero PII — no `members`, no names, unlike `mTeam`) before
+writing any schema: 84 entries (14 weeks × 6 matchups, 12 teams, no byes), each team side carrying
+only `teamId`/`totalPoints`, plus `status.currentMatchupPeriod` as ESPN's own answer to "what week
+is it."
+
+New backend endpoint `GET /v1/league/{season}/schedule` (`services/schedule.py`,
+`routers/schedule.py`), same sanitization-boundary/error-mapping shape as `/teams` and `/rosters`
+but with **no `sanitize.py` pass** — nothing in this view needs it. `is_playoffs` is derived as
+`playoffTierType != "NONE"` rather than matching specific tier names, so an unanticipated playoff
+tier value still resolves correctly without a code change.
+
+New migration (`042_add_matchups_and_schedule.sql`): a `matchups` table (UPSERT-by-
+`espn_matchup_id`, not rosters' delete+reinsert — a matchup has stable identity across polls, and
+reinserting all 84 rows every refresh would be needless churn) and a tiny
+`espn_schedule_state(season_year, current_week)` table. The latter is deliberately not derived from
+`poll_weeks`' manually-managed "open week" — that's an independent, commissioner-driven concept,
+and coupling `/scoreboard` to it means a forgotten poll-week creation silently shows a stale week.
+It's also not derived purely from `matchups` data ("latest week with nonzero scores"), which is
+indistinguishable from "not started yet" every Tuesday–Wednesday. `sync_matchups()` instead persists
+ESPN's own `currentMatchupPeriod` directly, same per-batch-transaction/commissioner-gated pattern as
+`035`/`041`, folded into `refreshEspnDataAction()` as a fourth `Promise.allSettled` branch
+(`lib/espn/matchupSync.ts`, same shape as the other three syncs).
+
+`/scoreboard` (current week) and `/schedule` (full season, grouped by week with a "Current" badge)
+are both `export const dynamic = 'force-dynamic'`, not ISR — the `revalidate` + `revalidatePath()`
+combination has already failed to purge Netlify's cache twice in this repo (`/league-members`, then
+`/articles/[...slug]`; see `docs/NETLIFY_DEPLOYMENT.md`'s "Page Caching and Freshness"), and live
+scores during a game are the one place staleness would be most visible. Both pages and
+`lib/espn/matchupSync.ts` share one new component, `components/MatchupList.tsx`, and one new type,
+`lib/types/matchup.ts`.
+
+`supabase/tests/verify_042.sql` (BEGIN/ROLLBACK, same pattern as `verify_041.sql`) checks: a
+non-commissioner is refused; `sync_matchups` writes both the matchup row and
+`espn_schedule_state.current_week`; re-running with a changed score updates the existing row in
+place instead of duplicating it (the `ON CONFLICT` path); and `anon` can read `matchups` via the
+public-read policy. Applied to production the same deliberate way `034`/`041` were — `supabase db
+push`, then `verify_042.sql`, after this PR merges, not before.
+
+**Scoped out of this pass, tracked as `8c-cron` above:** the scheduled auto-sync that keeps scores
+updating during a live game without a commissioner clicking "Refresh ESPN Data." That needs a new
+credential class this app hasn't carried before (a Supabase service-role key, since a cron job has
+no commissioner session) and two new GitHub Actions workflows — enough additional surface area
+(new trusted-backend credential, cold-start handling, NFL-game-window cron math) that it's a
+clearly separate follow-up PR once this core path is verified end-to-end against real data, not
+bundled into the same migration or PR as the schema/pages above.
+
+**Phase 8c-cron (2026-10-21) — scheduled auto-sync.** A scheduled job has no commissioner session,
+but every sync RPC (`sync_espn_teams`, `sync_team_rosters`, `sync_team_records`, `sync_matchups`)
+is gated on `jwt_has_role('commissioner')`. Considered a dedicated bot Supabase Auth account
+scoped to exactly `commissioner`, and rejected it: it needs real token-refresh handling in a
+stateless GitHub Actions runner (access tokens expire ~1hr) — new code and a new silent-failure
+mode — for a security benefit smaller than it first appears, since this schema's only role above
+`authenticated` is `commissioner` itself; a compromised bot credential would already reach
+everything commissioner-gated.
+
+Chose a **Supabase service-role key** instead, stated honestly rather than minimized: it is
+_strictly more_ powerful than `commissioner`, not role-equivalent — it bypasses Row Level Security
+on every table in the project, not just the ones a `jwt_has_role('commissioner')` policy
+explicitly covers. Contained by scoping, not by the credential being narrow:
+`lib/supabase/serviceRole.ts` is the only file that ever reads `SUPABASE_SERVICE_ROLE_KEY`, and
+both Route Handlers (`app/api/espn/sync-matchups/route.ts`, `app/api/espn/sync-all/route.ts`)
+check a _separate_ shared secret (`x-cron-secret` against `ESPN_SYNC_CRON_SECRET`, compared with
+`crypto.timingSafeEqual` in `lib/espn/cronAuth.ts`) before that key is ever constructed. The
+service-role key lives only in Netlify's env vars — never in GitHub, which only ever holds
+`ESPN_SYNC_CRON_SECRET` and the deployed URLs.
+
+New migration (`043_espn_cron_service_role.sql`): `OR auth.role() = 'service_role'` added to all
+four RPCs' commissioner guard, identical one-line change, no other body changes. The daily full
+refresh needs all four (not just matchups) because this league processes waiver claims most days,
+which only ever got caught before by a commissioner remembering to click refresh.
+
+Cold starts (Render free tier, up to ~60s) are absorbed in the GitHub Actions job, not the Route
+Handler: a `curl --max-time 70` against the backend's `/healthz` first (`|| true`, so a slow wake
+doesn't abort the job), then the real sync call — a Route Handler invoked by cron is still bound
+by Netlify's synchronous-function timeout and can't run a retry-with-backoff loop itself.
+
+Two workflows, two cadences: `.github/workflows/espn-matchup-sync.yml` polls every 10 minutes
+across four real NFL game windows (Thu/Sun-afternoon/Sun-night/Mon-night — each confirmed a
+genuinely distinct window once translated from UTC cron syntax to ET, not a redundant extra one),
+calling only `syncMatchups`. `.github/workflows/espn-full-sync.yml` runs once each Tuesday,
+Wednesday, and Thursday morning, calling the newly-extracted `lib/espn/refreshAll.ts` (the same
+four-sync orchestration the commissioner's manual "Refresh ESPN Data" button already used —
+extracted out of `app/admin/commissioner/espn-refresh-actions.ts` now that this second caller
+exists, rather than duplicating it).
+
+Researched and confirmed: no documented ESPN real-time/push API exists for fantasy data; every
+known community library (ffscrapr, espn-ff-api, espyn-api) polls the same undocumented REST
+endpoints this project already uses. Scheduled polling is the actual state of the art here, not a
+shortcut.
+
+`supabase/tests/verify_043.sql` (BEGIN/ROLLBACK) focuses on the new coverage this migration adds —
+a simulated `service_role` request (`set_config` + `SET LOCAL ROLE service_role`) succeeding on
+all four RPCs where it would have been refused before — plus one quick non-commissioner-refused
+and one commissioner-succeeds check as a backstop that the guard rewrite didn't break the existing
+paths (full behavioral coverage of those already lives in `verify_041.sql`/`verify_042.sql`).
+
+**Manual setup required before the schedules actually run** (not something this PR can do from
+inside the repo): the real `SUPABASE_SERVICE_ROLE_KEY` value (Supabase dashboard → Project
+Settings → API) needs to be set as a Netlify env var; a newly-generated `ESPN_SYNC_CRON_SECRET`
+needs to be set identically in both Netlify and GitHub Actions secrets; and
+`ESPN_SERVICE_URL`/`ESPN_SYNC_URL`/`ESPN_SYNC_ALL_URL` need to be added as GitHub Actions secrets
+(the first duplicates the existing Netlify env var so the workflow can ping it directly; the
+latter two are this app's own deployed Route Handler URLs, which only exist once `develop` is
+released to `main`).
+
+**Phase 8c-data (2026-10-21) — projected score and live win probability.** Re-inspected a real
+`mMatchupScore` response field-by-field (not just the subset Phase 8c originally mapped) looking
+for anything else worth surfacing on `/scoreboard`/`/schedule`. Found `totalProjectedPoints` and
+`winProbability` per team side, both populated **only for the current matchup period** — null for
+a past (already-final) week and null for a future (not yet computed) week, confirmed against the
+real fixture rather than assumed. Also checked `cumulativeScore` (looked like it might be a team
+record) and found it's always `{wins:0, losses:0, ties:0}` outside the playoffs — unusable, not
+wired up. `rosterForCurrentScoringPeriod` (full per-player live box score) is real and rich but a
+much bigger feature — a dedicated box-score view, not an addition to the existing team-level
+summary — left for a future phase if wanted.
+
+Migration `044_matchup_projections_and_win_probability.sql` adds four nullable columns
+(`home_projected_score`, `away_projected_score`, `home_win_probability`,
+`away_win_probability`) and folds them into `sync_matchups`'s existing upsert, including the
+`ON CONFLICT ... WHERE` change-detection guard — a projection/win-probability-only change (or a
+transition to/from NULL as a week stops being current) now correctly reports `updated: true`.
+`components/MatchupList.tsx` renders them as a small subline under each team's win probability and
+under the score itself (`Proj H – A`), present only when ESPN provides them — no "is this the
+current week" check needed in the UI, since the nullability already encodes it.
+`supabase/tests/verify_044.sql` covers the new columns specifically: round-trip, a
+win-probability-only change being detected, and an omitted projection correctly nulling out the
+stored value (not left stale from the last week it was current).
+
+**Phase 8c-ui (2026-10-21) — consolidated /scoreboard into /schedule; last week's matchups on the
+poll page.** `/scoreboard` and `/schedule` showed the same data at different granularity (current
+week only vs. every week) -- confirmed while reviewing the feature that there was nothing on
+`/scoreboard` that wasn't already a strict subset of `/schedule`. Dropped `/scoreboard` entirely;
+`/schedule` now pins the current week by default (`/schedule`, no query param) with a week-selector
+pill row (`/schedule?week=N`) to browse any other week, the current week still visually marked
+(a ring) even while browsing elsewhere. `searchParams` handling is similar in shape to `/articles`'
+`season` param (repeated-param-as-array type, invalid/missing value falls through to a default) but
+not identical -- see the 8c-ui review fixes note below. `lib/espn/scheduleData.ts`'s comment, the
+two cron Route Handlers' `revalidatePath()` comments, `docs/NETLIFY_DEPLOYMENT.md`, and
+`EspnDataRefresh.tsx`'s toast copy were all updated to stop naming a page that no longer exists.
+
+Also added a small "Last Week's Matchups" preview to `/admin/poll` (reusing `loadScheduleData` and
+`MatchupList` as a fourth parallel branch in the page's existing `Promise.all`, no new query shape)
+to give voters real-game context while ranking. Deliberately sourced from
+`espn_schedule_state.current_week - 1`, **not** `poll_weeks.week_number - 1` -- those two "week"
+concepts are independently-managed and only coincidentally aligned most of the time (see Decision 3
+above); conflating them here would have silently shown the wrong week's matchups the first time
+they drift. Hidden entirely (not an empty state) before any matchup has synced or in week 1.
+
+**Phase 8c-ui review fixes (2026-10-22):** A `medium`-effort review caught several real issues,
+addressed before merge:
+
+- **`/admin/poll`'s `Promise.all` could be taken down by an ESPN-data hiccup.** A transient
+  failure inside `loadScheduleData` (a network-level exception, not a normal `{data, error}`
+  response) would have rejected the whole outer `Promise.all`, crashing the entire
+  ballot-submission page over a failure in what's just a nice-to-have preview. Fixed with
+  `.catch()` on that one branch, falling back to an empty `ScheduleData` shape so a hiccup there
+  only hides the preview block, never ballot submission.
+- **`/schedule`'s default view could land on an empty week.** Confirmed against
+  `lib/espn/matchupSync.ts`'s own behavior: `espn_schedule_state.current_week` is deliberately
+  persisted even when that week's matchup payload came back empty (e.g. every matchup that week
+  referenced an unpaired team), so defaulting to it unconditionally could show "No matchups yet"
+  while an earlier week's real data sat one click away. Fixed by only defaulting to the current
+  week when it actually has synced matchups, otherwise falling back to the latest week that does.
+- **Season-source mismatch.** `/admin/poll`'s new `loadScheduleData` call originally used
+  `openWeek.season_year`; switched to `siteMetadata.currentSeason` to match every other ESPN read
+  path (`/schedule`, both cron routes) -- `openWeek.season_year` is a separate, commissioner-managed
+  value that could briefly diverge from the ESPN pipeline's season right at a rollover.
+- **`Number(searchParams.week)` on an explicit empty value (`?week=`) produced `0`, not `NaN`** --
+  fixed with an explicit empty-string guard before parsing.
+- **Dead-click UX on the week selector.** Converted `/schedule`'s pill row from server-rendered
+  `<Link>` navigation to a new client component, `components/ScheduleWeekBrowser.tsx`, using the
+  same `useTransition`/`router.replace` pattern `components/articles/ArticlesList.tsx` already
+  established for its season pills -- every week's matchups are already on the client (a season is
+  at most ~84 rows), so a click renders instantly instead of waiting out a `force-dynamic` server
+  round trip. This also required switching `ScheduleData.teamNameById`/`MatchupList`'s prop from a
+  `Map` to a plain `Record` (a `Map` doesn't survive serialization across the Server-to-Client
+  Component boundary).
+- Stale comment in `MatchupList.tsx` still naming `/scoreboard` (deleted earlier in this same PR) --
+  fixed.
+- Deliberately left as-is: no redirect for the deleted `/scoreboard` route (it was never deployed
+  to production, so there are no real bookmarks or indexed links to preserve) and the duplicate
+  `teams`/`loadScheduleData` queries on `/admin/poll` (merging them would reintroduce the
+  season-mismatch risk above; the table is tiny enough that the extra query is not worth the
+  complexity of avoiding).
 
 ## 10. Anticipated friction
 

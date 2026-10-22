@@ -104,3 +104,10 @@ Login failures should remain generic to avoid user enumeration.
 - Do not commit directly to `develop`.
 - Keep changes focused and use separate pull requests for unrelated work.
 - Run the relevant checks before opening a pull request.
+- `develop` is protected by a repo ruleset ("Protect Develop", id `25548591`) blocking deletion and
+  non-fast-forward pushes. A `develop` → `main` release PR uses `develop` itself as the head
+  branch, so without this ruleset, merging one triggers the repo's "automatically delete head
+  branches" setting and wipes `develop` off the remote — happened twice before the ruleset existed
+  (recovered via `git checkout develop && git merge origin/main --ff-only && git push origin
+develop`). If this ever recurs, check the ruleset is still active before assuming those recovery
+  steps are needed.
