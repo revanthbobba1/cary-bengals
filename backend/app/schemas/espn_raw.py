@@ -108,6 +108,65 @@ class RawLeagueRostersResponse(BaseModel):
 # pass is needed anywhere in this view for that reason.
 
 
+class RawMatchupTeam(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    teamId: int
+    totalPoints: float = 0.0
+    # Both null outside the current matchup period -- ESPN only computes a live projection/win
+    # probability for the week that's actually in progress, not past (already final) or future
+    # (not yet reached) weeks. Confirmed against a real captured payload, not assumed.
+    totalProjectedPoints: float | None = None
+    winProbability: float | None = None
+
+
+class RawMatchup(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: int
+    matchupPeriodId: int
+    # "NONE" on every entry seen so far. Not hard-enumerated -- ESPN's other known values
+    # (winners/losers/consolation brackets) are handled generically as "is a playoff tier",
+    # not matched by name.
+    playoffTierType: str
+    # HOME/AWAY/UNDECIDED confirmed live; TIE is documented ESPN behavior but not seen this
+    # season. Kept as a plain string (not an enum) so an unanticipated value round-trips
+    # instead of raising.
+    winner: str
+    # Optional, not required: an odd team count (a future season's bye week) has ESPN omit one
+    # side entirely rather than send a placeholder. See services/schedule.py for the skip+warn
+    # handling -- the current fixture (12 teams, no byes) never exercises this path.
+    home: RawMatchupTeam | None = None
+    away: RawMatchupTeam | None = None
+
+
+class RawLeagueStatus(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    currentMatchupPeriod: int
+
+
+class RawLeagueScheduleResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: int
+    seasonId: int
+    status: RawLeagueStatus
+    schedule: list[RawMatchup] = []
+
+
+# --- mMatchupScore + mLiveScoring view (box scores) -----------------------------------
+# A fourth, separate response shape, same reasoning as mRoster's own separation above: with only
+# ?view=mMatchupScore requested (services/schedule.py's own fetch), ESPN's
+# rosterForCurrentScoringPeriod player objects carry only `stats` -- no id/name/position at all
+# (confirmed against both a real captured payload and a live probe). Adding `view=mLiveScoring`
+# alongside it (services/boxscore.py's own fetch) is what actually populates player identity.
+# These models are intentionally NOT shared with RawMatchupTeam/RawMatchup/
+# RawLeagueScheduleResponse above -- bolting rosterForCurrentScoringPeriod onto those forced
+# schedule.py's narrower fetch to satisfy this view's stricter shape and crashed matchup sync in
+# production (see docs/ESPN_INTEGRATION_PLAN.md's hotfix note).
+
+
 class RawBoxScoreStat(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -145,53 +204,26 @@ class RawRosterForCurrentScoringPeriod(BaseModel):
     entries: list[RawBoxScoreEntry] = []
 
 
-class RawMatchupTeam(BaseModel):
+class RawBoxScoreMatchupTeam(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    teamId: int
-    totalPoints: float = 0.0
-    # Both null outside the current matchup period -- ESPN only computes a live projection/win
-    # probability for the week that's actually in progress, not past (already final) or future
-    # (not yet reached) weeks. Confirmed against a real captured payload, not assumed.
-    totalProjectedPoints: float | None = None
-    winProbability: float | None = None
-    # Per-player live box score -- same current-matchup-period-only nullability as the two fields
-    # above. Requesting it requires adding `view=mLiveScoring` alongside `mMatchupScore` -- with
-    # mMatchupScore alone, ESPN's player objects here carry only `stats`, no id/name/position at
-    # all (confirmed against a real captured payload). See services/boxscore.py.
+    # Null both before a week has started and once mLiveScoring stops being requested for it --
+    # same current-matchup-period-only nullability as RawMatchupTeam's projection fields.
     rosterForCurrentScoringPeriod: RawRosterForCurrentScoringPeriod | None = None
 
 
-class RawMatchup(BaseModel):
+class RawBoxScoreMatchup(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     id: int
     matchupPeriodId: int
-    # "NONE" on every entry seen so far. Not hard-enumerated -- ESPN's other known values
-    # (winners/losers/consolation brackets) are handled generically as "is a playoff tier",
-    # not matched by name.
-    playoffTierType: str
-    # HOME/AWAY/UNDECIDED confirmed live; TIE is documented ESPN behavior but not seen this
-    # season. Kept as a plain string (not an enum) so an unanticipated value round-trips
-    # instead of raising.
-    winner: str
-    # Optional, not required: an odd team count (a future season's bye week) has ESPN omit one
-    # side entirely rather than send a placeholder. See services/schedule.py for the skip+warn
-    # handling -- the current fixture (12 teams, no byes) never exercises this path.
-    home: RawMatchupTeam | None = None
-    away: RawMatchupTeam | None = None
+    home: RawBoxScoreMatchupTeam | None = None
+    away: RawBoxScoreMatchupTeam | None = None
 
 
-class RawLeagueStatus(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
-    currentMatchupPeriod: int
-
-
-class RawLeagueScheduleResponse(BaseModel):
+class RawLeagueBoxScoresResponse(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     id: int
     seasonId: int
-    status: RawLeagueStatus
-    schedule: list[RawMatchup] = []
+    schedule: list[RawBoxScoreMatchup] = []
