@@ -3,6 +3,8 @@
 import { useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { PollResultWithTeam } from '@/lib/types/poll'
+import type { PollHistoryRow } from '@/lib/pollChart'
+import PollRankChart from './PollRankChart'
 
 interface Props {
   availableYears: number[]
@@ -11,6 +13,8 @@ interface Props {
   defaultWeek: number
   defaultResults: PollResultWithTeam[]
   localFixtures?: Record<string, PollResultWithTeam[]>
+  history: PollHistoryRow[]
+  avatarByOwner: Record<string, string>
 }
 
 const getTrendColor = (trend: string) => {
@@ -69,7 +73,10 @@ export default function CommissionerPollClient({
   defaultWeek,
   defaultResults,
   localFixtures,
+  history,
+  avatarByOwner,
 }: Props) {
+  const [view, setView] = useState<'table' | 'chart'>('table')
   const [selectedYear, setSelectedYear] = useState(defaultYear)
   const [selectedWeek, setSelectedWeek] = useState(defaultWeek)
   const [results, setResults] = useState(defaultResults)
@@ -135,7 +142,28 @@ export default function CommissionerPollClient({
         <h2 className="text-xl font-bold tracking-tight text-ink dark:text-gray-100">
           Cary Bengals Commissioner&apos;s Poll
         </h2>
-        <div className="flex gap-4">
+        <div className="flex flex-wrap items-center gap-4">
+          <div
+            role="group"
+            aria-label="View"
+            className="flex overflow-hidden rounded-control border border-gray-200 text-sm dark:border-gray-700"
+          >
+            {(['table', 'chart'] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                aria-pressed={view === v}
+                onClick={() => setView(v)}
+                className={`px-3 py-2 capitalize transition-colors ${
+                  view === v
+                    ? 'bg-accent-500 text-white'
+                    : 'text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800'
+                }`}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
           <div>
             <label htmlFor="year-select" className="text-gray-600 dark:text-gray-300 mr-2">
               Select Year:
@@ -185,7 +213,9 @@ export default function CommissionerPollClient({
         </div>
       </div>
 
-      {loading ? (
+      {view === 'chart' ? (
+        <PollRankChart history={history} year={selectedYear} avatarByOwner={avatarByOwner} />
+      ) : loading ? (
         <PollTableSkeleton />
       ) : results.length === 0 ? (
         <div className="text-center py-8">No poll data for this week</div>

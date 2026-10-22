@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
+import { allAuthors } from 'contentlayer/generated'
 import CommissionerPollClient from './CommissionerPollClient'
+import { normalizeOwnerKey, type PollHistoryRow } from '@/lib/pollChart'
 import type { PollResultWithTeam } from '@/lib/types/poll'
 
 // Keeps the public poll page usable while styling/testing locally before a Supabase project is
@@ -46,7 +48,29 @@ function localResults(year: number, week: number): PollResultWithTeam[] {
   }))
 }
 
+// Owners are matched to league members by first name, the same way /league-members pairs teams.
+const avatarByOwner = Object.fromEntries(
+  allAuthors.filter((a) => a.avatar).map((a) => [normalizeOwnerKey(a.name), a.avatar as string])
+)
+
+const localHistory: PollHistoryRow[] = Object.entries({
+  '2026-1': localResults(2026, 1),
+  '2026-2': localResults(2026, 2)
+    .reverse()
+    .map((r, i) => ({ ...r, final_rank: i + 1 })),
+}).flatMap(([key, results]) =>
+  results.map((r) => ({
+    season_year: Number(key.split('-')[0]),
+    week_number: Number(key.split('-')[1]),
+    final_rank: r.final_rank,
+    team_name: r.team.name,
+    owner_name: r.team.owner_name,
+  }))
+)
+
 const localFixtureData = {
+  avatarByOwner,
+  history: localHistory,
   availableYears: [2026, 2025],
   weeksByYear: { 2026: [2, 1], 2025: [3, 2, 1] },
   defaultYear: 2026,
@@ -141,8 +165,33 @@ export default async function CommissionerPoll() {
     )
   }
 
+  // One query for every finalized week so the rank-over-time chart needs no client fetching.
+  const { data: historyRows } = await supabase
+    .from('poll_results')
+    .select(
+      'final_rank, team:teams(name, owner_name), poll_week:poll_weeks!inner(season_year, week_number, is_locked)'
+    )
+    .eq('poll_week.is_locked', true)
+
+  const history: PollHistoryRow[] = (historyRows ?? []).flatMap((r) => {
+    const team = r.team as unknown as { name: string; owner_name: string } | null
+    const week = r.poll_week as unknown as { season_year: number; week_number: number } | null
+    if (!team || !week) return []
+    return [
+      {
+        season_year: week.season_year,
+        week_number: week.week_number,
+        final_rank: r.final_rank,
+        team_name: team.name,
+        owner_name: team.owner_name,
+      },
+    ]
+  })
+
   // Transform data for client component
   const pollData = {
+    avatarByOwner,
+    history,
     availableYears: [...new Set(weeks.map((w) => w.season_year))],
     weeksByYear: weeks.reduce(
       (acc, w) => {
