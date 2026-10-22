@@ -2,54 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import { focusRingClasses } from '@/lib/focusRing'
+import { compareBench, compareStarters, isOnIR } from '@/lib/espn/lineupSort'
+import IRBadge from '@/components/IRBadge'
 import type { RosterPlayer } from '@/lib/types/roster'
 
 interface Props {
   teamName: string
   players: RosterPlayer[]
-}
-
-// ESPN's standard starting lineup order, as shown in its own app -- not derivable from the
-// payload itself (its own entries array isn't in this order; see backend/app/services/roster.py).
-// Slot labels match app/services/roster.py's _LINEUP_SLOTS values exactly.
-const STARTER_SLOT_ORDER: Record<string, number> = {
-  QB: 0,
-  RB: 1,
-  'RB/WR': 2,
-  WR: 3,
-  'WR/TE': 4,
-  TE: 5,
-  FLEX: 6,
-  OP: 7,
-  'D/ST': 8,
-  K: 9,
-}
-
-// Bench has no ESPN-documented display order we could find -- the payload's own array order
-// doesn't match what ESPN's app shows either. Grouping by position (then IR last, since that's
-// a distinct status players are pulled out for) is the closest reasonable approximation.
-const BENCH_POSITION_ORDER: Record<string, number> = {
-  QB: 0,
-  RB: 1,
-  WR: 2,
-  TE: 3,
-  'D/ST': 4,
-  K: 5,
-}
-
-function compareStarters(a: RosterPlayer, b: RosterPlayer): number {
-  const slotDiff =
-    (STARTER_SLOT_ORDER[a.lineup_slot] ?? 99) - (STARTER_SLOT_ORDER[b.lineup_slot] ?? 99)
-  return slotDiff !== 0 ? slotDiff : a.sort_order - b.sort_order
-}
-
-function compareBench(a: RosterPlayer, b: RosterPlayer): number {
-  const aIr = a.lineup_slot === 'IR'
-  const bIr = b.lineup_slot === 'IR'
-  if (aIr !== bIr) return aIr ? 1 : -1
-  const posDiff =
-    (BENCH_POSITION_ORDER[a.position] ?? 99) - (BENCH_POSITION_ORDER[b.position] ?? 99)
-  return posDiff !== 0 ? posDiff : a.sort_order - b.sort_order
 }
 
 export default function RosterModal({ teamName, players }: Props) {
@@ -135,11 +94,7 @@ export default function RosterModal({ teamName, players }: Props) {
                       <span>{p.player_name}</span>
                       <span className="flex items-center gap-1.5 whitespace-nowrap">
                         {p.position} · {p.pro_team}
-                        {p.lineup_slot === 'IR' && (
-                          <span className="rounded-full border border-red-300 bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold text-red-600 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-400">
-                            IR
-                          </span>
-                        )}
+                        {isOnIR(p.lineup_slot) && <IRBadge />}
                       </span>
                     </li>
                   ))}

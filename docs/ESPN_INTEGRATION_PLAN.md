@@ -784,6 +784,82 @@ addressed before merge:
   season-mismatch risk above; the table is tiny enough that the extra query is not worth the
   complexity of avoiding).
 
+**Phase 8d (2026-10-22) — per-player box-score breakdown on `/schedule`.** The Phase 8c-data note
+above flagged `rosterForCurrentScoringPeriod` as real but deferred. Before writing any schema,
+hand-probed a live `mMatchupScore` response the same way Phase 8c/8c-data did: the committed
+fixture's player entries carry only a `stats` key (no id/name/position), and the live probe
+confirmed this isn't a redaction artifact -- ESPN genuinely omits player identity from
+`mMatchupScore` alone. Identity only appears once `view=mLiveScoring` is requested alongside it
+(not `mRoster`, which would 15x the response size for data already available elsewhere); with it,
+`playerPoolEntry.player` carries `id`/`fullName`/`defaultPositionId`/`proTeamId`, same richness as
+`mRoster`'s. `services/boxscore.py` fetches `views=["mMatchupScore", "mLiveScoring"]`
+independently of `services/schedule.py`'s own fetch, not an addition to it -- a dedicated
+`GET /v1/league/{season}/boxscores` endpoint, per the original note's own framing.
+
+Each player's `stats[]` carries at most two entries (`statSourceId` 0 = actual, 1 = projected);
+pre-game, only the projected entry exists and the team's own `totalPoints` is 0. Mapping selects
+`statSourceId == 0` only, defaulting to 0 when absent, so a player's displayed points stay
+consistent with the team-level score shown elsewhere on the row instead of surfacing a pre-game
+projection the team total doesn't yet reflect.
+
+Storage (`045_add_matchup_player_scores.sql`): `matchup_player_scores`, keyed by
+`(matchup_id, team_side)`, delete+reinsert per key (same reasoning as `team_rosters` -- no stable
+player identity is persisted, and the refresh-with-no-change guard `matchups` uses would buy
+nothing here since points move on nearly every live poll). `sync_matchup_player_scores` is gated
+`commissioner OR service_role` from the start, unlike `matchups`/`team_rosters` which needed `043`
+to add that branch later.
+
+**Free historical retention, not a separate feature.** ESPN nulls `rosterForCurrentScoringPeriod`
+for any non-current week, so a sync payload only ever contains the current week's matchups --
+once a week stops being current, its rows are never touched by a later sync. They simply persist
+as whatever the last live poll captured (Monday night, within one ~10-minute window of the actual
+game ending), a de facto final score with no "freeze this week" step needed. The hard limit this
+doesn't remove: weeks that completed _before_ this feature started polling can never be
+backfilled, since ESPN has no API path to retroactively serve a past week's box score.
+
+`lib/espn/boxScoreSync.ts`'s `syncMatchupPlayerScores` maps `espn_matchup_id -> matchups.id` (not
+`espn_team_id`, unlike every other sync here), so it must run _after_ `syncMatchups` resolves, not
+alongside it in `refreshAll.ts`'s `Promise.allSettled` batch -- otherwise it would race a read of
+`matchups` against the write populating it. Both `refreshAllEspnData()` and
+`app/api/espn/sync-matchups/route.ts` sequence it this way, independently try/caught so a
+box-score failure never masks a successful matchup sync; the existing `espn-matchup-sync.yml`
+cron cadence/secret are reused as-is, no new workflow.
+
+Frontend: `lib/espn/scheduleData.ts`'s `loadScheduleData` adds one more query (not a true 4th
+parallel one -- it needs this season's matchup ids from the query ahead of it), scoped to every
+synced week rather than just the current one, since player-score rows now accumulate over a
+season (~2,700 rows by its end, still bundled into the initial payload rather than fetched on
+expand, consistent with `ScheduleWeekBrowser`'s existing "ship the season, avoid a round trip"
+precedent). `components/MatchupList.tsx` gained its first `aria-expanded` disclosure pattern (a
+`<button>`, not `<details>`, to stay consistent with `RosterModal.tsx`'s button-driven approach)
+behind a new `allowExpand` prop -- only `ScheduleWeekBrowser` opts in; `/admin/poll`'s reuse of
+`MatchupList` stays a plain preview. `STARTER_SLOT_ORDER`/`BENCH_POSITION_ORDER`/`compareStarters`/
+`compareBench`/`isOnIR` were extracted out of `RosterModal.tsx` into `lib/espn/lineupSort.ts`, and
+the IR-pill markup into `components/IRBadge.tsx`, so `components/MatchupBoxScore.tsx` reuses the
+same ordering/markup instead of re-implementing it. `label_player()` in `espn_labels.py` does the
+equivalent on the backend, shared by `roster.py` and `boxscore.py`.
+
+**Known limitations, accepted rather than fixed in this pass** (found in `medium`-effort review):
+
+- **A bye-adjacent team's box score is silently dropped.** `schedule.py` skips an entire bye
+  matchup rather than writing a partial `matchups` row (`get_league_schedule`'s existing
+  home-or-away-missing check), so `boxScoreSync.ts` can never resolve that matchup's
+  `espn_matchup_id` even though the surviving team's own box-score data is present and valid --
+  it's warned-and-skipped the same way an unpaired team already is elsewhere in this sync.
+  Inherits an existing gap (matchups themselves have the identical bye-skip behavior) rather than
+  introducing a new one, and doesn't apply to this league (12 teams, even, confirmed no byes) --
+  worth a real fix only if/when the league size becomes odd (see the `season-rollover` skill).
+- **Two separate ESPN fetches per sync cycle, not deduped.** `syncMatchups` and
+  `syncMatchupPlayerScores` each call a different backend endpoint (`/schedule` vs `/boxscores`),
+  which independently re-fetch overlapping `mMatchupScore` data from ESPN -- unlike `/teams`,
+  which `refreshAll.ts` already dedupes because both its callers need the identical shape. Box
+  scores need a different shape (`+ mLiveScoring`) from a different backend endpoint, by design
+  (see the box-score note above on why this isn't folded into `/schedule`), so deduping would mean
+  either merging the two endpoints or adding response caching inside `EspnClient` -- more surface
+  area than this pass's actual pain justifies (one extra GET every ~10 minutes during a live
+  window, against a backend that's already warm by the time the second call fires). Revisit if
+  ESPN rate-limiting ever becomes a real constraint.
+
 ## 10. Anticipated friction
 
 - **Netlify build gate** — `yarn lint`/Prettier failures break CI (see commit `b7536f5`). New

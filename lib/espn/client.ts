@@ -121,3 +121,27 @@ export interface EspnLeagueScheduleResponse {
 export async function fetchEspnSchedule(season: number): Promise<EspnLeagueScheduleResponse> {
   return fetchFromEspnService<EspnLeagueScheduleResponse>(`/v1/league/${season}/schedule`)
 }
+
+// Same shape as EspnRosterPlayer plus points -- kept structurally linked rather than a second
+// hand-copied field list, so the two don't silently drift apart.
+export type EspnBoxScorePlayer = EspnRosterPlayer & {
+  points: number
+}
+
+export interface EspnMatchupBoxScore {
+  espn_matchup_id: number
+  team_side: 'home' | 'away'
+  players: EspnBoxScorePlayer[]
+}
+
+export interface EspnLeagueBoxScoresResponse {
+  season: number
+  league_id: string
+  fetched_at: string
+  matchups: EspnMatchupBoxScore[]
+  warnings: string[]
+}
+
+export async function fetchEspnBoxScores(season: number): Promise<EspnLeagueBoxScoresResponse> {
+  return fetchFromEspnService<EspnLeagueBoxScoresResponse>(`/v1/league/${season}/boxscores`)
+}
