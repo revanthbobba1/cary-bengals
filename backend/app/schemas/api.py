@@ -56,6 +56,12 @@ class MatchupOut(BaseModel):
     away_espn_team_id: int
     away_score: float
     winner: str
+    # Current-matchup-period-only fields; null for past (final) and future (not yet computed)
+    # weeks -- see RawMatchupTeam's comment in schemas/espn_raw.py.
+    home_projected_score: float | None = None
+    away_projected_score: float | None = None
+    home_win_probability: float | None = None
+    away_win_probability: float | None = None
 
 
 class LeagueScheduleResponse(BaseModel):

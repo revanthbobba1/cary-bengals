@@ -10,4 +10,10 @@ export interface Matchup {
   winner: string
   espn_matchup_id: number
   synced_at: string
+  // Populated only for the current matchup period -- null for a past (final) or future (not yet
+  // computed) week.
+  home_projected_score: number | null
+  away_projected_score: number | null
+  home_win_probability: number | null
+  away_win_probability: number | null
 }

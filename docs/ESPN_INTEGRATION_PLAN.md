@@ -704,6 +704,29 @@ needs to be set identically in both Netlify and GitHub Actions secrets; and
 latter two are this app's own deployed Route Handler URLs, which only exist once `develop` is
 released to `main`).
 
+**Phase 8c-data (2026-10-21) — projected score and live win probability.** Re-inspected a real
+`mMatchupScore` response field-by-field (not just the subset Phase 8c originally mapped) looking
+for anything else worth surfacing on `/scoreboard`/`/schedule`. Found `totalProjectedPoints` and
+`winProbability` per team side, both populated **only for the current matchup period** — null for
+a past (already-final) week and null for a future (not yet computed) week, confirmed against the
+real fixture rather than assumed. Also checked `cumulativeScore` (looked like it might be a team
+record) and found it's always `{wins:0, losses:0, ties:0}` outside the playoffs — unusable, not
+wired up. `rosterForCurrentScoringPeriod` (full per-player live box score) is real and rich but a
+much bigger feature — a dedicated box-score view, not an addition to the existing team-level
+summary — left for a future phase if wanted.
+
+Migration `044_matchup_projections_and_win_probability.sql` adds four nullable columns
+(`home_projected_score`, `away_projected_score`, `home_win_probability`,
+`away_win_probability`) and folds them into `sync_matchups`'s existing upsert, including the
+`ON CONFLICT ... WHERE` change-detection guard — a projection/win-probability-only change (or a
+transition to/from NULL as a week stops being current) now correctly reports `updated: true`.
+`components/MatchupList.tsx` renders them as a small subline under each team's win probability and
+under the score itself (`Proj H – A`), present only when ESPN provides them — no "is this the
+current week" check needed in the UI, since the nullability already encodes it.
+`supabase/tests/verify_044.sql` covers the new columns specifically: round-trip, a
+win-probability-only change being detected, and an omitted projection correctly nulling out the
+stored value (not left stale from the last week it was current).
+
 ## 10. Anticipated friction
 
 - **Netlify build gate** — `yarn lint`/Prettier failures break CI (see commit `b7536f5`). New

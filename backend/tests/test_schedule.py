@@ -62,10 +62,26 @@ async def test_get_league_schedule_against_real_fixture(raw_payload: dict) -> No
     assert first.away_espn_team_id == 2
     assert first.away_score == 121.68
     assert first.winner == "AWAY"
+    # Past week, already final -- ESPN sends no projection/win-probability for it.
+    assert first.home_projected_score is None
+    assert first.away_win_probability is None
 
     last = result.matchups[-1]
     assert last.winner == "UNDECIDED"
     assert last.home_score == 0.0
+
+
+async def test_get_league_schedule_exposes_current_week_projections(raw_payload: dict) -> None:
+    result = await get_league_schedule(_StubEspnClient(raw_payload), season=2026)
+
+    # Index 36 in the fixture is the current (7th) matchup period, the one week ESPN actually
+    # computes a live projection/win probability for.
+    current = result.matchups[36]
+    assert current.week == 7
+    assert current.home_projected_score == pytest.approx(117.78564281)
+    assert current.away_projected_score == pytest.approx(113.44203182)
+    assert current.home_win_probability == pytest.approx(0.52)
+    assert current.away_win_probability == pytest.approx(0.48)
 
 
 async def test_get_league_schedule_marks_playoffs(raw_payload: dict) -> None:
