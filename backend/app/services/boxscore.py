@@ -7,16 +7,15 @@ separate fetch from services/schedule.py's, not an addition to it -- see docs/
 ESPN_INTEGRATION_PLAN.md's box-score note for why this is its own dedicated view rather than a
 field bolted onto the existing team-level schedule summary.
 
-No sanitize.py pass for names here, unlike roster.py: real NFL player names are public figures'
-names, not user-entered PII, same reasoning as roster.py's own fullName handling -- sanitize_name
-is still used, but only for its control-character/length hygiene, not out of a PII concern.
+Per-player name/position/pro-team/lineup-slot resolution (`label_player`) is shared with
+roster.py via espn_labels.py, since both parse the identical ESPN entry shape (a lineup slot id
+plus a `playerPoolEntry.player`) -- only the points field and the warning message differ here.
 """
 
 from datetime import UTC, datetime
 
 from app.clients.espn import EspnClient
-from app.espn_labels import BENCH_SLOTS, LINEUP_SLOTS, POSITIONS, PRO_TEAMS
-from app.sanitize import sanitize_name
+from app.espn_labels import label_player
 from app.schemas.api import BoxScorePlayerOut, LeagueBoxScoresResponse, MatchupBoxScoreOut
 from app.schemas.espn_raw import RawBoxScoreEntry, RawLeagueScheduleResponse
 
@@ -50,8 +49,10 @@ async def get_league_box_scores(espn: EspnClient, season: int) -> LeagueBoxScore
             players: list[BoxScorePlayerOut] = []
             for entry in team.rosterForCurrentScoringPeriod.entries:
                 player = entry.playerPoolEntry.player
-                name = sanitize_name(player.fullName)
-                if not name:
+                labeled = label_player(
+                    player.fullName, player.defaultPositionId, player.proTeamId, entry.lineupSlotId
+                )
+                if labeled is None:
                     warnings.append(
                         f"Skipped a player in matchup {matchup.id} ({team_side}): no usable name"
                     )
@@ -59,11 +60,11 @@ async def get_league_box_scores(espn: EspnClient, season: int) -> LeagueBoxScore
 
                 players.append(
                     BoxScorePlayerOut(
-                        name=name,
-                        position=POSITIONS.get(player.defaultPositionId, "?"),
-                        pro_team=PRO_TEAMS.get(player.proTeamId, "FA"),
-                        lineup_slot=LINEUP_SLOTS.get(entry.lineupSlotId, "?"),
-                        is_starter=entry.lineupSlotId not in BENCH_SLOTS,
+                        name=labeled.name,
+                        position=labeled.position,
+                        pro_team=labeled.pro_team,
+                        lineup_slot=labeled.lineup_slot,
+                        is_starter=labeled.is_starter,
                         points=_player_points(entry),
                     )
                 )

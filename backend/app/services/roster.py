@@ -15,8 +15,7 @@ same codes.
 from datetime import UTC, datetime
 
 from app.clients.espn import EspnClient
-from app.espn_labels import BENCH_SLOTS, LINEUP_SLOTS, POSITIONS, PRO_TEAMS
-from app.sanitize import sanitize_name
+from app.espn_labels import label_player
 from app.schemas.api import LeagueRostersResponse, RosterPlayerOut, TeamRosterOut
 from app.schemas.espn_raw import RawLeagueRostersResponse
 
@@ -33,18 +32,20 @@ async def get_league_rosters(espn: EspnClient, season: int) -> LeagueRostersResp
 
         for entry in team.roster.entries:
             player = entry.playerPoolEntry.player
-            name = sanitize_name(player.fullName)
-            if not name:
+            labeled = label_player(
+                player.fullName, player.defaultPositionId, player.proTeamId, entry.lineupSlotId
+            )
+            if labeled is None:
                 warnings.append(f"Skipped a player on ESPN team {team.id}: no usable name")
                 continue
 
             players.append(
                 RosterPlayerOut(
-                    name=name,
-                    position=POSITIONS.get(player.defaultPositionId, "?"),
-                    pro_team=PRO_TEAMS.get(player.proTeamId, "FA"),
-                    lineup_slot=LINEUP_SLOTS.get(entry.lineupSlotId, "?"),
-                    is_starter=entry.lineupSlotId not in BENCH_SLOTS,
+                    name=labeled.name,
+                    position=labeled.position,
+                    pro_team=labeled.pro_team,
+                    lineup_slot=labeled.lineup_slot,
+                    is_starter=labeled.is_starter,
                 )
             )
 

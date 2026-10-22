@@ -1,4 +1,5 @@
-import { compareBench, compareStarters } from '@/lib/espn/lineupSort'
+import { compareBench, compareStarters, isOnIR } from '@/lib/espn/lineupSort'
+import IRBadge from '@/components/IRBadge'
 import type { MatchupPlayerScore } from '@/lib/types/matchup'
 
 interface Props {
@@ -44,11 +45,7 @@ function PlayerList({ players }: { players: MatchupPlayerScore[] }) {
                 <span className="truncate">{p.player_name}</span>
                 <span className="flex shrink-0 items-center gap-2 whitespace-nowrap">
                   {p.position}
-                  {p.lineup_slot === 'IR' && (
-                    <span className="rounded-full border border-red-300 bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold text-red-600 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-400">
-                      IR
-                    </span>
-                  )}
+                  {isOnIR(p.lineup_slot) && <IRBadge />}
                   <span className="font-mono tabular-nums">{p.points.toFixed(1)}</span>
                 </span>
               </li>

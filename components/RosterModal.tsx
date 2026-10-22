@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { focusRingClasses } from '@/lib/focusRing'
-import { compareBench, compareStarters } from '@/lib/espn/lineupSort'
+import { compareBench, compareStarters, isOnIR } from '@/lib/espn/lineupSort'
+import IRBadge from '@/components/IRBadge'
 import type { RosterPlayer } from '@/lib/types/roster'
 
 interface Props {
@@ -93,11 +94,7 @@ export default function RosterModal({ teamName, players }: Props) {
                       <span>{p.player_name}</span>
                       <span className="flex items-center gap-1.5 whitespace-nowrap">
                         {p.position} · {p.pro_team}
-                        {p.lineup_slot === 'IR' && (
-                          <span className="rounded-full border border-red-300 bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold text-red-600 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-400">
-                            IR
-                          </span>
-                        )}
+                        {isOnIR(p.lineup_slot) && <IRBadge />}
                       </span>
                     </li>
                   ))}

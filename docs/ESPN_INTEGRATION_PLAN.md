@@ -834,8 +834,31 @@ precedent). `components/MatchupList.tsx` gained its first `aria-expanded` disclo
 `<button>`, not `<details>`, to stay consistent with `RosterModal.tsx`'s button-driven approach)
 behind a new `allowExpand` prop -- only `ScheduleWeekBrowser` opts in; `/admin/poll`'s reuse of
 `MatchupList` stays a plain preview. `STARTER_SLOT_ORDER`/`BENCH_POSITION_ORDER`/`compareStarters`/
-`compareBench` were extracted out of `RosterModal.tsx` into `lib/espn/lineupSort.ts` so the new
-`components/MatchupBoxScore.tsx` reuses the same ordering instead of re-implementing it.
+`compareBench`/`isOnIR` were extracted out of `RosterModal.tsx` into `lib/espn/lineupSort.ts`, and
+the IR-pill markup into `components/IRBadge.tsx`, so `components/MatchupBoxScore.tsx` reuses the
+same ordering/markup instead of re-implementing it. `label_player()` in `espn_labels.py` does the
+equivalent on the backend, shared by `roster.py` and `boxscore.py`.
+
+**Known limitations, accepted rather than fixed in this pass** (found in `medium`-effort review):
+
+- **A bye-adjacent team's box score is silently dropped.** `schedule.py` skips an entire bye
+  matchup rather than writing a partial `matchups` row (`get_league_schedule`'s existing
+  home-or-away-missing check), so `boxScoreSync.ts` can never resolve that matchup's
+  `espn_matchup_id` even though the surviving team's own box-score data is present and valid --
+  it's warned-and-skipped the same way an unpaired team already is elsewhere in this sync.
+  Inherits an existing gap (matchups themselves have the identical bye-skip behavior) rather than
+  introducing a new one, and doesn't apply to this league (12 teams, even, confirmed no byes) --
+  worth a real fix only if/when the league size becomes odd (see the `season-rollover` skill).
+- **Two separate ESPN fetches per sync cycle, not deduped.** `syncMatchups` and
+  `syncMatchupPlayerScores` each call a different backend endpoint (`/schedule` vs `/boxscores`),
+  which independently re-fetch overlapping `mMatchupScore` data from ESPN -- unlike `/teams`,
+  which `refreshAll.ts` already dedupes because both its callers need the identical shape. Box
+  scores need a different shape (`+ mLiveScoring`) from a different backend endpoint, by design
+  (see the box-score note above on why this isn't folded into `/schedule`), so deduping would mean
+  either merging the two endpoints or adding response caching inside `EspnClient` -- more surface
+  area than this pass's actual pain justifies (one extra GET every ~10 minutes during a live
+  window, against a backend that's already warm by the time the second call fires). Revisit if
+  ESPN rate-limiting ever becomes a real constraint.
 
 ## 10. Anticipated friction
 

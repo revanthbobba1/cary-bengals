@@ -1,12 +1,10 @@
-export interface MatchupPlayerScore {
-  id: string
-  player_name: string
-  position: string
-  pro_team: string
-  lineup_slot: string
-  is_starter: boolean
+import type { RosterPlayer } from '@/lib/types/roster'
+
+// Same per-player shape as RosterPlayer, minus the team-scoped fields (this is matchup-scoped
+// instead), plus points -- kept structurally linked via Omit/intersection rather than a second
+// hand-copied field list, so the two don't silently drift apart.
+export type MatchupPlayerScore = Omit<RosterPlayer, 'team_id' | 'synced_at'> & {
   points: number
-  sort_order: number
 }
 
 export interface Matchup {

@@ -43,9 +43,15 @@ export function compareStarters<T extends SortableLineupEntry>(a: T, b: T): numb
   return slotDiff !== 0 ? slotDiff : a.sort_order - b.sort_order
 }
 
+// The one place IR-ness is defined -- compareBench and both components rendering an IR badge
+// (components/IRBadge.tsx's two call sites) all check this instead of inlining 'IR' separately.
+export function isOnIR(lineupSlot: string): boolean {
+  return lineupSlot === 'IR'
+}
+
 export function compareBench<T extends SortableLineupEntry>(a: T, b: T): number {
-  const aIr = a.lineup_slot === 'IR'
-  const bIr = b.lineup_slot === 'IR'
+  const aIr = isOnIR(a.lineup_slot)
+  const bIr = isOnIR(b.lineup_slot)
   if (aIr !== bIr) return aIr ? 1 : -1
   const posDiff =
     (BENCH_POSITION_ORDER[a.position] ?? 99) - (BENCH_POSITION_ORDER[b.position] ?? 99)

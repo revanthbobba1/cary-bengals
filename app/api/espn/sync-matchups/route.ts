@@ -36,6 +36,7 @@ export async function POST(request: Request) {
       const message = err instanceof Error ? err.message : 'Box score sync failed.'
       return NextResponse.json({
         ...matchupResult,
+        boxScoreSideCount: 0,
         warnings: [...matchupResult.warnings, `Box score refresh failed: ${message}`],
       })
     }

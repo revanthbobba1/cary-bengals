@@ -122,12 +122,9 @@ export async function fetchEspnSchedule(season: number): Promise<EspnLeagueSched
   return fetchFromEspnService<EspnLeagueScheduleResponse>(`/v1/league/${season}/schedule`)
 }
 
-export interface EspnBoxScorePlayer {
-  name: string
-  position: string
-  pro_team: string
-  lineup_slot: string
-  is_starter: boolean
+// Same shape as EspnRosterPlayer plus points -- kept structurally linked rather than a second
+// hand-copied field list, so the two don't silently drift apart.
+export type EspnBoxScorePlayer = EspnRosterPlayer & {
   points: number
 }
 

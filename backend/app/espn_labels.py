@@ -3,6 +3,10 @@ service that maps a player entry (roster sync, box scores, ...). See roster.py's
 docstring / docs/ESPN_INTEGRATION_PLAN.md §7 for how these were cross-checked against a real
 captured league payload."""
 
+from dataclasses import dataclass
+
+from app.sanitize import sanitize_name
+
 POSITIONS = {1: "QB", 2: "RB", 3: "WR", 4: "TE", 5: "K", 16: "D/ST"}
 
 LINEUP_SLOTS = {
@@ -55,3 +59,33 @@ PRO_TEAMS = {
     33: "BAL",
     34: "HOU",
 }
+
+
+@dataclass
+class LabeledPlayer:
+    name: str
+    position: str
+    pro_team: str
+    lineup_slot: str
+    is_starter: bool
+
+
+def label_player(
+    full_name: str, default_position_id: int, pro_team_id: int, lineup_slot_id: int
+) -> LabeledPlayer | None:
+    """Sanitizes a player's name and resolves ESPN's numeric codes to display labels -- shared by
+    roster.py and boxscore.py, which both parse this same entry shape (a lineup slot id plus a
+    playerPoolEntry.player). Returns None when the name is unusable, same as sanitize_name's own
+    empty-string signal, so each caller decides its own warning message (they differ: "on ESPN
+    team {id}" vs "in matchup {id} ({side})")."""
+    name = sanitize_name(full_name)
+    if not name:
+        return None
+
+    return LabeledPlayer(
+        name=name,
+        position=POSITIONS.get(default_position_id, "?"),
+        pro_team=PRO_TEAMS.get(pro_team_id, "FA"),
+        lineup_slot=LINEUP_SLOTS.get(lineup_slot_id, "?"),
+        is_starter=lineup_slot_id not in BENCH_SLOTS,
+    )
