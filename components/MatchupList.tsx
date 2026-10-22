@@ -2,11 +2,14 @@ import type { Matchup } from '@/lib/types/matchup'
 
 interface Props {
   matchups: Matchup[]
-  teamNameById: Map<string, string>
+  // A plain object, not a Map -- /schedule's week browser is a Client Component, and a Map
+  // doesn't survive serialization across the Server-to-Client boundary.
+  teamNameById: Record<string, string>
 }
 
-// Shared between /scoreboard (current week only) and /schedule (every week) -- same row shape,
-// rendered identically in both places; the parent page decides filtering/grouping.
+// Rendered by /schedule (one week at a time, via ScheduleWeekBrowser) and /admin/poll's "last
+// week's matchups" preview -- same row shape in both places; the parent decides which matchups to
+// pass in.
 export default function MatchupList({ matchups, teamNameById }: Props) {
   if (matchups.length === 0) {
     return <p className="text-sm text-gray-600 dark:text-gray-400">No matchups yet.</p>
@@ -15,8 +18,8 @@ export default function MatchupList({ matchups, teamNameById }: Props) {
   return (
     <ul className="space-y-2">
       {matchups.map((matchup) => {
-        const homeName = teamNameById.get(matchup.home_team_id) ?? 'Unknown team'
-        const awayName = teamNameById.get(matchup.away_team_id) ?? 'Unknown team'
+        const homeName = teamNameById[matchup.home_team_id] ?? 'Unknown team'
+        const awayName = teamNameById[matchup.away_team_id] ?? 'Unknown team'
         const homeWon = matchup.winner === 'HOME'
         const awayWon = matchup.winner === 'AWAY'
 

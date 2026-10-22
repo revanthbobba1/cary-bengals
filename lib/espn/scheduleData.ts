@@ -13,7 +13,10 @@ import type { Matchup } from '@/lib/types/matchup'
 
 export interface ScheduleData {
   currentWeek: number | null
-  teamNameById: Map<string, string>
+  // A plain object, not a Map: /schedule passes this across a Server-to-Client Component
+  // boundary (for the week selector's instant client-side switching), and a Map doesn't survive
+  // that serialization.
+  teamNameById: Record<string, string>
   matchups: Matchup[]
 }
 
@@ -22,7 +25,7 @@ export async function loadScheduleData(seasonYear: number): Promise<ScheduleData
     !process.env.NEXT_PUBLIC_SUPABASE_URL ||
     process.env.NEXT_PUBLIC_SUPABASE_URL.includes('your-project-ref')
   ) {
-    return { currentWeek: null, teamNameById: new Map(), matchups: [] }
+    return { currentWeek: null, teamNameById: {}, matchups: [] }
   }
 
   const supabase = createPublicClient()
@@ -52,9 +55,9 @@ export async function loadScheduleData(seasonYear: number): Promise<ScheduleData
     console.error('Failed to load matchups:', matchupsResult.error)
   }
 
-  const teamNameById = new Map<string, string>()
+  const teamNameById: Record<string, string> = {}
   for (const team of teamsResult.data ?? []) {
-    teamNameById.set(team.id, team.name)
+    teamNameById[team.id] = team.name
   }
 
   return {

@@ -1,9 +1,7 @@
-import Link from 'next/link'
 import { genPageMetadata } from 'app/seo'
 import siteMetadata from '@/data/siteMetadata'
 import { loadScheduleData } from '@/lib/espn/scheduleData'
-import MatchupList from '@/components/MatchupList'
-import type { Matchup } from '@/lib/types/matchup'
+import ScheduleWeekBrowser from '@/components/ScheduleWeekBrowser'
 
 export const metadata = genPageMetadata({ title: 'Schedule' })
 
@@ -17,25 +15,19 @@ export default async function Page({
   searchParams,
 }: {
   // A repeated param (`?week=3&week=5`) arrives as an array, so the type can't be just `string`.
-  // Same "anything that isn't a single value falls through to the default" handling as
-  // /articles' `season` param.
+  // Similar in shape to /articles' `season` param, but the two pages' default-resolution logic
+  // isn't identical -- /articles always falls back to the newest season present; /schedule
+  // prefers the current week specifically, only falling further back if that week turns out to
+  // have no synced matchups (see ScheduleWeekBrowser's own comment).
   searchParams: { week?: string | string[] }
 }) {
   const { currentWeek, teamNameById, matchups } = await loadScheduleData(siteMetadata.currentSeason)
 
-  const matchupsByWeek = new Map<number, Matchup[]>()
-  for (const matchup of matchups) {
-    const weekMatchups = matchupsByWeek.get(matchup.week_number) ?? []
-    weekMatchups.push(matchup)
-    matchupsByWeek.set(matchup.week_number, weekMatchups)
-  }
-  const weeks = Array.from(matchupsByWeek.keys()).sort((a, b) => a - b)
-
-  const requestedWeek =
-    typeof searchParams.week === 'string' ? Number(searchParams.week) : Number.NaN
-  const selectedWeek = weeks.includes(requestedWeek)
-    ? requestedWeek
-    : (currentWeek ?? weeks[weeks.length - 1] ?? null)
+  // An explicit empty value (`?week=`) must not silently become week 0 -- `Number('')` is `0`,
+  // not `NaN`, so it would otherwise pass straight through as if week 0 had been requested.
+  const rawWeek = typeof searchParams.week === 'string' ? searchParams.week : ''
+  const parsedWeek = rawWeek !== '' ? Number(rawWeek) : Number.NaN
+  const initialWeek = Number.isFinite(parsedWeek) ? parsedWeek : null
 
   return (
     <div className="container py-12">
@@ -44,47 +36,12 @@ export default async function Page({
           Schedule
         </h1>
       </div>
-      {weeks.length === 0 || selectedWeek === null ? (
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          No matchups synced yet — a commissioner needs to run an ESPN refresh first.
-        </p>
-      ) : (
-        <>
-          <nav className="mb-6 flex flex-wrap gap-2" aria-label="Select week">
-            {weeks.map((week) => {
-              const isSelected = week === selectedWeek
-              const isCurrent = week === currentWeek
-              return (
-                <Link
-                  key={week}
-                  href={isCurrent ? '/schedule' : `/schedule?week=${week}`}
-                  className={`rounded-full px-3 py-1 text-sm font-medium ${
-                    isSelected
-                      ? 'bg-primary-500 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
-                  } ${isCurrent && !isSelected ? 'ring-2 ring-inset ring-primary-500' : ''}`}
-                >
-                  {week}
-                </Link>
-              )
-            })}
-          </nav>
-          <section>
-            <h2 className="mb-3 flex items-center gap-2 text-xl font-semibold text-ink dark:text-gray-100">
-              Week {selectedWeek}
-              {selectedWeek === currentWeek && (
-                <span className="rounded-full bg-primary-500 px-2 py-0.5 text-[10px] font-semibold text-white">
-                  Current
-                </span>
-              )}
-            </h2>
-            <MatchupList
-              matchups={matchupsByWeek.get(selectedWeek) ?? []}
-              teamNameById={teamNameById}
-            />
-          </section>
-        </>
-      )}
+      <ScheduleWeekBrowser
+        matchups={matchups}
+        teamNameById={teamNameById}
+        currentWeek={currentWeek}
+        initialWeek={initialWeek}
+      />
     </div>
   )
 }

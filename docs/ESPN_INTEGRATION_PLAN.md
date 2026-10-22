@@ -733,11 +733,11 @@ week only vs. every week) -- confirmed while reviewing the feature that there wa
 `/scoreboard` that wasn't already a strict subset of `/schedule`. Dropped `/scoreboard` entirely;
 `/schedule` now pins the current week by default (`/schedule`, no query param) with a week-selector
 pill row (`/schedule?week=N`) to browse any other week, the current week still visually marked
-(a ring) even while browsing elsewhere. `searchParams` handling mirrors `/articles`' `season` param
-exactly (repeated-param-as-array type, invalid/missing value falls through to a sane default).
-`lib/espn/scheduleData.ts`'s comment, the two cron Route Handlers' `revalidatePath()` comments,
-`docs/NETLIFY_DEPLOYMENT.md`, and `EspnDataRefresh.tsx`'s toast copy were all updated to stop
-naming a page that no longer exists.
+(a ring) even while browsing elsewhere. `searchParams` handling is similar in shape to `/articles`'
+`season` param (repeated-param-as-array type, invalid/missing value falls through to a default) but
+not identical -- see the 8c-ui review fixes note below. `lib/espn/scheduleData.ts`'s comment, the
+two cron Route Handlers' `revalidatePath()` comments, `docs/NETLIFY_DEPLOYMENT.md`, and
+`EspnDataRefresh.tsx`'s toast copy were all updated to stop naming a page that no longer exists.
 
 Also added a small "Last Week's Matchups" preview to `/admin/poll` (reusing `loadScheduleData` and
 `MatchupList` as a fourth parallel branch in the page's existing `Promise.all`, no new query shape)
@@ -746,6 +746,43 @@ to give voters real-game context while ranking. Deliberately sourced from
 concepts are independently-managed and only coincidentally aligned most of the time (see Decision 3
 above); conflating them here would have silently shown the wrong week's matchups the first time
 they drift. Hidden entirely (not an empty state) before any matchup has synced or in week 1.
+
+**Phase 8c-ui review fixes (2026-10-22):** A `medium`-effort review caught several real issues,
+addressed before merge:
+
+- **`/admin/poll`'s `Promise.all` could be taken down by an ESPN-data hiccup.** A transient
+  failure inside `loadScheduleData` (a network-level exception, not a normal `{data, error}`
+  response) would have rejected the whole outer `Promise.all`, crashing the entire
+  ballot-submission page over a failure in what's just a nice-to-have preview. Fixed with
+  `.catch()` on that one branch, falling back to an empty `ScheduleData` shape so a hiccup there
+  only hides the preview block, never ballot submission.
+- **`/schedule`'s default view could land on an empty week.** Confirmed against
+  `lib/espn/matchupSync.ts`'s own behavior: `espn_schedule_state.current_week` is deliberately
+  persisted even when that week's matchup payload came back empty (e.g. every matchup that week
+  referenced an unpaired team), so defaulting to it unconditionally could show "No matchups yet"
+  while an earlier week's real data sat one click away. Fixed by only defaulting to the current
+  week when it actually has synced matchups, otherwise falling back to the latest week that does.
+- **Season-source mismatch.** `/admin/poll`'s new `loadScheduleData` call originally used
+  `openWeek.season_year`; switched to `siteMetadata.currentSeason` to match every other ESPN read
+  path (`/schedule`, both cron routes) -- `openWeek.season_year` is a separate, commissioner-managed
+  value that could briefly diverge from the ESPN pipeline's season right at a rollover.
+- **`Number(searchParams.week)` on an explicit empty value (`?week=`) produced `0`, not `NaN`** --
+  fixed with an explicit empty-string guard before parsing.
+- **Dead-click UX on the week selector.** Converted `/schedule`'s pill row from server-rendered
+  `<Link>` navigation to a new client component, `components/ScheduleWeekBrowser.tsx`, using the
+  same `useTransition`/`router.replace` pattern `components/articles/ArticlesList.tsx` already
+  established for its season pills -- every week's matchups are already on the client (a season is
+  at most ~84 rows), so a click renders instantly instead of waiting out a `force-dynamic` server
+  round trip. This also required switching `ScheduleData.teamNameById`/`MatchupList`'s prop from a
+  `Map` to a plain `Record` (a `Map` doesn't survive serialization across the Server-to-Client
+  Component boundary).
+- Stale comment in `MatchupList.tsx` still naming `/scoreboard` (deleted earlier in this same PR) --
+  fixed.
+- Deliberately left as-is: no redirect for the deleted `/scoreboard` route (it was never deployed
+  to production, so there are no real bookmarks or indexed links to preserve) and the duplicate
+  `teams`/`loadScheduleData` queries on `/admin/poll` (merging them would reintroduce the
+  season-mismatch risk above; the table is tiny enough that the extra query is not worth the
+  complexity of avoiding).
 
 ## 10. Anticipated friction
 
