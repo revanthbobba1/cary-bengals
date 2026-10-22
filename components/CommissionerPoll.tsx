@@ -14,38 +14,68 @@ function useLocalPollFixtures() {
   return process.env.NODE_ENV !== 'production' && isPlaceholder
 }
 
+// 12 teams, like the real league, so the poll chart's layout can be checked at realistic size.
+// Owners reuse the league members' first names so their avatars resolve.
 const localTeams = [
-  ['local-team-1', 'Bark For Daddy!🫵🐶', 'Kirk'],
-  ['local-team-2', 'Code Monkey', 'Ankith'],
-  ['local-team-3', 'Kamara vs the World', 'Amogh'],
+  ['Bark For Daddy!🫵🐶', 'Kirk'],
+  ['Code Monkey', 'Ankith'],
+  ['Kamara vs the World', 'Amogh'],
+  ['Touchdown Tacos', 'Alvin'],
+  ['Gridiron Goblins', 'Carter'],
+  ['Hail Mary Hustlers', 'Joseph'],
+  ['Blitz Krieg', 'Keshav'],
+  ['Pocket Aces', 'Revanth'],
+  ['Fourth & Long', 'Rishi'],
+  ['The Waiver Wire', 'Sam'],
+  ['Red Zone Rascals', 'Sparsh'],
+  ['Punt Intended', 'TJ'],
 ] as const
 
+const LOCAL_WEEKS: Record<number, number> = { 2026: 6, 2025: 3 }
+// Odd multipliers coprime with 12, so each week is a different permutation of the 12 teams.
+const RANK_MULTIPLIERS = [1, 5, 7, 11, 5, 7]
+
+// Deterministic ranks for the fixture; weeks 4 and 6 have two ties (rank 4 and rank 8) to exercise the
+// chart's tied-rank layout.
+function localRank(index: number, week: number) {
+  const rank = ((index * RANK_MULTIPLIERS[(week - 1) % RANK_MULTIPLIERS.length] + week) % 12) + 1
+  if ((week === 4 || week === 6) && rank === 5) return 4
+  if ((week === 4 || week === 6) && rank === 9) return 8
+  return rank
+}
+
 function localResults(year: number, week: number): PollResultWithTeam[] {
-  return localTeams.map(([id, name, owner_name], index) => ({
-    id: `local-result-${year}-${week}-${index + 1}`,
-    poll_week_id: `local-week-${year}-${week}`,
-    team_id: id,
-    final_rank: index + 1,
-    avg_rank_score: index + 1.5,
-    team_record: `${Math.max(0, 3 - index)}-${index}`,
-    trend: index === 0 ? '↑1' : '-',
-    num_ballots: 12,
-    created_at: `${year}-09-01T00:00:00.000Z`,
-    team: {
-      id,
-      name,
-      owner_name,
-      season_year: year,
-      espn_team_id: null,
-      espn_owner_id: null,
-      espn_synced_at: null,
-      wins: Math.max(0, 3 - index),
-      losses: index,
-      ties: 0,
-      created_at: `${year}-09-01T00:00:00.000Z`,
-      updated_at: `${year}-09-01T00:00:00.000Z`,
-    },
-  }))
+  return localTeams
+    .map(([name, owner_name], index) => {
+      const id = `local-team-${index + 1}`
+      const rank = localRank(index, week)
+      return {
+        id: `local-result-${year}-${week}-${index + 1}`,
+        poll_week_id: `local-week-${year}-${week}`,
+        team_id: id,
+        final_rank: rank,
+        avg_rank_score: rank + 0.5,
+        team_record: `${Math.max(0, week - (rank % 4))}-${rank % 4}`,
+        trend: week === 1 ? '-' : '↑1',
+        num_ballots: 12,
+        created_at: `${year}-09-01T00:00:00.000Z`,
+        team: {
+          id,
+          name,
+          owner_name,
+          season_year: year,
+          espn_team_id: null,
+          espn_owner_id: null,
+          espn_synced_at: null,
+          wins: Math.max(0, week - (rank % 4)),
+          losses: rank % 4,
+          ties: 0,
+          created_at: `${year}-09-01T00:00:00.000Z`,
+          updated_at: `${year}-09-01T00:00:00.000Z`,
+        },
+      }
+    })
+    .sort((a, b) => a.final_rank - b.final_rank)
 }
 
 // Owners are matched to league members by first name, the same way /league-members pairs teams.
@@ -53,36 +83,35 @@ const avatarByOwner = Object.fromEntries(
   allAuthors.filter((a) => a.avatar).map((a) => [normalizeOwnerKey(a.name), a.avatar as string])
 )
 
-const localHistory: PollHistoryRow[] = Object.entries({
-  '2026-1': localResults(2026, 1),
-  '2026-2': localResults(2026, 2)
-    .reverse()
-    .map((r, i) => ({ ...r, final_rank: i + 1 })),
-}).flatMap(([key, results]) =>
-  results.map((r) => ({
-    season_year: Number(key.split('-')[0]),
-    week_number: Number(key.split('-')[1]),
-    final_rank: r.final_rank,
-    team_name: r.team.name,
-    owner_name: r.team.owner_name,
-  }))
+const localYears = Object.keys(LOCAL_WEEKS)
+  .map(Number)
+  .sort((a, b) => b - a)
+const localWeekList = (year: number) =>
+  Array.from({ length: LOCAL_WEEKS[year] }, (_, i) => LOCAL_WEEKS[year] - i)
+
+const localHistory: PollHistoryRow[] = localYears.flatMap((year) =>
+  localWeekList(year).flatMap((week) =>
+    localResults(year, week).map((r) => ({
+      season_year: year,
+      week_number: week,
+      final_rank: r.final_rank,
+      team_name: r.team.name,
+      owner_name: r.team.owner_name,
+    }))
+  )
 )
 
 const localFixtureData = {
   avatarByOwner,
   history: localHistory,
-  availableYears: [2026, 2025],
-  weeksByYear: { 2026: [2, 1], 2025: [3, 2, 1] },
-  defaultYear: 2026,
-  defaultWeek: 2,
-  defaultResults: localResults(2026, 2),
-  localFixtures: {
-    '2026-2': localResults(2026, 2),
-    '2026-1': localResults(2026, 1),
-    '2025-3': localResults(2025, 3),
-    '2025-2': localResults(2025, 2),
-    '2025-1': localResults(2025, 1),
-  },
+  availableYears: localYears,
+  weeksByYear: Object.fromEntries(localYears.map((y) => [y, localWeekList(y)])),
+  defaultYear: localYears[0],
+  defaultWeek: LOCAL_WEEKS[localYears[0]],
+  defaultResults: localResults(localYears[0], LOCAL_WEEKS[localYears[0]]),
+  localFixtures: Object.fromEntries(
+    localYears.flatMap((y) => localWeekList(y).map((w) => [`${y}-${w}`, localResults(y, w)]))
+  ),
 }
 
 export default async function CommissionerPoll() {
