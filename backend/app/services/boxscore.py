@@ -2,10 +2,13 @@
 
 `mLiveScoring` is required alongside `mMatchupScore` -- with `mMatchupScore` alone, ESPN's
 `rosterForCurrentScoringPeriod` player objects carry only `stats`, no id/name/position (confirmed
-against a real captured payload; see RawMatchupTeam's comment in schemas/espn_raw.py). This is a
-separate fetch from services/schedule.py's, not an addition to it -- see docs/
-ESPN_INTEGRATION_PLAN.md's box-score note for why this is its own dedicated view rather than a
-field bolted onto the existing team-level schedule summary.
+against both a real captured payload and a live probe). This is a separate fetch from
+services/schedule.py's, not an addition to it, with its own fully separate raw schema
+(`RawLeagueBoxScoresResponse` and friends in schemas/espn_raw.py) rather than sharing
+schedule.py's `RawMatchupTeam`/`RawMatchup`/`RawLeagueScheduleResponse` -- those are parsed from
+schedule.py's narrower mMatchupScore-only fetch, which never has player identity, so sharing a
+model with required identity fields there crashed matchup sync in production (see
+docs/ESPN_INTEGRATION_PLAN.md's hotfix note).
 
 Per-player name/position/pro-team/lineup-slot resolution (`label_player`) is shared with
 roster.py via espn_labels.py, since both parse the identical ESPN entry shape (a lineup slot id
@@ -17,7 +20,7 @@ from datetime import UTC, datetime
 from app.clients.espn import EspnClient
 from app.espn_labels import label_player
 from app.schemas.api import BoxScorePlayerOut, LeagueBoxScoresResponse, MatchupBoxScoreOut
-from app.schemas.espn_raw import RawBoxScoreEntry, RawLeagueScheduleResponse
+from app.schemas.espn_raw import RawBoxScoreEntry, RawLeagueBoxScoresResponse
 
 # ESPN's "actual, live" stats line, as opposed to statSourceId 1 ("projected") -- confirmed
 # against a real captured payload: before a game starts, only a statSourceId=1 entry exists and
@@ -36,7 +39,7 @@ def _player_points(entry: RawBoxScoreEntry) -> float:
 
 async def get_league_box_scores(espn: EspnClient, season: int) -> LeagueBoxScoresResponse:
     raw = await espn.fetch_league(season, views=["mMatchupScore", "mLiveScoring"])
-    parsed = RawLeagueScheduleResponse.model_validate(raw)
+    parsed = RawLeagueBoxScoresResponse.model_validate(raw)
 
     matchups: list[MatchupBoxScoreOut] = []
     warnings: list[str] = []
