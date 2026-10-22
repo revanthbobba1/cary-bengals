@@ -1,5 +1,9 @@
+'use client'
+
+import { useMemo } from 'react'
 import { compareBench, compareStarters, isOnIR } from '@/lib/espn/lineupSort'
 import IRBadge from '@/components/IRBadge'
+import { useChangeFlash } from '@/lib/hooks/useChangeFlash'
 import type { MatchupPlayerScore } from '@/lib/types/matchup'
 
 interface Props {
@@ -12,6 +16,21 @@ interface Props {
 function PlayerList({ players }: { players: MatchupPlayerScore[] }) {
   const starters = players.filter((p) => p.is_starter).sort(compareStarters)
   const bench = players.filter((p) => !p.is_starter).sort(compareBench)
+
+  // Same live-poll-highlight pattern as MatchupList's team score, scoped to this one side's
+  // players -- a refresh that bumps an individual player's points briefly highlights just that
+  // player's number, not the whole box score.
+  const pointsValues = useMemo(() => {
+    const values: Record<string, number> = {}
+    for (const p of players) values[p.id] = p.points
+    return values
+  }, [players])
+  const flashingPlayerIds = useChangeFlash(pointsValues)
+
+  const pointsClass = (id: string) =>
+    `rounded px-1 font-mono tabular-nums transition-colors duration-1000 ${
+      flashingPlayerIds.has(id) ? 'bg-yellow-100 dark:bg-yellow-900/30' : ''
+    }`
 
   return (
     <>
@@ -26,7 +45,7 @@ function PlayerList({ players }: { players: MatchupPlayerScore[] }) {
                 <span className="truncate text-ink dark:text-gray-100">{p.player_name}</span>
                 <span className="flex shrink-0 items-center gap-2 whitespace-nowrap text-gray-500 dark:text-gray-400">
                   {p.lineup_slot}
-                  <span className="font-mono tabular-nums">{p.points.toFixed(1)}</span>
+                  <span className={pointsClass(p.id)}>{p.points.toFixed(1)}</span>
                 </span>
               </li>
             ))}
@@ -46,7 +65,7 @@ function PlayerList({ players }: { players: MatchupPlayerScore[] }) {
                 <span className="flex shrink-0 items-center gap-2 whitespace-nowrap">
                   {p.position}
                   {isOnIR(p.lineup_slot) && <IRBadge />}
-                  <span className="font-mono tabular-nums">{p.points.toFixed(1)}</span>
+                  <span className={pointsClass(p.id)}>{p.points.toFixed(1)}</span>
                 </span>
               </li>
             ))}

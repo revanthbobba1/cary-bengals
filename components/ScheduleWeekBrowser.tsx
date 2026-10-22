@@ -1,10 +1,16 @@
 'use client'
 
-import { useMemo, useState, useTransition } from 'react'
+import { useEffect, useMemo, useState, useTransition } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import MatchupList from './MatchupList'
 import { focusRingClasses } from '@/lib/focusRing'
 import type { Matchup } from '@/lib/types/matchup'
+
+// Scores only actually change via the ~10-minute live-game cron sync (see
+// docs/ESPN_INTEGRATION_PLAN.md's Phase 8c-cron notes), so polling faster than that can't surface
+// anything newer -- this cadence is about not making someone sit on a stale page for minutes
+// without any prompt, not about matching the sync's own frequency.
+const POLL_INTERVAL_MS = 60_000
 
 interface Props {
   matchups: Matchup[]
@@ -69,6 +75,25 @@ export default function ScheduleWeekBrowser({
       })
     })
   }
+
+  // Polls only while viewing the live week -- a past (final) or future (not yet started) week's
+  // data can't change, so polling it would just be wasted reads. Also refreshes immediately when
+  // the tab regains focus/visibility, not just on the next interval tick, so returning to an idle
+  // tab doesn't leave someone looking at scores that are already up to a minute stale.
+  useEffect(() => {
+    if (selectedWeek === null || selectedWeek !== currentWeek) return
+
+    const refreshIfVisible = () => {
+      if (document.visibilityState === 'visible') router.refresh()
+    }
+
+    const interval = setInterval(refreshIfVisible, POLL_INTERVAL_MS)
+    document.addEventListener('visibilitychange', refreshIfVisible)
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', refreshIfVisible)
+    }
+  }, [selectedWeek, currentWeek, router])
 
   if (weeks.length === 0 || selectedWeek === null) {
     return (
