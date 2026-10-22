@@ -71,3 +71,26 @@ class LeagueScheduleResponse(BaseModel):
     current_week: int
     matchups: list[MatchupOut]
     warnings: list[str]
+
+
+class BoxScorePlayerOut(BaseModel):
+    name: str
+    position: str
+    pro_team: str
+    lineup_slot: str
+    is_starter: bool
+    points: float
+
+
+class MatchupBoxScoreOut(BaseModel):
+    espn_matchup_id: int
+    team_side: str
+    players: list[BoxScorePlayerOut]
+
+
+class LeagueBoxScoresResponse(BaseModel):
+    season: int
+    league_id: str
+    fetched_at: str
+    matchups: list[MatchupBoxScoreOut]
+    warnings: list[str]

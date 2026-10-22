@@ -9,7 +9,7 @@
 // Phase 8c-data notes.
 
 import { createPublicClient } from '@/lib/supabase/public'
-import type { Matchup } from '@/lib/types/matchup'
+import type { Matchup, MatchupPlayerScore } from '@/lib/types/matchup'
 
 export interface ScheduleData {
   currentWeek: number | null
@@ -60,9 +60,54 @@ export async function loadScheduleData(seasonYear: number): Promise<ScheduleData
     teamNameById[team.id] = team.name
   }
 
+  type SyncedMatchup = Omit<Matchup, 'home_player_scores' | 'away_player_scores'>
+  const matchups = (matchupsResult.data as SyncedMatchup[] | null) ?? []
+
+  // A separate query, not a 4th parallel one -- it needs this season's matchup ids, which only
+  // exist once the query above has resolved. Scoped to every synced week, not just the current
+  // one: a week's player-score rows persist once synced (see MatchupPlayerScore's comment in
+  // lib/types/matchup.ts), so this grows over the season, not just the current week's ~190 rows.
+  const playerScoresByMatchupAndSide = new Map<string, MatchupPlayerScore[]>()
+  if (matchups.length > 0) {
+    const { data: playerScores, error: playerScoresError } = await supabase
+      .from('matchup_player_scores')
+      .select(
+        'id, matchup_id, team_side, player_name, position, pro_team, lineup_slot, is_starter, points, sort_order'
+      )
+      .in(
+        'matchup_id',
+        matchups.map((matchup) => matchup.id)
+      )
+      .order('sort_order')
+
+    if (playerScoresError) {
+      console.error('Failed to load matchup player scores:', playerScoresError)
+    } else {
+      for (const row of playerScores ?? []) {
+        const key = `${row.matchup_id}:${row.team_side}`
+        const group = playerScoresByMatchupAndSide.get(key) ?? []
+        group.push({
+          id: row.id,
+          player_name: row.player_name,
+          position: row.position,
+          pro_team: row.pro_team,
+          lineup_slot: row.lineup_slot,
+          is_starter: row.is_starter,
+          points: row.points,
+          sort_order: row.sort_order,
+        })
+        playerScoresByMatchupAndSide.set(key, group)
+      }
+    }
+  }
+
   return {
     currentWeek: scheduleStateResult.data?.current_week ?? null,
     teamNameById,
-    matchups: (matchupsResult.data as Matchup[] | null) ?? [],
+    matchups: matchups.map((matchup) => ({
+      ...matchup,
+      home_player_scores: playerScoresByMatchupAndSide.get(`${matchup.id}:home`) ?? null,
+      away_player_scores: playerScoresByMatchupAndSide.get(`${matchup.id}:away`) ?? null,
+    })),
   }
 }

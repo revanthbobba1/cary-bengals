@@ -112,6 +112,7 @@ export default function ScheduleWeekBrowser({
         <MatchupList
           matchups={matchupsByWeek.get(selectedWeek) ?? []}
           teamNameById={teamNameById}
+          allowExpand
         />
       </section>
     </>

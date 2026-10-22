@@ -108,6 +108,43 @@ class RawLeagueRostersResponse(BaseModel):
 # pass is needed anywhere in this view for that reason.
 
 
+class RawBoxScoreStat(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    statSourceId: int
+    scoringPeriodId: int
+    appliedTotal: float = 0.0
+
+
+class RawBoxScorePlayer(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: int
+    fullName: str
+    defaultPositionId: int
+    proTeamId: int
+    stats: list[RawBoxScoreStat] = []
+
+
+class RawBoxScorePlayerPoolEntry(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    player: RawBoxScorePlayer
+
+
+class RawBoxScoreEntry(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    lineupSlotId: int
+    playerPoolEntry: RawBoxScorePlayerPoolEntry
+
+
+class RawRosterForCurrentScoringPeriod(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    entries: list[RawBoxScoreEntry] = []
+
+
 class RawMatchupTeam(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -118,6 +155,11 @@ class RawMatchupTeam(BaseModel):
     # (not yet reached) weeks. Confirmed against a real captured payload, not assumed.
     totalProjectedPoints: float | None = None
     winProbability: float | None = None
+    # Per-player live box score -- same current-matchup-period-only nullability as the two fields
+    # above. Requesting it requires adding `view=mLiveScoring` alongside `mMatchupScore` -- with
+    # mMatchupScore alone, ESPN's player objects here carry only `stats`, no id/name/position at
+    # all (confirmed against a real captured payload). See services/boxscore.py.
+    rosterForCurrentScoringPeriod: RawRosterForCurrentScoringPeriod | None = None
 
 
 class RawMatchup(BaseModel):

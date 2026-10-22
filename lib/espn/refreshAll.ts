@@ -12,6 +12,7 @@ import { syncTeamNames } from '@/lib/espn/teamNameSync'
 import { syncRosters } from '@/lib/espn/rosterSync'
 import { syncTeamRecords } from '@/lib/espn/teamRecordSync'
 import { syncMatchups } from '@/lib/espn/matchupSync'
+import { syncMatchupPlayerScores } from '@/lib/espn/boxScoreSync'
 
 type SupabaseServerClient = ReturnType<typeof createClient>
 
@@ -21,6 +22,7 @@ export interface EspnDataRefreshResult {
   playerCount: number
   recordsUpdated: number
   matchupsUpdated: number
+  boxScoreSideCount: number
   warnings: string[]
 }
 
@@ -57,12 +59,25 @@ export async function refreshAllEspnData(
     syncMatchups(supabase, seasonYear),
   ])
 
+  // Box-score sync reads the `matchups` table to map espn_matchup_id -> matchup_id, so it must
+  // run *after* syncMatchups resolves, not alongside it in the allSettled batch above -- otherwise
+  // it would race a read of `matchups` against the write that's supposed to populate it. Still
+  // independently try/caught so a box-score failure never masks a successful matchup sync.
+  const boxScoreSettled: PromiseSettledResult<Awaited<ReturnType<typeof syncMatchupPlayerScores>>> =
+    matchupSettled.status === 'fulfilled'
+      ? await syncMatchupPlayerScores(supabase, seasonYear).then(
+          (value) => ({ status: 'fulfilled', value }) as const,
+          (reason) => ({ status: 'rejected', reason }) as const
+        )
+      : { status: 'rejected', reason: new Error('Skipped: matchup sync failed') }
+
   const warnings: string[] = []
   let namesUpdated = 0
   let teamCount = 0
   let playerCount = 0
   let recordsUpdated = 0
   let matchupsUpdated = 0
+  let boxScoreSideCount = 0
 
   if (nameSettled.status === 'fulfilled') {
     namesUpdated = nameSettled.value.teamCount
@@ -93,5 +108,20 @@ export async function refreshAllEspnData(
     warnings.push(`Matchup refresh failed: ${errorMessage(matchupSettled.reason)}`)
   }
 
-  return { namesUpdated, teamCount, playerCount, recordsUpdated, matchupsUpdated, warnings }
+  if (boxScoreSettled.status === 'fulfilled') {
+    boxScoreSideCount = boxScoreSettled.value.matchupSideCount
+    warnings.push(...boxScoreSettled.value.warnings)
+  } else {
+    warnings.push(`Box score refresh failed: ${errorMessage(boxScoreSettled.reason)}`)
+  }
+
+  return {
+    namesUpdated,
+    teamCount,
+    playerCount,
+    recordsUpdated,
+    matchupsUpdated,
+    boxScoreSideCount,
+    warnings,
+  }
 }
