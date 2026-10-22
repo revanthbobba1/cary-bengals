@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { focusRingClasses } from '@/lib/focusRing'
 import MatchupBoxScore from '@/components/MatchupBoxScore'
+import { useChangeFlash } from '@/lib/hooks/useChangeFlash'
 import type { Matchup } from '@/lib/types/matchup'
 
 interface Props {
@@ -21,6 +22,18 @@ interface Props {
 export default function MatchupList({ matchups, teamNameById, allowExpand = false }: Props) {
   const [expandedMatchupId, setExpandedMatchupId] = useState<string | null>(null)
 
+  // Keyed on both scores together (not summed, so an equal-and-opposite change on each side still
+  // registers) -- lets a live-poll refresh (see ScheduleWeekBrowser) briefly highlight exactly
+  // which matchups' scores actually moved, not just that "something" on the page changed.
+  const scoreValues = useMemo(() => {
+    const values: Record<string, string> = {}
+    for (const matchup of matchups) {
+      values[matchup.id] = `${matchup.home_score}|${matchup.away_score}`
+    }
+    return values
+  }, [matchups])
+  const flashingMatchupIds = useChangeFlash(scoreValues)
+
   if (matchups.length === 0) {
     return <p className="text-sm text-gray-600 dark:text-gray-400">No matchups yet.</p>
   }
@@ -34,6 +47,7 @@ export default function MatchupList({ matchups, teamNameById, allowExpand = fals
         const awayWon = matchup.winner === 'AWAY'
         const isExpanded = allowExpand && expandedMatchupId === matchup.id
         const boxScorePanelId = `matchup-${matchup.id}-boxscore`
+        const isScoreFlashing = flashingMatchupIds.has(matchup.id)
 
         // Projected score/win probability are only ever non-null for the current matchup period
         // (see lib/types/matchup.ts) -- so this subline naturally disappears once a week is
@@ -62,7 +76,9 @@ export default function MatchupList({ matchups, teamNameById, allowExpand = fals
                 </p>
               )}
             </div>
-            <div className="shrink-0 text-center">
+            <div
+              className={`shrink-0 rounded-md px-2 py-1 text-center transition-colors duration-1000 ${isScoreFlashing ? 'bg-yellow-100 dark:bg-yellow-900/30' : ''}`}
+            >
               <p className="font-mono text-base tabular-nums text-ink dark:text-gray-100">
                 {matchup.home_score.toFixed(2)} – {matchup.away_score.toFixed(2)}
               </p>
