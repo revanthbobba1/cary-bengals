@@ -305,5 +305,7 @@ safe to build on top of that data): 3. **Detailed ballot breakdowns** — page s
    item in §3.
 3. ~~Optional: fix the `formatDeadline`/`toDatetimeLocal` timezone-dependent hydration mismatch~~
    — done, see the 2026-08-19 resolved note in §3.
-4. Continue ESPN API integration per `docs/ESPN_INTEGRATION_PLAN.md` — Phase 0 (public/private
-   league, league ID, cookies) still needs the user's input before implementation starts.
+4. ~~Continue ESPN API integration per `docs/ESPN_INTEGRATION_PLAN.md`~~ — built out through team
+   sync, rosters, records, matchups/schedule, and scheduled auto-sync; see that plan's own §9
+   sequencing table and phase notes. Still `develop`-only as of 2026-10-21 — not yet released to
+   `main`, and the scheduled sync's secrets aren't configured yet either.
