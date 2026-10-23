@@ -106,3 +106,16 @@ async def test_get_league_schedule_skips_bye_matchup(raw_payload: dict) -> None:
 
     assert len(result.matchups) == original_count - 1
     assert any("missing a home or away team" in warning for warning in result.warnings)
+
+
+async def test_get_league_schedule_prefers_live_total_when_present(raw_payload: dict) -> None:
+    # ESPN leaves totalPoints at 0.0 during the week and reports the running score in
+    # totalPointsLive; finished weeks carry no live field and keep totalPoints.
+    live = next(m for m in raw_payload["schedule"] if m["matchupPeriodId"] == 7)
+    live["home"]["totalPointsLive"] = 35.24
+
+    result = await get_league_schedule(_StubEspnClient(raw_payload), season=2026)
+
+    by_id = {m.espn_matchup_id: m for m in result.matchups}
+    assert by_id[live["id"]].home_score == 35.24
+    assert by_id[1].home_score == 107.96
