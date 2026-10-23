@@ -8,7 +8,12 @@ from datetime import UTC, datetime
 
 from app.clients.espn import EspnClient
 from app.schemas.api import LeagueScheduleResponse, MatchupOut
-from app.schemas.espn_raw import RawLeagueScheduleResponse
+from app.schemas.espn_raw import RawLeagueScheduleResponse, RawMatchupTeam
+
+
+def _team_score(team: RawMatchupTeam) -> float:
+    # totalPoints is stuck at 0 until the week finalizes; totalPointsLive carries the running score.
+    return team.totalPointsLive if team.totalPointsLive is not None else team.totalPoints
 
 
 async def get_league_schedule(espn: EspnClient, season: int) -> LeagueScheduleResponse:
@@ -29,9 +34,9 @@ async def get_league_schedule(espn: EspnClient, season: int) -> LeagueScheduleRe
                 week=matchup.matchupPeriodId,
                 is_playoffs=matchup.playoffTierType != "NONE",
                 home_espn_team_id=matchup.home.teamId,
-                home_score=matchup.home.totalPoints,
+                home_score=_team_score(matchup.home),
                 away_espn_team_id=matchup.away.teamId,
-                away_score=matchup.away.totalPoints,
+                away_score=_team_score(matchup.away),
                 winner=matchup.winner,
                 home_projected_score=matchup.home.totalProjectedPoints,
                 away_projected_score=matchup.away.totalProjectedPoints,
