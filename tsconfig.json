@@ -36,6 +36,7 @@
     "**/*.js",
     "**/*.mjs",
     "**/*.ts",
+    "**/*.mts",
     "**/*.tsx",
     "**/*.json",
     ".contentlayer/generated",
