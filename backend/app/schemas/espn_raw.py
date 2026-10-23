@@ -113,6 +113,10 @@ class RawMatchupTeam(BaseModel):
 
     teamId: int
     totalPoints: float = 0.0
+    # The in-progress week's running score. `totalPoints` stays 0.0 for the whole week (confirmed
+    # against a live probe: every matchup read 0.0 while players had scored), and only settles
+    # once the week is final. Absent for finished/future weeks.
+    totalPointsLive: float | None = None
     # Both null outside the current matchup period -- ESPN only computes a live projection/win
     # probability for the week that's actually in progress, not past (already final) or future
     # (not yet reached) weeks. Confirmed against a real captured payload, not assumed.

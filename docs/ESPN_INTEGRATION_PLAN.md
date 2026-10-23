@@ -695,6 +695,21 @@ all four RPCs where it would have been refused before — plus one quick non-com
 and one commissioner-succeeds check as a backstop that the guard rewrite didn't break the existing
 paths (full behavioral coverage of those already lives in `verify_041.sql`/`verify_042.sql`).
 
+**Scheduler follow-up (2026-10-23).** GitHub's `schedule` trigger proved unreliable: the
+10-minute live windows ran twice in a window that should have had ~36 runs, and the daily full sync
+started 4.5 hours late. Both schedules now also run as Netlify scheduled functions
+(`netlify/functions/espn-matchup-sync.mts` every 10 minutes, `espn-full-sync.mts` at :00/:30). Each
+gates itself in America/New_York time (DST-correct, no padded UTC hours) and POSTs the existing
+`/api/espn/sync-matchups` / `/api/espn/sync-all` handler; shared code is `netlify/lib/espnCron.ts`.
+The full sync runs Tue-Fri at 8am ET, with the :30 run as a retry. Scheduled functions are cut
+off at 30s and can't wait out a Render cold start, so a run against a cold backend may fail (its
+`/healthz` ping still wakes it) and the next one succeeds; a pre-window warm-up ping was tried and
+dropped as not worth the extra branch. The GitHub workflows are kept as a backup until Netlify
+runs prove reliable, then their `schedule:` blocks should be removed (keep `workflow_dispatch`).
+Both workflows now log the response body instead of hiding it behind `curl -f`. Separately,
+`totalPoints` stays 0.0 all week in ESPN's `mMatchupScore`; the running score is `totalPointsLive`
+(current week only), which `services/schedule.py` now reads.
+
 **Manual setup required before the schedules actually run** (not something this PR can do from
 inside the repo): the real `SUPABASE_SERVICE_ROLE_KEY` value (Supabase dashboard → Project
 Settings → API) needs to be set as a Netlify env var; a newly-generated `ESPN_SYNC_CRON_SECRET`
