@@ -1,0 +1,876 @@
+{
+  "components": {
+    "schemas": {
+      "BoxScorePlayerOut": {
+        "properties": {
+          "is_starter": {
+            "description": "True unless the slot is Bench or IR.",
+            "title": "Is Starter",
+            "type": "boolean"
+          },
+          "lineup_slot": {
+            "description": "Lineup slot the player occupies this week: QB, RB, WR, TE, RB/WR, WR/TE, OP, FLEX, D/ST, K, Bench or IR.",
+            "examples": ["FLEX"],
+            "title": "Lineup Slot",
+            "type": "string"
+          },
+          "name": {
+            "examples": ["Ja'Marr Chase"],
+            "title": "Name",
+            "type": "string"
+          },
+          "points": {
+            "description": "Fantasy points scored this week.",
+            "examples": [21.4],
+            "title": "Points",
+            "type": "number"
+          },
+          "position": {
+            "description": "Player's natural position.",
+            "examples": ["QB", "RB", "WR", "TE", "K", "D/ST"],
+            "title": "Position",
+            "type": "string"
+          },
+          "pro_team": {
+            "description": "NFL team abbreviation.",
+            "examples": ["CIN"],
+            "title": "Pro Team",
+            "type": "string"
+          }
+        },
+        "required": ["name", "position", "pro_team", "lineup_slot", "is_starter", "points"],
+        "title": "BoxScorePlayerOut",
+        "type": "object"
+      },
+      "ErrorResponse": {
+        "properties": {
+          "detail": {
+            "description": "Human-readable reason for the failure.",
+            "title": "Detail",
+            "type": "string"
+          }
+        },
+        "required": ["detail"],
+        "title": "ErrorResponse",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "LeagueBoxScoresResponse": {
+        "properties": {
+          "fetched_at": {
+            "description": "When this service fetched the data from ESPN (UTC, ISO 8601).",
+            "examples": ["2026-10-23T14:05:12.345678+00:00"],
+            "title": "Fetched At",
+            "type": "string"
+          },
+          "league_id": {
+            "description": "ESPN league ID this service is configured for.",
+            "examples": ["123456"],
+            "title": "League Id",
+            "type": "string"
+          },
+          "matchups": {
+            "description": "Current-week matchups only; a side with no lineup data yet is omitted.",
+            "items": {
+              "$ref": "#/components/schemas/MatchupBoxScoreOut"
+            },
+            "title": "Matchups",
+            "type": "array"
+          },
+          "season": {
+            "description": "NFL season year the data belongs to.",
+            "examples": [2026],
+            "title": "Season",
+            "type": "integer"
+          },
+          "warnings": {
+            "description": "Non-fatal problems, one string per skipped item (e.g. a player with no usable name). Empty when everything parsed cleanly.",
+            "examples": [[]],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": ["season", "league_id", "fetched_at", "matchups", "warnings"],
+        "title": "LeagueBoxScoresResponse",
+        "type": "object"
+      },
+      "LeagueRostersResponse": {
+        "properties": {
+          "fetched_at": {
+            "description": "When this service fetched the data from ESPN (UTC, ISO 8601).",
+            "examples": ["2026-10-23T14:05:12.345678+00:00"],
+            "title": "Fetched At",
+            "type": "string"
+          },
+          "league_id": {
+            "description": "ESPN league ID this service is configured for.",
+            "examples": ["123456"],
+            "title": "League Id",
+            "type": "string"
+          },
+          "season": {
+            "description": "NFL season year the data belongs to.",
+            "examples": [2026],
+            "title": "Season",
+            "type": "integer"
+          },
+          "teams": {
+            "items": {
+              "$ref": "#/components/schemas/TeamRosterOut"
+            },
+            "title": "Teams",
+            "type": "array"
+          },
+          "warnings": {
+            "description": "Non-fatal problems, one string per skipped item (e.g. a player with no usable name). Empty when everything parsed cleanly.",
+            "examples": [[]],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": ["season", "league_id", "fetched_at", "teams", "warnings"],
+        "title": "LeagueRostersResponse",
+        "type": "object"
+      },
+      "LeagueScheduleResponse": {
+        "properties": {
+          "current_week": {
+            "description": "The league's in-progress matchup period.",
+            "examples": [7],
+            "title": "Current Week",
+            "type": "integer"
+          },
+          "fetched_at": {
+            "description": "When this service fetched the data from ESPN (UTC, ISO 8601).",
+            "examples": ["2026-10-23T14:05:12.345678+00:00"],
+            "title": "Fetched At",
+            "type": "string"
+          },
+          "league_id": {
+            "description": "ESPN league ID this service is configured for.",
+            "examples": ["123456"],
+            "title": "League Id",
+            "type": "string"
+          },
+          "matchups": {
+            "description": "Every matchup in the season, all weeks.",
+            "items": {
+              "$ref": "#/components/schemas/MatchupOut"
+            },
+            "title": "Matchups",
+            "type": "array"
+          },
+          "season": {
+            "description": "NFL season year the data belongs to.",
+            "examples": [2026],
+            "title": "Season",
+            "type": "integer"
+          },
+          "warnings": {
+            "description": "Non-fatal problems, one string per skipped item (e.g. a player with no usable name). Empty when everything parsed cleanly.",
+            "examples": [[]],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": ["season", "league_id", "fetched_at", "current_week", "matchups", "warnings"],
+        "title": "LeagueScheduleResponse",
+        "type": "object"
+      },
+      "LeagueTeamsResponse": {
+        "properties": {
+          "fetched_at": {
+            "description": "When this service fetched the data from ESPN (UTC, ISO 8601).",
+            "examples": ["2026-10-23T14:05:12.345678+00:00"],
+            "title": "Fetched At",
+            "type": "string"
+          },
+          "league_id": {
+            "description": "ESPN league ID this service is configured for.",
+            "examples": ["123456"],
+            "title": "League Id",
+            "type": "string"
+          },
+          "season": {
+            "description": "NFL season year the data belongs to.",
+            "examples": [2026],
+            "title": "Season",
+            "type": "integer"
+          },
+          "teams": {
+            "items": {
+              "$ref": "#/components/schemas/TeamOut"
+            },
+            "title": "Teams",
+            "type": "array"
+          },
+          "warnings": {
+            "description": "Non-fatal problems, one string per skipped item (e.g. a player with no usable name). Empty when everything parsed cleanly.",
+            "examples": [[]],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": ["season", "league_id", "fetched_at", "teams", "warnings"],
+        "title": "LeagueTeamsResponse",
+        "type": "object"
+      },
+      "MatchupBoxScoreOut": {
+        "properties": {
+          "espn_matchup_id": {
+            "description": "Matches MatchupOut.espn_matchup_id from /schedule.",
+            "title": "Espn Matchup Id",
+            "type": "integer"
+          },
+          "players": {
+            "items": {
+              "$ref": "#/components/schemas/BoxScorePlayerOut"
+            },
+            "title": "Players",
+            "type": "array"
+          },
+          "team_side": {
+            "description": "Which side of the matchup these players belong to.",
+            "examples": ["home", "away"],
+            "title": "Team Side",
+            "type": "string"
+          }
+        },
+        "required": ["espn_matchup_id", "team_side", "players"],
+        "title": "MatchupBoxScoreOut",
+        "type": "object"
+      },
+      "MatchupOut": {
+        "properties": {
+          "away_espn_team_id": {
+            "title": "Away Espn Team Id",
+            "type": "integer"
+          },
+          "away_projected_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Projected final score. Null except for the current week.",
+            "title": "Away Projected Score"
+          },
+          "away_score": {
+            "description": "Away team's points; same semantics as home_score.",
+            "title": "Away Score",
+            "type": "number"
+          },
+          "away_win_probability": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Away win probability, 0-1. Null except for the current week.",
+            "title": "Away Win Probability"
+          },
+          "espn_matchup_id": {
+            "description": "ESPN's numeric matchup ID. Joins to box scores.",
+            "title": "Espn Matchup Id",
+            "type": "integer"
+          },
+          "home_espn_team_id": {
+            "title": "Home Espn Team Id",
+            "type": "integer"
+          },
+          "home_projected_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Projected final score. Null except for the current week.",
+            "title": "Home Projected Score"
+          },
+          "home_score": {
+            "description": "Home team's points. Live running total during the current week.",
+            "examples": [104.52],
+            "title": "Home Score",
+            "type": "number"
+          },
+          "home_win_probability": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Home win probability, 0-1. Null except for the current week.",
+            "title": "Home Win Probability"
+          },
+          "is_playoffs": {
+            "description": "True for any playoff tier, false for regular season.",
+            "title": "Is Playoffs",
+            "type": "boolean"
+          },
+          "week": {
+            "description": "Matchup period (week) number.",
+            "examples": [7],
+            "title": "Week",
+            "type": "integer"
+          },
+          "winner": {
+            "description": "HOME, AWAY, TIE or UNDECIDED (week not final). Passed through from ESPN, so an unexpected value is possible.",
+            "examples": ["UNDECIDED"],
+            "title": "Winner",
+            "type": "string"
+          }
+        },
+        "required": [
+          "espn_matchup_id",
+          "week",
+          "is_playoffs",
+          "home_espn_team_id",
+          "home_score",
+          "away_espn_team_id",
+          "away_score",
+          "winner"
+        ],
+        "title": "MatchupOut",
+        "type": "object"
+      },
+      "RosterPlayerOut": {
+        "properties": {
+          "is_starter": {
+            "description": "True unless the slot is Bench or IR.",
+            "title": "Is Starter",
+            "type": "boolean"
+          },
+          "lineup_slot": {
+            "description": "Lineup slot the player occupies this week: QB, RB, WR, TE, RB/WR, WR/TE, OP, FLEX, D/ST, K, Bench or IR.",
+            "examples": ["FLEX"],
+            "title": "Lineup Slot",
+            "type": "string"
+          },
+          "name": {
+            "examples": ["Joe Burrow"],
+            "title": "Name",
+            "type": "string"
+          },
+          "position": {
+            "description": "Player's natural position.",
+            "examples": ["QB", "RB", "WR", "TE", "K", "D/ST"],
+            "title": "Position",
+            "type": "string"
+          },
+          "pro_team": {
+            "description": "NFL team abbreviation.",
+            "examples": ["CIN"],
+            "title": "Pro Team",
+            "type": "string"
+          }
+        },
+        "required": ["name", "position", "pro_team", "lineup_slot", "is_starter"],
+        "title": "RosterPlayerOut",
+        "type": "object"
+      },
+      "TeamOut": {
+        "properties": {
+          "espn_owner_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "ESPN member ID of the team's primary owner, if any.",
+            "title": "Espn Owner Id"
+          },
+          "espn_team_id": {
+            "description": "ESPN's numeric team ID, stable within a season.",
+            "title": "Espn Team Id",
+            "type": "integer"
+          },
+          "name": {
+            "description": "Team name, sanitized.",
+            "examples": ["Cary Bengals"],
+            "title": "Name",
+            "type": "string"
+          },
+          "owner_display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Primary owner's ESPN display name, if any.",
+            "title": "Owner Display Name"
+          },
+          "record": {
+            "$ref": "#/components/schemas/TeamRecordOut",
+            "description": "Overall regular-season record."
+          }
+        },
+        "required": ["espn_team_id", "name", "espn_owner_id", "owner_display_name", "record"],
+        "title": "TeamOut",
+        "type": "object"
+      },
+      "TeamRecordOut": {
+        "properties": {
+          "losses": {
+            "examples": [2],
+            "title": "Losses",
+            "type": "integer"
+          },
+          "ties": {
+            "examples": [0],
+            "title": "Ties",
+            "type": "integer"
+          },
+          "wins": {
+            "examples": [5],
+            "title": "Wins",
+            "type": "integer"
+          }
+        },
+        "required": ["wins", "losses", "ties"],
+        "title": "TeamRecordOut",
+        "type": "object"
+      },
+      "TeamRosterOut": {
+        "properties": {
+          "espn_team_id": {
+            "description": "Matches TeamOut.espn_team_id from /teams.",
+            "title": "Espn Team Id",
+            "type": "integer"
+          },
+          "players": {
+            "items": {
+              "$ref": "#/components/schemas/RosterPlayerOut"
+            },
+            "title": "Players",
+            "type": "array"
+          }
+        },
+        "required": ["espn_team_id", "players"],
+        "title": "TeamRosterOut",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "APIKeyHeader": {
+        "description": "Shared secret; must equal the service's SERVICE_TOKEN setting.",
+        "in": "header",
+        "name": "X-Service-Token",
+        "type": "apiKey"
+      }
+    }
+  },
+  "info": {
+    "description": "Private service that reads the league's ESPN fantasy data and returns it in a stable, sanitized shape. Only the Next.js server calls it; ESPN cookies never leave it. Every `/v1` endpoint requires the `X-Service-Token` header.",
+    "title": "Cary Bengals ESPN Service",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/healthz": {
+      "get": {
+        "description": "Returns 200 whenever the process is up. Unauthenticated; does not touch ESPN.",
+        "operationId": "healthz_healthz_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Healthz Healthz Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Liveness check",
+        "tags": ["health"]
+      }
+    },
+    "/readyz": {
+      "get": {
+        "description": "Returns 200 once the service can take traffic. Unauthenticated; no ESPN call.",
+        "operationId": "readyz_readyz_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Readyz Readyz Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Readiness check",
+        "tags": ["health"]
+      }
+    },
+    "/v1/league/{season}/boxscores": {
+      "get": {
+        "description": "Per-player fantasy points for each side of each matchup that currently has lineup data (the in-progress week). Join to `/schedule` on `espn_matchup_id`.\n\n**Not cached** -- polled every ~10 minutes during live games.",
+        "operationId": "get_boxscores_v1_league__season__boxscores_get",
+        "parameters": [
+          {
+            "description": "NFL season year to fetch. Must be one the league has data for.",
+            "in": "path",
+            "name": "season",
+            "required": true,
+            "schema": {
+              "description": "NFL season year to fetch. Must be one the league has data for.",
+              "examples": [2026],
+              "minimum": 2000,
+              "title": "Season",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueBoxScoresResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "`X-Service-Token` header missing or incorrect."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "ESPN could not be read: expired cookies (private leagues), unknown league ID, request failure/timeout, or a response shape this service doesn't recognize. `detail` says which."
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "List live box scores",
+        "tags": ["boxscore"]
+      }
+    },
+    "/v1/league/{season}/rosters": {
+      "get": {
+        "description": "Every team's full roster, including bench and IR players, with lineup slot for each.\n\n**Not cached** -- rosters change with trades and waivers, so each call hits ESPN.",
+        "operationId": "get_rosters_v1_league__season__rosters_get",
+        "parameters": [
+          {
+            "description": "NFL season year to fetch. Must be one the league has data for.",
+            "in": "path",
+            "name": "season",
+            "required": true,
+            "schema": {
+              "description": "NFL season year to fetch. Must be one the league has data for.",
+              "examples": [2026],
+              "minimum": 2000,
+              "title": "Season",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueRostersResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "`X-Service-Token` header missing or incorrect."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "ESPN could not be read: expired cookies (private leagues), unknown league ID, request failure/timeout, or a response shape this service doesn't recognize. `detail` says which."
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "List team rosters",
+        "tags": ["roster"]
+      }
+    },
+    "/v1/league/{season}/schedule": {
+      "get": {
+        "description": "Every matchup for every week with scores. For the in-progress week, scores are the live running total and projected score / win probability are populated; for other weeks those are null.\n\nA matchup missing a home or away team (a bye) is skipped and reported in `warnings`.\n\n**Not cached** -- polled every ~10 minutes during live games.",
+        "operationId": "get_schedule_v1_league__season__schedule_get",
+        "parameters": [
+          {
+            "description": "NFL season year to fetch. Must be one the league has data for.",
+            "in": "path",
+            "name": "season",
+            "required": true,
+            "schema": {
+              "description": "NFL season year to fetch. Must be one the league has data for.",
+              "examples": [2026],
+              "minimum": 2000,
+              "title": "Season",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueScheduleResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "`X-Service-Token` header missing or incorrect."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "ESPN could not be read: expired cookies (private leagues), unknown league ID, request failure/timeout, or a response shape this service doesn't recognize. `detail` says which."
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "List season schedule and scores",
+        "tags": ["schedule"]
+      }
+    },
+    "/v1/league/{season}/teams": {
+      "get": {
+        "description": "Every team in the league with its owner and overall record.\n\n**Cached** in-process for `CACHE_TTL_SECONDS` (default 60s), so a preview followed by a commit reads ESPN once.",
+        "operationId": "get_teams_v1_league__season__teams_get",
+        "parameters": [
+          {
+            "description": "NFL season year to fetch. Must be one the league has data for.",
+            "in": "path",
+            "name": "season",
+            "required": true,
+            "schema": {
+              "description": "NFL season year to fetch. Must be one the league has data for.",
+              "examples": [2026],
+              "minimum": 2000,
+              "title": "Season",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueTeamsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "`X-Service-Token` header missing or incorrect."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "ESPN could not be read: expired cookies (private leagues), unknown league ID, request failure/timeout, or a response shape this service doesn't recognize. `detail` says which."
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "List league teams",
+        "tags": ["league"]
+      }
+    }
+  }
+}
