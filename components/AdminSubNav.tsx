@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { focusRingClasses } from '@/lib/focusRing'
 
-type AdminSection = 'dashboard' | 'poll' | 'commissioner' | 'articles'
+type AdminSection = 'dashboard' | 'poll' | 'commissioner' | 'articles' | 'api-docs'
 
 interface Props {
   active: AdminSection
@@ -67,6 +67,17 @@ export default function AdminSubNav({ active, showCommissionerTools }: Props) {
         }`}
       >
         Articles
+      </Link>
+      <Link
+        href="/admin/api-docs"
+        aria-current={active === 'api-docs' ? 'page' : undefined}
+        className={`${linkClasses} ${
+          active === 'api-docs'
+            ? 'bg-primary-500 text-white'
+            : 'text-gray-600 hover:bg-gray-100 hover:text-ink dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100'
+        }`}
+      >
+        API Docs
       </Link>
       {showCommissionerTools && (
         <span className="ml-auto flex items-center gap-2">

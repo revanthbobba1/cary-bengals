@@ -31,6 +31,11 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     app = FastAPI(
         title="Cary Bengals ESPN Service",
+        description=(
+            "Private service that reads the league's ESPN fantasy data and returns it in a stable, "
+            "sanitized shape. Only the Next.js server calls it; ESPN cookies never leave it. "
+            "Every `/v1` endpoint requires the `X-Service-Token` header."
+        ),
         version="0.1.0",
         lifespan=lifespan,
     )
