@@ -31,10 +31,11 @@ jobs:
       - name: Sync matchups
         run: |
           # No -f: with it curl exits 22 on any HTTP error and discards the body, which hides
-          # the handler's JSON error message. Print the body, then fail on a non-2xx status.
+          # the handler's JSON error message. Print the body, then fail on a non-2xx status
+          # (000 = curl itself failed, e.g. timeout, so there may be no body).
           status=$(curl -s --max-time 20 -o response.json -w '%{http_code}' -X POST "${{ secrets.ESPN_SYNC_URL }}" \
-            -H "x-cron-secret: ${{ secrets.ESPN_SYNC_CRON_SECRET }}")
+            -H "x-cron-secret: ${{ secrets.ESPN_SYNC_CRON_SECRET }}") || status=000
           echo "HTTP $status"
-          cat response.json
+          cat response.json 2>/dev/null || true
           echo
           [ "$status" -ge 200 ] && [ "$status" -lt 300 ]
