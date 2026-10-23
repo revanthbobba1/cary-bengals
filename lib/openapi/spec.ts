@@ -24,15 +24,17 @@ const serverError = {
   content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
 }
 
-// Pliny's NewsletterAPI handler serves both verbs with identical behavior, so one operation is
-// shared rather than written out twice.
+// Pliny's NewsletterAPI route handler is exported for both verbs but reads the email from a JSON
+// body either way, so a bodiless GET fails. One shared operation, with the caveat in the text.
 const newsletterOperation = {
   tags: ['Site: content'],
   summary: 'Subscribe an email to the newsletter',
   description:
-    "Handled by Pliny's `NewsletterAPI` for the provider set in `siteMetadata.newsletter`. " +
-    'Accepts the same body on GET and POST.',
+    "Handled by Pliny's `NewsletterAPI` for the provider in `siteMetadata.newsletter`. The email " +
+    'is read from a JSON request body on both verbs, so use POST; a GET without a body fails ' +
+    'with 500. A provider error status (>= 400) is passed through.',
   requestBody: {
+    required: true,
     content: {
       'application/json': {
         schema: {
@@ -44,8 +46,27 @@ const newsletterOperation = {
     },
   },
   responses: {
-    '200': { description: 'Subscribed.' },
-    '500': { description: 'The provider rejected the request or is not configured.' },
+    '201': {
+      description: 'Subscribed.',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              message: { type: 'string', example: 'Successfully subscribed to the newsletter' },
+            },
+          },
+        },
+      },
+    },
+    '400': {
+      description: 'No `email` in the body.',
+      content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
+    },
+    '500': {
+      description: 'Provider not supported or not configured, or an unexpected failure.',
+      content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
+    },
   },
 }
 
@@ -130,7 +151,7 @@ const nextjsPaths = {
       tags: ['Site: content'],
       summary: 'RSS feed of published articles',
       description:
-        'Public. RSS 2.0 feed of published articles, newest per the article query. Revalidated every 5 minutes.',
+        'Public. RSS 2.0 feed of published articles, newest first. Revalidated every 5 minutes.',
       responses: {
         '200': {
           description: 'RSS 2.0 document.',
@@ -177,7 +198,7 @@ const nextjsSchemas = {
   MatchupSyncResult: {
     type: 'object',
     properties: {
-      matchupsUpdated: { type: 'integer', description: 'Matchups written.', example: 84 },
+      matchupCount: { type: 'integer', description: 'Matchups written.', example: 84 },
       boxScoreSideCount: {
         type: 'integer',
         description: 'Matchup sides whose player scores were written; 0 if box scores failed.',
