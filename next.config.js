@@ -73,7 +73,8 @@ module.exports = () => {
       dirs: ['app', 'components', 'layouts', 'scripts'],
     },
     images: {
-      domains: ['picsum.photos'],
+      // img.youtube.com serves each video's own thumbnail (app/conferences -- see lib/youtube.ts)
+      domains: ['img.youtube.com'],
     },
     async headers() {
       return [

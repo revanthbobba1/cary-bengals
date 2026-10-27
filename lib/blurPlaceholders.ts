@@ -1,7 +1,8 @@
 // Tiny base64 blur-up placeholders for next/image's placeholder="blur".
 // Generated from the actual source images (sips --resampleHeightWidthMax 10, low quality
 // JPEG) rather than hand-picked, since these are referenced by dynamic string paths from
-// MDX frontmatter / projectsData.ts, not static imports next/image can auto-generate for.
+// MDX frontmatter / Supabase press_conferences.thumbnail_url, not static imports next/image can
+// auto-generate for.
 // Regenerate if an avatar/thumbnail image is replaced.
 export const blurPlaceholders: Record<string, string> = {
   '/static/images/players/alvin.jpg':

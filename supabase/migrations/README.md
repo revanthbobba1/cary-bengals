@@ -116,6 +116,13 @@ it, look for the writer (`select tgname, pg_get_triggerdef(oid) from pg_trigger 
 
 | `038_split_historical_team_owner_names.sql` | Separates historical team display data by removing an exact trailing ` (owner_name)` suffix from `teams.name`, while preserving `teams.owner_name`. Keeps team IDs and poll foreign keys unchanged and aborts if the cleanup would create a duplicate name within a season. |
 
+## Press conferences
+
+| File                                 | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `049_create_press_conferences.sql`   | `press_conferences` table, replacing the flat `data/projectsData.ts`. No draft/published status (unlike `028`) — the commissioner's `FOR ALL` policy (same shape as `010`'s on `teams`/`poll_weeks`) creates a row and it's immediately public. `youtube_url`/`spotify_url` are each independently optional but a CHECK requires at least one. `thumbnail_url` is only ever set by `050`'s backfill; the admin UI never writes it. Verified by `../tests/verify_049.sql`. |
+| `050_backfill_press_conferences.sql` | One-time seed of the 11 entries that lived in `data/projectsData.ts` (removed in the same PR), parsed into the new columns. The 4 undated legacy entries are stamped `season_year = 2023`.                                                                                                                                                                                                                                                                                |
+
 ## Still outstanding
 
 None currently tracked — see `docs/POLL_SYSTEM_PLAN.md` §6 for the remaining non-migration backlog
