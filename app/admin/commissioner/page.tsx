@@ -33,20 +33,22 @@ export default async function CommissionerToolsPage() {
   }
 
   // No limit here (unlike some other queries in this app) — the year filter in
-  // PollWeekManager needs every season's weeks available to filter across, and
-  // this table will never realistically be large enough to need pagination.
-  const { data: pollWeeks } = await supabase
-    .from('poll_weeks')
-    .select('*')
-    .order('season_year', { ascending: false })
-    .order('week_number', { ascending: false })
-
-  // Same "no limit, filter client-side" reasoning as pollWeeks above.
-  const { data: pressConferences } = await supabase
-    .from('press_conferences')
-    .select('*')
-    .order('season_year', { ascending: false })
-    .order('week_number', { ascending: false })
+  // PollWeekManager / PressConferenceManager needs every season's rows available to filter
+  // across, and neither table will realistically grow large enough to need pagination.
+  // The two queries are independent, so they run together rather than one sequential round
+  // trip apiece -- same reasoning as app/admin/articles/page.tsx's Promise.all.
+  const [{ data: pollWeeks }, { data: pressConferences }] = await Promise.all([
+    supabase
+      .from('poll_weeks')
+      .select('*')
+      .order('season_year', { ascending: false })
+      .order('week_number', { ascending: false }),
+    supabase
+      .from('press_conferences')
+      .select('*')
+      .order('season_year', { ascending: false })
+      .order('week_number', { ascending: false }),
+  ])
 
   return (
     <div className="py-12 max-w-4xl mx-auto">

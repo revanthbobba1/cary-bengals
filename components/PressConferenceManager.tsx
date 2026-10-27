@@ -27,6 +27,18 @@ function emptyForm(seasonYear: number, weekNumber: number): FormValues {
   return { title: '', description: '', seasonYear, weekNumber, youtubeUrl: '', spotifyUrl: '' }
 }
 
+function isValidUrl(value: string): boolean {
+  try {
+    new URL(value)
+    return true
+  } catch {
+    return false
+  }
+}
+
+// Checked here rather than relying on the inputs' `type="url"` attribute: the edit row isn't
+// inside a <form> (its Save button is a plain onClick, not a submit), so HTML5 validation never
+// runs there -- this is the one place both the create and edit paths actually get checked.
 function validate(values: FormValues): string | null {
   if (!values.title.trim()) return 'Title is required.'
   if (!Number.isInteger(values.seasonYear)) return 'Season Year must be a whole number.'
@@ -37,6 +49,12 @@ function validate(values: FormValues): string | null {
   // instead of a raw Postgres error.
   if (!values.youtubeUrl.trim() && !values.spotifyUrl.trim()) {
     return 'Add a YouTube link, a Spotify link, or both.'
+  }
+  if (values.youtubeUrl.trim() && !isValidUrl(values.youtubeUrl.trim())) {
+    return 'YouTube URL is not a valid URL.'
+  }
+  if (values.spotifyUrl.trim() && !isValidUrl(values.spotifyUrl.trim())) {
+    return 'Spotify URL is not a valid URL.'
   }
   return null
 }
