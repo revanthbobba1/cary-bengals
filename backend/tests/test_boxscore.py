@@ -194,6 +194,24 @@ async def test_pre_game_payload_without_actual_lines_is_pending_not_bye(
     assert mccaffrey.stat_breakdown == {}
 
 
+async def test_points_with_empty_stats_are_not_labeled_dnp(live_payload: dict) -> None:
+    # Guard against hiding real points behind DNP if a line ever arrives with an empty stats map.
+    payload = json.loads(json.dumps(live_payload))
+    for matchup in payload["schedule"]:
+        for side in ("home", "away"):
+            for entry in matchup[side]["rosterForCurrentScoringPeriod"]["entries"]:
+                player = entry["playerPoolEntry"]["player"]
+                if player["fullName"] == "DeVonta Smith":
+                    actual = next(s for s in player["stats"] if s["statSourceId"] == 0)
+                    actual["appliedTotal"] = 3.5
+
+    result = await get_league_box_scores(_StubEspnClient(payload), season=2026)
+
+    smith = _player(result, "DeVonta Smith")
+    assert smith.points == 3.5
+    assert smith.availability is None
+
+
 async def test_bye_lookup_failure_degrades_to_pending_with_warning(live_payload: dict) -> None:
     client = _StubEspnClient(live_payload, pro_teams_error=EspnRequestError("ESPN returned 500"))
 

@@ -15,6 +15,7 @@ roster.py via espn_labels.py, since both parse the identical ESPN entry shape (a
 plus a `playerPoolEntry.player`) -- only the points field and the warning message differ here.
 """
 
+import asyncio
 from datetime import UTC, datetime
 
 import httpx
@@ -55,7 +56,9 @@ def _availability(
     (the team played, the player didn't -- not always an injury); no actual line at all = either
     the NFL team is on bye or the game hasn't started, told apart only by the pro team's
     byeWeek (see _load_bye_teams)."""
-    if actual is not None and actual.stats:
+    # appliedTotal is a second signal, not just `stats`: real points must never be hidden behind
+    # a DNP label if a line ever arrives with points but an empty stats map.
+    if actual is not None and (actual.stats or actual.appliedTotal):
         return None
     if on_bye:
         return "bye"
@@ -66,30 +69,37 @@ def _availability(
     return "dnp" if actual is not None else "pending"
 
 
-async def _load_bye_teams(
-    espn: EspnClient, season: int, scoring_period: int | None, warnings: list[str]
-) -> set[int]:
-    """Pro team ids on bye in the scoring period. Best-effort: if this lookup fails, the box
-    score is still useful, so a would-be bye just reads as "pending" instead of failing the sync."""
-    if scoring_period is None:
-        return set()
+async def _fetch_pro_teams(espn: EspnClient, season: int) -> RawProTeamsResponse | str:
+    """NFL pro team data (for bye weeks), or a warning string if it couldn't be loaded.
+    Best-effort: the box score is still useful without it, so a would-be bye just reads as
+    "pending" instead of failing the sync. Never raises, so it can run alongside the league
+    fetch without masking that fetch's own errors."""
     try:
-        parsed = RawProTeamsResponse.model_validate(await espn.fetch_pro_teams(season))
+        return RawProTeamsResponse.model_validate(await espn.fetch_pro_teams(season))
     except (EspnRequestError, httpx.HTTPError, ValueError) as exc:
-        warnings.append(
-            f"Could not load NFL bye weeks ({type(exc).__name__}); byes show as pending"
-        )
-        return set()
-    return {team.id for team in parsed.settings.proTeams if team.byeWeek == scoring_period}
+        return f"Could not load NFL bye weeks ({type(exc).__name__}); byes show as pending"
 
 
 async def get_league_box_scores(espn: EspnClient, season: int) -> LeagueBoxScoresResponse:
-    raw = await espn.fetch_league(season, views=["mMatchupScore", "mLiveScoring"])
+    # Concurrent, not sequential: the two calls are independent, and this runs under a tight
+    # synchronous deadline (see lib/espn/client.ts).
+    raw, pro_teams = await asyncio.gather(
+        espn.fetch_league(season, views=["mMatchupScore", "mLiveScoring"]),
+        _fetch_pro_teams(espn, season),
+    )
     parsed = RawLeagueBoxScoresResponse.model_validate(raw)
 
     matchups: list[MatchupBoxScoreOut] = []
     warnings: list[str] = []
-    bye_teams = await _load_bye_teams(espn, season, parsed.scoringPeriodId, warnings)
+    bye_teams: set[int] = set()
+    if isinstance(pro_teams, str):
+        warnings.append(pro_teams)
+    elif parsed.scoringPeriodId is not None:
+        bye_teams = {
+            team.id
+            for team in pro_teams.settings.proTeams
+            if team.byeWeek == parsed.scoringPeriodId
+        }
 
     for matchup in parsed.schedule:
         # Same bye normalization as services/schedule.py: a one-sided entry is always reported as
