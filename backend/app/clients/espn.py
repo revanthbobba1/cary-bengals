@@ -54,3 +54,15 @@ class EspnClient:
             raise EspnRequestError(f"ESPN returned {response.status_code}: {response.text[:200]}")
 
         return response.json()
+
+    async def fetch_pro_teams(self, season: int) -> dict:
+        """NFL-wide pro team data (bye weeks, schedules). Not league-scoped, so it lives beside
+        fetch_league rather than going through it."""
+        response = await self._http.get(
+            f"{ESPN_BASE_URL}/seasons/{season}", params=[("view", "proTeamSchedules_wl")]
+        )
+
+        if response.is_error:
+            raise EspnRequestError(f"ESPN returned {response.status_code}: {response.text[:200]}")
+
+        return response.json()

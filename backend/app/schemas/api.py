@@ -3,6 +3,8 @@ raw ESPN JSON; these shapes are the only thing that leaves the service.
 
 Field descriptions/examples here feed the generated OpenAPI docs (/admin/api-docs on the site)."""
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 _FETCHED_AT = Field(
@@ -145,6 +147,22 @@ class BoxScorePlayerOut(BaseModel):
     lineup_slot: str = _LINEUP_SLOT
     is_starter: bool = _IS_STARTER
     points: float = Field(description="Fantasy points scored this week.", examples=[21.4])
+    stat_breakdown: dict[str, float] = Field(
+        default_factory=dict,
+        description=(
+            "Non-zero counts for the stat categories worth showing, keyed by display label "
+            "(e.g. 'Passing Yards'). Empty if the player has no such stats."
+        ),
+        examples=[{"Passing Yards": 275.0, "Passing TDs": 2.0}],
+    )
+    availability: Literal["bye", "ir", "out", "dnp", "pending"] | None = Field(
+        default=None,
+        description=(
+            "Why the player has no stat line, or null if they played. bye: NFL team is on bye. "
+            "ir: in an IR slot. out: ESPN injury status OUT. dnp: team played but the player "
+            "didn't. pending: no stat line yet and not a bye (game hasn't started)."
+        ),
+    )
 
 
 class MatchupBoxScoreOut(BaseModel):

@@ -2,6 +2,8 @@
 // and ESPN_SERVICE_TOKEN carry no NEXT_PUBLIC_ prefix and this module is only ever imported from
 // Server Actions, so it never reaches the client bundle. See docs/ESPN_INTEGRATION_PLAN.md §6.
 
+import type { PlayerAvailability } from '@/lib/types/matchup'
+
 export interface EspnTeamRecord {
   wins: number
   losses: number
@@ -128,6 +130,8 @@ export async function fetchEspnSchedule(season: number): Promise<EspnLeagueSched
 // hand-copied field list, so the two don't silently drift apart.
 export type EspnBoxScorePlayer = EspnRosterPlayer & {
   points: number
+  stat_breakdown: Record<string, number>
+  availability: PlayerAvailability | null
 }
 
 export interface EspnMatchupBoxScore {

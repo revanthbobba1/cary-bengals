@@ -3,6 +3,19 @@
     "schemas": {
       "BoxScorePlayerOut": {
         "properties": {
+          "availability": {
+            "anyOf": [
+              {
+                "enum": ["bye", "ir", "out", "dnp", "pending"],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why the player has no stat line, or null if they played. bye: NFL team is on bye. ir: in an IR slot. out: ESPN injury status OUT. dnp: team played but the player didn't. pending: no stat line yet and not a bye (game hasn't started).",
+            "title": "Availability"
+          },
           "is_starter": {
             "description": "True unless the slot is Bench or IR.",
             "title": "Is Starter",
@@ -36,6 +49,20 @@
             "examples": ["CIN"],
             "title": "Pro Team",
             "type": "string"
+          },
+          "stat_breakdown": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "description": "Non-zero counts for the stat categories worth showing, keyed by display label (e.g. 'Passing Yards'). Empty if the player has no such stats.",
+            "examples": [
+              {
+                "Passing TDs": 2.0,
+                "Passing Yards": 275.0
+              }
+            ],
+            "title": "Stat Breakdown",
+            "type": "object"
           }
         },
         "required": ["name", "position", "pro_team", "lineup_slot", "is_starter", "points"],
