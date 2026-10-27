@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Request
 
 from app.clients.espn import EspnClient
+from app.routers.docs import V1_RESPONSES, Season
 from app.schemas.api import LeagueScheduleResponse
 from app.security import verify_service_token
 from app.services.schedule import get_league_schedule
@@ -8,8 +9,21 @@ from app.services.schedule import get_league_schedule
 router = APIRouter(prefix="/v1", tags=["schedule"], dependencies=[Depends(verify_service_token)])
 
 
-@router.get("/league/{season}/schedule", response_model=LeagueScheduleResponse)
-async def get_schedule(season: int, request: Request) -> LeagueScheduleResponse:
+@router.get(
+    "/league/{season}/schedule",
+    response_model=LeagueScheduleResponse,
+    summary="List season schedule and scores",
+    description=(
+        "Every matchup for every week with scores. For the in-progress week, scores are the "
+        "live running total and projected score / win probability are populated; for other "
+        "weeks those are null.\n\n"
+        "A playoff bye (only one team in the entry) is returned with `is_bye` true; the present "
+        "team is reported as home and the away fields are null.\n\n"
+        "**Not cached** -- polled every ~10 minutes during live games."
+    ),
+    responses=V1_RESPONSES,
+)
+async def get_schedule(season: Season, request: Request) -> LeagueScheduleResponse:
     espn: EspnClient = request.app.state.espn_client
 
     # No caching here, same reasoning as /rosters, even stronger: a cron hitting this every

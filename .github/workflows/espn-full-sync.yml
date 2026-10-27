@@ -1,13 +1,10 @@
 name: ESPN full sync (daily)
 
-# Waiver-driven daily refresh -- this league processes waiver claims most days, and until now
-# that was only ever caught by a commissioner remembering to click "Refresh ESPN Data." 8am ET is
-# a placeholder giving overnight waiver processing a comfortable margin; easy to adjust once real
-# waiver-processing timing for this league is confirmed. See docs/ESPN_INTEGRATION_PLAN.md's
-# Phase 8c-cron notes.
+# Manual trigger only. The scheduled run (8am ET Tue-Fri, waiver-driven daily refresh) is the
+# Netlify scheduled function netlify/functions/espn-full-sync.mts -- GitHub's `schedule` trigger
+# started it ~4.5 hours late (see docs/ESPN_INTEGRATION_PLAN.md's Phase 8c-cron notes). Kept so a
+# commissioner can force a full refresh from the Actions tab.
 on:
-  schedule:
-    - cron: '0 12 * * 2,3,4,5' # 8:00am ET Tue-Fri (EDT; ~7am once EST begins)
   workflow_dispatch: {}
 
 jobs:

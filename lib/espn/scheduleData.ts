@@ -72,7 +72,7 @@ export async function loadScheduleData(seasonYear: number): Promise<ScheduleData
     const { data: playerScores, error: playerScoresError } = await supabase
       .from('matchup_player_scores')
       .select(
-        'id, matchup_id, team_side, player_name, position, pro_team, lineup_slot, is_starter, points, sort_order'
+        'id, matchup_id, team_side, player_name, position, pro_team, lineup_slot, is_starter, points, sort_order, stat_breakdown, availability'
       )
       .in(
         'matchup_id',
@@ -94,6 +94,8 @@ export async function loadScheduleData(seasonYear: number): Promise<ScheduleData
           lineup_slot: row.lineup_slot,
           is_starter: row.is_starter,
           points: row.points,
+          stat_breakdown: row.stat_breakdown ?? {},
+          availability: row.availability,
           sort_order: row.sort_order,
         })
         playerScoresByMatchupAndSide.set(key, group)

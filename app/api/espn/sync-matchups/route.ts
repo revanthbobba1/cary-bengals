@@ -1,7 +1,7 @@
-// Called by .github/workflows/espn-matchup-sync.yml every ~10 minutes during live NFL game
-// windows -- see docs/ESPN_INTEGRATION_PLAN.md's Phase 8c-cron notes for the cron schedule and
-// the cold-start handling (absorbed in the workflow, not here -- this handler assumes an
-// already-warm backend and is bound by Netlify's sync-function timeout).
+// Called by netlify/functions/espn-matchup-sync.mts every ~10 minutes during live NFL game
+// windows (and manually via .github/workflows/espn-matchup-sync.yml) -- see
+// docs/ESPN_INTEGRATION_PLAN.md's Phase 8c-cron notes for the schedule and cold-start handling.
+// This handler assumes a warm backend and is bound by Netlify's sync-function timeout.
 //
 // No revalidatePath() call: /schedule is force-dynamic (see docs/NETLIFY_DEPLOYMENT.md's "Page
 // Caching and Freshness"), so there is nothing cached to invalidate.

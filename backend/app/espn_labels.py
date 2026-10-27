@@ -61,6 +61,44 @@ PRO_TEAMS = {
 }
 
 
+# Per-category stat ids worth showing under a player. Each was verified against a live capture by
+# checking raw count x this league's scoring rule == the matching appliedStats points, across
+# 17-101 players per id (fumbles lost: matches the community list, seen on QB/RB/WR/TE).
+# Kicker ids were checked the same way (XP made, FG missed) plus FG yards (214) against the FG
+# distance buckets (e.g. one 50+ FG = 50 yds, two = 115). D/ST ids: sacks/INT/fumble recoveries
+# score at a flat rate; points allowed (120) and yards allowed (127) were checked against the
+# scoring bracket each team's value landed in. Ids that never appeared in the capture (return
+# TDs, safeties, blocked kicks) are deliberately absent. Not position-restricted: whatever of
+# these a player has a non-zero value for is shown.
+STAT_IDS = {
+    3: "Passing Yards",
+    4: "Passing TDs",
+    20: "INT",
+    24: "Rushing Yards",
+    25: "Rushing TDs",
+    42: "Receiving Yards",
+    43: "Receiving TDs",
+    53: "Receptions",
+    72: "Fumbles Lost",
+    83: "Field Goals",
+    214: "FG Yards",
+    85: "FG Missed",
+    86: "Extra Points",
+    99: "Sacks",
+    95: "Def INT",
+    96: "Fumble Recoveries",
+    120: "Points Allowed",
+    127: "Yards Allowed",
+}
+
+
+def label_stat_breakdown(stats: dict[str, float]) -> dict[str, float]:
+    """Labeled, non-zero subset of a player's raw ESPN stat counts."""
+    return {
+        label: value for stat_id, label in STAT_IDS.items() if (value := stats.get(str(stat_id)))
+    }
+
+
 @dataclass
 class LabeledPlayer:
     name: str

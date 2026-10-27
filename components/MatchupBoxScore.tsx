@@ -3,14 +3,59 @@
 import { useMemo } from 'react'
 import { compareBench, compareStarters, isOnIR } from '@/lib/espn/lineupSort'
 import IRBadge from '@/components/IRBadge'
+import PlayerStatusBadge from '@/components/PlayerStatusBadge'
+import { formatStatBreakdown } from '@/lib/espn/statDisplay'
 import { useChangeFlash } from '@/lib/hooks/useChangeFlash'
 import type { MatchupPlayerScore } from '@/lib/types/matchup'
 
 interface Props {
   homeName: string
   awayName: string
+  // A bye has no away side, ever -- away is permanently null there even though home's box score
+  // is real, so that can't be treated as "not synced yet" like it is for a normal matchup.
+  isBye?: boolean
   home: MatchupPlayerScore[] | null
   away: MatchupPlayerScore[] | null
+}
+
+// What replaces the points number for a player with no stat line. IR renders nothing here: bench
+// rows already show the IR pill, and an IR player can't be a starter.
+function Availability({ player }: { player: MatchupPlayerScore }) {
+  switch (player.availability) {
+    case 'bye':
+      return <span className="font-mono text-xs">BYE</span>
+    case 'out':
+      return <PlayerStatusBadge label="OUT" />
+    case 'dnp':
+      return <span className="font-mono text-xs">DNP</span>
+    case 'pending':
+      return <span className="font-mono">-</span>
+    default:
+      return null
+  }
+}
+
+function PlayerLine({
+  player,
+  children,
+}: {
+  player: MatchupPlayerScore
+  children: React.ReactNode
+}) {
+  const statLine = formatStatBreakdown(player.stat_breakdown)
+  return (
+    <li className="flex items-center justify-between gap-4">
+      <span className="min-w-0">
+        <span className="block truncate">{player.player_name}</span>
+        {statLine && (
+          <span className="block truncate text-xs text-gray-400 dark:text-gray-500">
+            {statLine}
+          </span>
+        )}
+      </span>
+      {children}
+    </li>
+  )
 }
 
 function PlayerList({ players }: { players: MatchupPlayerScore[] }) {
@@ -41,13 +86,16 @@ function PlayerList({ players }: { players: MatchupPlayerScore[] }) {
           </h5>
           <ul className="mb-3 space-y-1 text-sm">
             {starters.map((p) => (
-              <li key={p.id} className="flex items-center justify-between gap-4">
-                <span className="truncate text-ink dark:text-gray-100">{p.player_name}</span>
+              <PlayerLine key={p.id} player={p}>
                 <span className="flex shrink-0 items-center gap-2 whitespace-nowrap text-gray-500 dark:text-gray-400">
                   {p.lineup_slot}
-                  <span className={pointsClass(p.id)}>{p.points.toFixed(1)}</span>
+                  {p.availability ? (
+                    <Availability player={p} />
+                  ) : (
+                    <span className={pointsClass(p.id)}>{p.points.toFixed(1)}</span>
+                  )}
                 </span>
-              </li>
+              </PlayerLine>
             ))}
           </ul>
         </>
@@ -60,14 +108,17 @@ function PlayerList({ players }: { players: MatchupPlayerScore[] }) {
           </h5>
           <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
             {bench.map((p) => (
-              <li key={p.id} className="flex items-center justify-between gap-4">
-                <span className="truncate">{p.player_name}</span>
+              <PlayerLine key={p.id} player={p}>
                 <span className="flex shrink-0 items-center gap-2 whitespace-nowrap">
                   {p.position}
                   {isOnIR(p.lineup_slot) && <IRBadge />}
-                  <span className={pointsClass(p.id)}>{p.points.toFixed(1)}</span>
+                  {p.availability ? (
+                    <Availability player={p} />
+                  ) : (
+                    <span className={pointsClass(p.id)}>{p.points.toFixed(1)}</span>
+                  )}
                 </span>
-              </li>
+              </PlayerLine>
             ))}
           </ul>
         </>
@@ -76,7 +127,24 @@ function PlayerList({ players }: { players: MatchupPlayerScore[] }) {
   )
 }
 
-export default function MatchupBoxScore({ homeName, awayName, home, away }: Props) {
+export default function MatchupBoxScore({ homeName, awayName, isBye = false, home, away }: Props) {
+  if (isBye) {
+    if (home === null) {
+      return (
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          On bye this week. No player breakdown yet.
+        </p>
+      )
+    }
+    return (
+      <div>
+        <h4 className="mb-1 text-sm font-semibold text-ink dark:text-gray-100">{homeName}</h4>
+        <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">On bye this week</p>
+        <PlayerList players={home} />
+      </div>
+    )
+  }
+
   if (home === null || away === null) {
     return (
       <p className="text-sm text-gray-600 dark:text-gray-400">No player breakdown for this week.</p>
