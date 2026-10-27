@@ -1,10 +1,30 @@
-import projectsData from '@/data/projectsData'
-import Card from '@/components/Card'
+import PressConferencesList from '@/components/PressConferencesList'
+import { getPressConferences } from '@/lib/supabase/pressConferences'
 import { genPageMetadata } from 'app/seo'
 
-export const metadata = genPageMetadata({ title: 'Projects' })
+// Rendered on every request -- same reasoning as app/articles/page.tsx: an admin write here has
+// no cache-purge path (revalidatePath() doesn't reliably clear Netlify's cache, see
+// docs/NETLIFY_DEPLOYMENT.md), so a newly-added press conference could otherwise stay missing.
+export const dynamic = 'force-dynamic'
 
-export default function Projects() {
+export const metadata = genPageMetadata({ title: 'Press Conferences' })
+
+// Reading `searchParams` opts this route into dynamic rendering and keeps the season filter
+// resolvable on the server, same reasoning as app/articles/page.tsx's identical signature.
+export default async function Conferences({
+  searchParams,
+}: {
+  searchParams: { season?: string | string[] }
+}) {
+  let conferences: Awaited<ReturnType<typeof getPressConferences>> = []
+  let loadError = false
+  try {
+    conferences = await getPressConferences()
+  } catch (error) {
+    console.error('Failed to load press conferences:', error)
+    loadError = true
+  }
+
   return (
     <>
       <div className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -14,17 +34,16 @@ export default function Projects() {
           </h1>
         </div>
         <div className="container py-12">
-          <div className="-m-4 flex flex-wrap">
-            {projectsData.map((d) => (
-              <Card
-                key={d.title}
-                title={d.title}
-                description={d.description}
-                imgSrc={d.imgSrc}
-                href={d.href}
-              />
-            ))}
-          </div>
+          {loadError ? (
+            <p className="text-gray-500 dark:text-gray-400">
+              Couldn&apos;t load press conferences right now — try refreshing the page.
+            </p>
+          ) : (
+            <PressConferencesList
+              conferences={conferences}
+              season={typeof searchParams.season === 'string' ? Number(searchParams.season) : NaN}
+            />
+          )}
         </div>
       </div>
     </>
