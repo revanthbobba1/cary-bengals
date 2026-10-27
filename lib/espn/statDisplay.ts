@@ -14,6 +14,15 @@ const STAT_DISPLAY: Array<[label: string, short: string]> = [
   ['Receiving Yards', 'rec yds'],
   ['Receiving TDs', 'rec TD'],
   ['Fumbles Lost', 'fum'],
+  ['Field Goals', 'FG'],
+  ['FG Yards', 'FG yds'],
+  ['FG Missed', 'FG miss'],
+  ['Extra Points', 'XP'],
+  ['Sacks', 'sacks'],
+  ['Def INT', 'def INT'],
+  ['Fumble Recoveries', 'fum rec'],
+  ['Points Allowed', 'pts allowed'],
+  ['Yards Allowed', 'yds allowed'],
 ]
 
 // e.g. "321 pass yds · 2 pass TD · 1 INT". Empty string when there's nothing to show.
