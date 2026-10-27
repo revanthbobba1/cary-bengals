@@ -48,7 +48,6 @@ Pliny provides analytics wrappers, comments, newsletter components, command-pale
 content utilities. The main configuration files are:
 
 - `data/siteMetadata.js` — site title, URLs, analytics, comments, search, and newsletter settings
-- `data/projectsData.ts` — press conference entries
 - `data/headerNavLinks.ts` — navigation items
 - `contentlayer.config.ts` — MDX processing and document definitions
 - `css/tailwind.css` and `tailwind.config.js` — application styling
@@ -69,7 +68,8 @@ Login failures should remain generic to avoid user enumeration.
 
 - New league members are author files under `data/authors/` with required `name` and optional
   `avatar`, `team`, `email`, `twitter`, `linkedin`, and `github` fields.
-- Press conference entries belong in `data/projectsData.ts`.
+- Press conference entries are Supabase-backed (`press_conferences` table); a commissioner adds
+  them from `/admin/commissioner`, not by editing a file. `data/projectsData.ts` no longer exists.
 - Current poll rankings and team metadata belong in Supabase; do not treat legacy
   `data/pollData.ts` as the current poll source of truth.
 - New article work belongs in the Supabase-backed article workflow and should preserve stable

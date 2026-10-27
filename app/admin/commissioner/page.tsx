@@ -4,6 +4,7 @@ import { isCommissioner } from '@/lib/supabase/roles'
 import PollWeekManager from '@/components/PollWeekManager'
 import EspnTeamSync from '@/components/EspnTeamSync'
 import EspnDataRefresh from '@/components/EspnDataRefresh'
+import PressConferenceManager from '@/components/PressConferenceManager'
 import AdminSubNav from '@/components/AdminSubNav'
 
 export default async function CommissionerToolsPage() {
@@ -36,6 +37,13 @@ export default async function CommissionerToolsPage() {
   // this table will never realistically be large enough to need pagination.
   const { data: pollWeeks } = await supabase
     .from('poll_weeks')
+    .select('*')
+    .order('season_year', { ascending: false })
+    .order('week_number', { ascending: false })
+
+  // Same "no limit, filter client-side" reasoning as pollWeeks above.
+  const { data: pressConferences } = await supabase
+    .from('press_conferences')
     .select('*')
     .order('season_year', { ascending: false })
     .order('week_number', { ascending: false })
@@ -81,6 +89,16 @@ export default async function CommissionerToolsPage() {
             Poll Weeks
           </h2>
           <PollWeekManager existingWeeks={pollWeeks || []} now={new Date().toISOString()} />
+        </section>
+
+        <section aria-labelledby="press-conferences-section-heading">
+          <h2
+            id="press-conferences-section-heading"
+            className="mb-4 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"
+          >
+            Press Conferences
+          </h2>
+          <PressConferenceManager existingConferences={pressConferences || []} />
         </section>
       </div>
     </div>
