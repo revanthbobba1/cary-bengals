@@ -8,4 +8,6 @@ export interface RosterPlayer {
   is_starter: boolean
   sort_order: number
   synced_at: string
+  injured: boolean
+  acquisition_type: string | null
 }

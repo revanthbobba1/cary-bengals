@@ -8,7 +8,12 @@ import { loadScheduleData, type ScheduleData } from '@/lib/espn/scheduleData'
 import MatchupList from '@/components/MatchupList'
 import siteMetadata from '@/data/siteMetadata'
 
-const emptyScheduleData: ScheduleData = { currentWeek: null, teamNameById: {}, matchups: [] }
+const emptyScheduleData: ScheduleData = {
+  currentWeek: null,
+  teamNameById: {},
+  teamLogoById: {},
+  matchups: [],
+}
 
 export default async function AdminPollPage() {
   const supabase = createClient()
@@ -148,7 +153,11 @@ export default async function AdminPollPage() {
           <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
             Last Week&apos;s Matchups (Week {previousNflWeek})
           </h2>
-          <MatchupList matchups={previousWeekMatchups} teamNameById={scheduleData.teamNameById} />
+          <MatchupList
+            matchups={previousWeekMatchups}
+            teamNameById={scheduleData.teamNameById}
+            teamLogoById={scheduleData.teamLogoById}
+          />
         </div>
       )}
 

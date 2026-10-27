@@ -67,6 +67,7 @@ function localResults(year: number, week: number): PollResultWithTeam[] {
           espn_team_id: null,
           espn_owner_id: null,
           espn_synced_at: null,
+          espn_logo_url: null,
           wins: Math.max(0, week - (rank % 4)),
           losses: rank % 4,
           ties: 0,

@@ -4,11 +4,31 @@ import { useEffect, useState } from 'react'
 import { focusRingClasses } from '@/lib/focusRing'
 import { compareBench, compareStarters, isOnIR } from '@/lib/espn/lineupSort'
 import IRBadge from '@/components/IRBadge'
+import PlayerStatusBadge from '@/components/PlayerStatusBadge'
 import type { RosterPlayer } from '@/lib/types/roster'
 
 interface Props {
   teamName: string
   players: RosterPlayer[]
+}
+
+// A native `title` attribute, not a visible label -- the commissioner can see how a player
+// joined the roster on hover, but it's trivia, not worth a badge everyone sees by default.
+// DRAFT/ADD are the only values observed in a real captured league; falls back to the raw ESPN
+// value for anything else (e.g. TRADE) rather than hiding it.
+function acquisitionTooltip(acquisitionType: string | null): string | undefined {
+  switch (acquisitionType) {
+    case 'DRAFT':
+      return 'Drafted'
+    case 'ADD':
+      return 'Added from waivers/free agency'
+    case 'TRADE':
+      return 'Acquired via trade'
+    case null:
+      return undefined
+    default:
+      return `Acquired via ${acquisitionType}`
+  }
 }
 
 export default function RosterModal({ teamName, players }: Props) {
@@ -72,10 +92,15 @@ export default function RosterModal({ teamName, players }: Props) {
                 </h4>
                 <ul className="mb-4 space-y-1 text-sm">
                   {starters.map((p) => (
-                    <li key={p.id} className="flex items-center justify-between gap-4">
+                    <li
+                      key={p.id}
+                      className="flex items-center justify-between gap-4"
+                      title={acquisitionTooltip(p.acquisition_type)}
+                    >
                       <span className="text-ink dark:text-gray-100">{p.player_name}</span>
-                      <span className="whitespace-nowrap text-gray-500 dark:text-gray-400">
+                      <span className="flex items-center gap-1.5 whitespace-nowrap text-gray-500 dark:text-gray-400">
                         {p.lineup_slot} · {p.pro_team}
+                        {p.injured && <PlayerStatusBadge label="INJ" />}
                       </span>
                     </li>
                   ))}
@@ -90,11 +115,19 @@ export default function RosterModal({ teamName, players }: Props) {
                 </h4>
                 <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
                   {bench.map((p) => (
-                    <li key={p.id} className="flex items-center justify-between gap-4">
+                    <li
+                      key={p.id}
+                      className="flex items-center justify-between gap-4"
+                      title={acquisitionTooltip(p.acquisition_type)}
+                    >
                       <span>{p.player_name}</span>
                       <span className="flex items-center gap-1.5 whitespace-nowrap">
                         {p.position} · {p.pro_team}
-                        {isOnIR(p.lineup_slot) && <IRBadge />}
+                        {isOnIR(p.lineup_slot) ? (
+                          <IRBadge />
+                        ) : (
+                          p.injured && <PlayerStatusBadge label="INJ" />
+                        )}
                       </span>
                     </li>
                   ))}

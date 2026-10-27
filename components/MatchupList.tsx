@@ -11,15 +11,44 @@ interface Props {
   // A plain object, not a Map -- /schedule's week browser is a Client Component, and a Map
   // doesn't survive serialization across the Server-to-Client boundary.
   teamNameById: Record<string, string>
+  // Null for a team with no logo set in ESPN -- not every owner picks one.
+  teamLogoById: Record<string, string | null>
   // Default false: /admin/poll's "last week's matchups" preview is a quick glance while ranking,
   // not a play-by-play view, so it renders plain rows. Only /schedule opts in.
   allowExpand?: boolean
 }
 
+// Small enough to sit inline with the team name without dominating the row; hidden outright on
+// load failure (a dead/changed ESPN URL) rather than showing a broken-image icon -- the name text
+// next to it already carries the real information.
+function TeamLogo({ src }: { src: string | null }) {
+  if (!src) return null
+  return (
+    // External ESPN-hosted logos (often SVG) aren't a fit for next/image's optimizer, which
+    // also requires allowlisting every source domain for something purely decorative.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt=""
+      width={20}
+      height={20}
+      className="h-5 w-5 shrink-0 rounded-full object-contain"
+      onError={(e) => {
+        e.currentTarget.style.display = 'none'
+      }}
+    />
+  )
+}
+
 // Rendered by /schedule (one week at a time, via ScheduleWeekBrowser) and /admin/poll's "last
 // week's matchups" preview -- same row shape in both places; the parent decides which matchups to
 // pass in.
-export default function MatchupList({ matchups, teamNameById, allowExpand = false }: Props) {
+export default function MatchupList({
+  matchups,
+  teamNameById,
+  teamLogoById,
+  allowExpand = false,
+}: Props) {
   const [expandedMatchupId, setExpandedMatchupId] = useState<string | null>(null)
 
   // Keyed on both scores together (not summed, so an equal-and-opposite change on each side still
@@ -68,9 +97,10 @@ export default function MatchupList({ matchups, teamNameById, allowExpand = fals
                 true midpoint instead of drifting toward whichever side has the shorter name. */}
             <div className="min-w-0 flex-1">
               <p
-                className={`truncate text-base ${homeWon ? 'font-semibold text-ink dark:text-gray-100' : 'text-gray-600 dark:text-gray-400'}`}
+                className={`flex items-center gap-1.5 truncate text-base ${homeWon ? 'font-semibold text-ink dark:text-gray-100' : 'text-gray-600 dark:text-gray-400'}`}
               >
-                {homeName}
+                <TeamLogo src={teamLogoById[matchup.home_team_id] ?? null} />
+                <span className="truncate">{homeName}</span>
               </p>
               {matchup.home_win_probability != null && (
                 <p className="text-xs text-gray-400 dark:text-gray-500">
@@ -98,9 +128,14 @@ export default function MatchupList({ matchups, teamNameById, allowExpand = fals
               {/* An explicit label, not the 'Unknown team' fallback -- that's indistinguishable
                   from a real data error. */}
               <p
-                className={`truncate text-base ${awayWon ? 'font-semibold text-ink dark:text-gray-100' : 'text-gray-600 dark:text-gray-400'}`}
+                className={`flex items-center justify-end gap-1.5 truncate text-base ${awayWon ? 'font-semibold text-ink dark:text-gray-100' : 'text-gray-600 dark:text-gray-400'}`}
               >
-                {matchup.is_bye ? 'BYE' : awayName}
+                <span className="truncate">{matchup.is_bye ? 'BYE' : awayName}</span>
+                {!matchup.is_bye && (
+                  <TeamLogo
+                    src={matchup.away_team_id ? (teamLogoById[matchup.away_team_id] ?? null) : null}
+                  />
+                )}
               </p>
               {matchup.away_win_probability != null && (
                 <p className="text-xs text-gray-400 dark:text-gray-500">

@@ -10,10 +10,13 @@ interface Props {
   children: ReactNode
   content: Omit<Authors, '_id' | '_raw' | 'body'>
   team?: string
+  // Null for a team with no logo set in ESPN (not every owner picks one); undefined when there's
+  // no team match at all, same as `team` itself.
+  teamLogo?: string | null
   roster?: RosterPlayer[]
 }
 
-export default function AuthorLayout({ children, content, team, roster }: Props) {
+export default function AuthorLayout({ children, content, team, teamLogo, roster }: Props) {
   const { name, avatar, company, email, twitter, linkedin, github } = content
 
   return (
@@ -31,7 +34,22 @@ export default function AuthorLayout({ children, content, team, roster }: Props)
       <h3 className="pb-1.5 pt-5 text-center text-2xl font-bold tracking-tight text-ink dark:text-gray-100">
         {name}
       </h3>
-      <div className="text-center text-base text-gray-500 dark:text-gray-400">
+      <div className="flex items-center justify-center gap-1.5 text-center text-base text-gray-500 dark:text-gray-400">
+        {teamLogo && (
+          // External ESPN-hosted logo (often SVG), not a fit for next/image's optimizer for
+          // something purely decorative.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={teamLogo}
+            alt=""
+            width={20}
+            height={20}
+            className="h-5 w-5 shrink-0 rounded-full object-contain"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none'
+            }}
+          />
+        )}
         {team ?? `Team ${name.split(' ')[0]}`}
       </div>
       {roster && roster.length > 0 && (

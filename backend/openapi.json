@@ -417,6 +417,25 @@
       },
       "RosterPlayerOut": {
         "properties": {
+          "acquisition_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "How this player joined the roster, passed through from ESPN (e.g. DRAFT, ADD, TRADE). Null if unknown.",
+            "examples": ["DRAFT"],
+            "title": "Acquisition Type"
+          },
+          "injured": {
+            "default": false,
+            "description": "True if ESPN currently flags this player as injured.",
+            "title": "Injured",
+            "type": "boolean"
+          },
           "is_starter": {
             "description": "True unless the slot is Bench or IR.",
             "title": "Is Starter",
@@ -468,6 +487,21 @@
             "description": "ESPN's numeric team ID, stable within a season.",
             "title": "Espn Team Id",
             "type": "integer"
+          },
+          "logo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Team logo image URL, if the owner set one.",
+            "examples": [
+              "https://g.espncdn.com/lm-static/logo-packs/ffl/SamplePack-TeamLogo/bears-06.svg"
+            ],
+            "title": "Logo"
           },
           "name": {
             "description": "Team name, sanitized.",

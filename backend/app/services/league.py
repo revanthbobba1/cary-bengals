@@ -48,6 +48,7 @@ async def get_league_teams(espn: EspnClient, season: int) -> LeagueTeamsResponse
                     losses=team.record.overall.losses,
                     ties=team.record.overall.ties,
                 ),
+                logo=team.logo,
             )
         )
 

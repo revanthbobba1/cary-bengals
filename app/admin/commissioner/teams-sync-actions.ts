@@ -119,6 +119,7 @@ interface SyncEspnTeamsPayloadItem {
   espn_team_id: number
   espn_owner_id: string | null
   owner_name: string | null
+  logo: string | null
 }
 
 interface SyncEspnTeamsResultRow {
@@ -163,6 +164,7 @@ export async function commitEspnTeamSyncAction(
         espn_team_id: espnTeam.espn_team_id,
         espn_owner_id: espnTeam.espn_owner_id,
         owner_name: pairing.acceptOwnerName ? espnTeam.owner_display_name : null,
+        logo: espnTeam.logo,
       })
     }
 

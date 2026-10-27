@@ -43,6 +43,9 @@ class RawTeam(BaseModel):
     owners: list[str] = []
     primaryOwner: str | None = None
     record: RawRecord
+    # A real per-team image URL (ESPN logo-pack or a custom upload), not a shared placeholder --
+    # confirmed across all 12 teams in a real captured league.
+    logo: str | None = None
 
 
 class RawLeagueResponse(BaseModel):
@@ -66,6 +69,9 @@ class RawRosterPlayer(BaseModel):
     fullName: str
     defaultPositionId: int
     proTeamId: int
+    # A plain boolean, not the richer `injuryStatus` string the box score's mLiveScoring view
+    # carries -- that field isn't present in mRoster at all.
+    injured: bool = False
 
 
 class RawPlayerPoolEntry(BaseModel):
@@ -79,6 +85,9 @@ class RawRosterEntry(BaseModel):
 
     lineupSlotId: int
     playerPoolEntry: RawPlayerPoolEntry
+    # DRAFT/ADD observed in a real captured league; TRADE expected but not yet seen. Kept as
+    # free text rather than hard-enumerated, same reasoning as matchups.winner's TIE case.
+    acquisitionType: str | None = None
 
 
 class RawRoster(BaseModel):

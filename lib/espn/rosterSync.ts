@@ -48,6 +48,8 @@ export async function syncRosters(
       pro_team: string
       lineup_slot: string
       is_starter: boolean
+      injured: boolean
+      acquisition_type: string | null
     }>
   }> = []
 
