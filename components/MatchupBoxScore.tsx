@@ -88,7 +88,7 @@ function PlayerList({ players }: { players: MatchupPlayerScore[] }) {
             {starters.map((p) => (
               <PlayerLine key={p.id} player={p}>
                 <span className="flex shrink-0 items-center gap-2 whitespace-nowrap text-gray-500 dark:text-gray-400">
-                  {p.lineup_slot}
+                  {p.lineup_slot} · {p.pro_team}
                   {p.availability ? (
                     <Availability player={p} />
                   ) : (
@@ -110,7 +110,7 @@ function PlayerList({ players }: { players: MatchupPlayerScore[] }) {
             {bench.map((p) => (
               <PlayerLine key={p.id} player={p}>
                 <span className="flex shrink-0 items-center gap-2 whitespace-nowrap">
-                  {p.position}
+                  {p.position} · {p.pro_team}
                   {isOnIR(p.lineup_slot) && <IRBadge />}
                   {p.availability ? (
                     <Availability player={p} />
