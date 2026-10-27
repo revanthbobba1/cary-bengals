@@ -1,8 +1,7 @@
-// Called by .github/workflows/espn-full-sync.yml once each Tuesday/Wednesday/Thursday morning --
-// this league processes waiver claims most days, and until now that was only ever caught by a
-// commissioner remembering to click "Refresh ESPN Data." See docs/ESPN_INTEGRATION_PLAN.md's
-// Phase 8c-cron notes for the full schedule and cold-start handling (absorbed in the workflow,
-// not here).
+// Called by netlify/functions/espn-full-sync.mts at 8am ET Tuesday through Friday (and manually via
+// .github/workflows/espn-full-sync.yml) -- this league processes waiver claims most days, and until
+// now that was only ever caught by a commissioner remembering to click "Refresh ESPN Data." See
+// docs/ESPN_INTEGRATION_PLAN.md's Phase 8c-cron notes for the schedule and cold-start handling.
 //
 // No revalidatePath() call: /league-members and /schedule are both force-dynamic (see
 // docs/NETLIFY_DEPLOYMENT.md's "Page Caching and Freshness"), so there is nothing cached to
