@@ -15,6 +15,7 @@ const POLL_INTERVAL_MS = 60_000
 interface Props {
   matchups: Matchup[]
   teamNameById: Record<string, string>
+  teamLogoById: Record<string, string | null>
   currentWeek: number | null
   // Already-validated from the page's `?week=` searchParam (null if absent/invalid) -- lets the
   // very first server-rendered HTML land on the right week with no flash, same as ArticlesList's
@@ -25,6 +26,7 @@ interface Props {
 export default function ScheduleWeekBrowser({
   matchups,
   teamNameById,
+  teamLogoById,
   currentWeek,
   initialWeek,
 }: Props) {
@@ -137,6 +139,7 @@ export default function ScheduleWeekBrowser({
         <MatchupList
           matchups={matchupsByWeek.get(selectedWeek) ?? []}
           teamNameById={teamNameById}
+          teamLogoById={teamLogoById}
           allowExpand
         />
       </section>

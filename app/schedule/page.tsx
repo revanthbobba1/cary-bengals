@@ -21,7 +21,9 @@ export default async function Page({
   // have no synced matchups (see ScheduleWeekBrowser's own comment).
   searchParams: { week?: string | string[] }
 }) {
-  const { currentWeek, teamNameById, matchups } = await loadScheduleData(siteMetadata.currentSeason)
+  const { currentWeek, teamNameById, teamLogoById, matchups } = await loadScheduleData(
+    siteMetadata.currentSeason
+  )
 
   // An explicit empty value (`?week=`) must not silently become week 0 -- `Number('')` is `0`,
   // not `NaN`, so it would otherwise pass straight through as if week 0 had been requested.
@@ -39,6 +41,7 @@ export default async function Page({
       <ScheduleWeekBrowser
         matchups={matchups}
         teamNameById={teamNameById}
+        teamLogoById={teamLogoById}
         currentWeek={currentWeek}
         initialWeek={initialWeek}
       />

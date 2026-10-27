@@ -26,7 +26,7 @@ export async function syncTeamNames(
 ): Promise<TeamNameSyncResult> {
   const { data: teams, error } = await supabase
     .from('teams')
-    .select('id, name, espn_team_id')
+    .select('id, name, espn_team_id, espn_logo_url')
     .eq('season_year', seasonYear)
     .not('espn_team_id', 'is', null)
 
@@ -46,6 +46,7 @@ export async function syncTeamNames(
     espn_team_id: number
     espn_owner_id: string | null
     owner_name: string | null
+    logo: string | null
   }> = []
 
   for (const team of teams) {
@@ -54,10 +55,11 @@ export async function syncTeamNames(
       warnings.push(`No ESPN team found for team ${team.id} (espn_team_id=${team.espn_team_id})`)
       continue
     }
-    // Only names that actually changed get written -- re-pairing the same espn_team_id every
+    // Only rows that actually changed get written -- re-pairing the same espn_team_id every
     // refresh is harmless to sync_espn_teams, but skipping unchanged rows keeps the result count
-    // meaningful ("3 names updated" rather than "12 teams touched, 9 of them no-ops").
-    if (espnTeam.name === team.name) continue
+    // meaningful ("3 teams updated" rather than "12 teams touched, 9 of them no-ops"). A team can
+    // change its logo without renaming, so both are checked, not just name.
+    if (espnTeam.name === team.name && espnTeam.logo === team.espn_logo_url) continue
 
     payload.push({
       db_team_id: team.id,
@@ -67,6 +69,7 @@ export async function syncTeamNames(
       // Owner-name acceptance is a judgment call (ESPN's display name is often a generated
       // username, per the pairing flow) -- a name refresh never touches it.
       owner_name: null,
+      logo: espnTeam.logo,
     })
   }
 

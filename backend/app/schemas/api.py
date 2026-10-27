@@ -54,6 +54,13 @@ class TeamOut(BaseModel):
     )
     owner_display_name: str | None = Field(description="Primary owner's ESPN display name, if any.")
     record: TeamRecordOut = Field(description="Overall regular-season record.")
+    logo: str | None = Field(
+        default=None,
+        description="Team logo image URL, if the owner set one.",
+        examples=[
+            "https://g.espncdn.com/lm-static/logo-packs/ffl/SamplePack-TeamLogo/bears-06.svg"
+        ],
+    )
 
 
 class LeagueTeamsResponse(BaseModel):
@@ -70,6 +77,17 @@ class RosterPlayerOut(BaseModel):
     pro_team: str = _PRO_TEAM
     lineup_slot: str = _LINEUP_SLOT
     is_starter: bool = _IS_STARTER
+    injured: bool = Field(
+        default=False, description="True if ESPN currently flags this player as injured."
+    )
+    acquisition_type: str | None = Field(
+        default=None,
+        description=(
+            "How this player joined the roster, passed through from ESPN "
+            "(e.g. DRAFT, ADD, TRADE). Null if unknown."
+        ),
+        examples=["DRAFT"],
+    )
 
 
 class TeamRosterOut(BaseModel):

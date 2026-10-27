@@ -16,6 +16,7 @@ export interface EspnTeam {
   espn_owner_id: string | null
   owner_display_name: string | null
   record: EspnTeamRecord
+  logo: string | null
 }
 
 export interface EspnLeagueTeamsResponse {
@@ -32,6 +33,8 @@ export interface EspnRosterPlayer {
   pro_team: string
   lineup_slot: string
   is_starter: boolean
+  injured: boolean
+  acquisition_type: string | null
 }
 
 export interface EspnTeamRoster {
@@ -126,9 +129,12 @@ export async function fetchEspnSchedule(season: number): Promise<EspnLeagueSched
   return fetchFromEspnService<EspnLeagueScheduleResponse>(`/v1/league/${season}/schedule`)
 }
 
-// Same shape as EspnRosterPlayer plus points -- kept structurally linked rather than a second
-// hand-copied field list, so the two don't silently drift apart.
-export type EspnBoxScorePlayer = EspnRosterPlayer & {
+// Same label shape as EspnRosterPlayer plus points -- kept structurally linked rather than a
+// second hand-copied field list, so the two don't silently drift apart. Excludes
+// injured/acquisition_type: those are roster-only (mRoster), never present on a box-score player
+// (mLiveScoring has no acquisitionType, and uses the richer injuryStatus string instead of this
+// boolean -- see BoxScorePlayerOut's own availability field).
+export type EspnBoxScorePlayer = Omit<EspnRosterPlayer, 'injured' | 'acquisition_type'> & {
   points: number
   stat_breakdown: Record<string, number>
   availability: PlayerAvailability | null
