@@ -46,6 +46,8 @@ async def get_league_rosters(espn: EspnClient, season: int) -> LeagueRostersResp
                     pro_team=labeled.pro_team,
                     lineup_slot=labeled.lineup_slot,
                     is_starter=labeled.is_starter,
+                    injured=player.injured,
+                    acquisition_type=entry.acquisitionType,
                 )
             )
 

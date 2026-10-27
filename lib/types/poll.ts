@@ -6,6 +6,7 @@ export interface Team {
   espn_team_id: number | null
   espn_owner_id: string | null
   espn_synced_at: string | null
+  espn_logo_url: string | null
   wins: number
   losses: number
   ties: number

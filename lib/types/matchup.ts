@@ -1,14 +1,19 @@
 import type { RosterPlayer } from '@/lib/types/roster'
 
 // Same per-player shape as RosterPlayer, minus the team-scoped fields (this is matchup-scoped
-// instead), plus points -- kept structurally linked via Omit/intersection rather than a second
-// hand-copied field list, so the two don't silently drift apart.
+// instead) and injured/acquisition_type (mRoster-only -- the box score's mLiveScoring view has
+// neither; it uses the richer availability field below instead), plus points -- kept
+// structurally linked via Omit/intersection rather than a second hand-copied field list, so the
+// two don't silently drift apart.
 // Why a player has no stat line (null = they played): bye = NFL team on bye, ir = IR slot,
 // out = ESPN injury status OUT, dnp = team played but the player didn't, pending = no line yet and
 // not a bye (game hasn't started). Derived in the ESPN service (backend/app/services/boxscore.py).
 export type PlayerAvailability = 'bye' | 'ir' | 'out' | 'dnp' | 'pending'
 
-export type MatchupPlayerScore = Omit<RosterPlayer, 'team_id' | 'synced_at'> & {
+export type MatchupPlayerScore = Omit<
+  RosterPlayer,
+  'team_id' | 'synced_at' | 'injured' | 'acquisition_type'
+> & {
   points: number
   // Already-labeled non-zero counts ({ "Passing Yards": 275 }). Key order is not preserved by
   // Postgres JSONB, so render via lib/espn/statDisplay.ts, never by iterating the object.

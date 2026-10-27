@@ -47,11 +47,12 @@ function PlayerLine({
     <li className="flex items-center justify-between gap-4">
       <span className="min-w-0">
         <span className="block truncate">{player.player_name}</span>
-        {statLine && (
-          <span className="block truncate text-xs text-gray-400 dark:text-gray-500">
-            {statLine}
-          </span>
-        )}
+        {/* Always rendered, even with no stats, so every row reserves the same two-line
+            height -- a player with a stat line (or an availability reason) otherwise sits
+            taller than one without, making the list look misaligned down the column. */}
+        <span className="block truncate text-xs text-gray-400 dark:text-gray-500">
+          {statLine || ' '}
+        </span>
       </span>
       {children}
     </li>
@@ -88,7 +89,7 @@ function PlayerList({ players }: { players: MatchupPlayerScore[] }) {
             {starters.map((p) => (
               <PlayerLine key={p.id} player={p}>
                 <span className="flex shrink-0 items-center gap-2 whitespace-nowrap text-gray-500 dark:text-gray-400">
-                  {p.lineup_slot}
+                  {p.lineup_slot} · {p.pro_team}
                   {p.availability ? (
                     <Availability player={p} />
                   ) : (
@@ -110,7 +111,7 @@ function PlayerList({ players }: { players: MatchupPlayerScore[] }) {
             {bench.map((p) => (
               <PlayerLine key={p.id} player={p}>
                 <span className="flex shrink-0 items-center gap-2 whitespace-nowrap">
-                  {p.position}
+                  {p.position} · {p.pro_team}
                   {isOnIR(p.lineup_slot) && <IRBadge />}
                   {p.availability ? (
                     <Availability player={p} />

@@ -17,6 +17,9 @@ export interface ScheduleData {
   // boundary (for the week selector's instant client-side switching), and a Map doesn't survive
   // that serialization.
   teamNameById: Record<string, string>
+  // Null for a team with no logo set in ESPN (not every owner picks one), same nullability as
+  // teams.espn_logo_url itself.
+  teamLogoById: Record<string, string | null>
   matchups: Matchup[]
 }
 
@@ -25,7 +28,7 @@ export async function loadScheduleData(seasonYear: number): Promise<ScheduleData
     !process.env.NEXT_PUBLIC_SUPABASE_URL ||
     process.env.NEXT_PUBLIC_SUPABASE_URL.includes('your-project-ref')
   ) {
-    return { currentWeek: null, teamNameById: {}, matchups: [] }
+    return { currentWeek: null, teamNameById: {}, teamLogoById: {}, matchups: [] }
   }
 
   const supabase = createPublicClient()
@@ -36,7 +39,7 @@ export async function loadScheduleData(seasonYear: number): Promise<ScheduleData
       .select('current_week')
       .eq('season_year', seasonYear)
       .maybeSingle(),
-    supabase.from('teams').select('id, name').eq('season_year', seasonYear),
+    supabase.from('teams').select('id, name, espn_logo_url').eq('season_year', seasonYear),
     supabase
       .from('matchups')
       .select('*')
@@ -56,8 +59,10 @@ export async function loadScheduleData(seasonYear: number): Promise<ScheduleData
   }
 
   const teamNameById: Record<string, string> = {}
+  const teamLogoById: Record<string, string | null> = {}
   for (const team of teamsResult.data ?? []) {
     teamNameById[team.id] = team.name
+    teamLogoById[team.id] = team.espn_logo_url
   }
 
   type SyncedMatchup = Omit<Matchup, 'home_player_scores' | 'away_player_scores'>
@@ -106,6 +111,7 @@ export async function loadScheduleData(seasonYear: number): Promise<ScheduleData
   return {
     currentWeek: scheduleStateResult.data?.current_week ?? null,
     teamNameById,
+    teamLogoById,
     matchups: matchups.map((matchup) => ({
       ...matchup,
       home_player_scores: playerScoresByMatchupAndSide.get(`${matchup.id}:home`) ?? null,

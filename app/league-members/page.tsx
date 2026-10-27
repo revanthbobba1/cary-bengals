@@ -19,7 +19,7 @@ function normalizeName(value: string) {
 }
 
 export default async function Page() {
-  const teamByOwner = new Map<string, { id: string; name: string }>()
+  const teamByOwner = new Map<string, { id: string; name: string; logo: string | null }>()
   const rosterByTeamId = new Map<string, RosterPlayer[]>()
   const currentSeason = siteMetadata.currentSeason
 
@@ -30,7 +30,7 @@ export default async function Page() {
     const supabase = createPublicClient()
     const { data: teams, error } = await supabase
       .from('teams')
-      .select('id, name, owner_name')
+      .select('id, name, owner_name, espn_logo_url')
       .eq('season_year', currentSeason)
 
     if (error) {
@@ -39,7 +39,7 @@ export default async function Page() {
       for (const team of teams ?? []) {
         const owner = normalizeName(team.owner_name)
         if (owner && !teamByOwner.has(owner)) {
-          teamByOwner.set(owner, { id: team.id, name: team.name })
+          teamByOwner.set(owner, { id: team.id, name: team.name, logo: team.espn_logo_url })
         }
       }
 
@@ -83,6 +83,7 @@ export default async function Page() {
               <AuthorLayout
                 content={mainContent}
                 team={teamInfo?.name}
+                teamLogo={teamInfo?.logo}
                 roster={teamInfo ? rosterByTeamId.get(teamInfo.id) : undefined}
               >
                 <MDXLayoutRenderer code={author.body.code} />
