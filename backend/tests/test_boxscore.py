@@ -164,6 +164,36 @@ async def test_live_fixture_stat_breakdown_matches_real_stat_lines(live_payload:
     }
 
 
+async def test_live_fixture_kicker_and_dst_stat_breakdown(live_payload: dict) -> None:
+    result = await get_league_box_scores(_StubEspnClient(live_payload), season=2026)
+
+    # Two 50+ yard field goals and one extra point.
+    assert _player(result, "Ka'imi Fairbairn").stat_breakdown == {
+        "Field Goals": 2.0,
+        "FG Yards": 115.0,
+        "Extra Points": 1.0,
+    }
+    # Two missed field goals, no makes -- a miss alone must still show.
+    assert _player(result, "Dominic Zvada").stat_breakdown == {
+        "FG Missed": 2.0,
+        "Extra Points": 3.0,
+    }
+    # Zero values (a shutout's 0 points allowed, no fumble recoveries) are omitted.
+    assert _player(result, "Seahawks D/ST").stat_breakdown == {
+        "Sacks": 1.0,
+        "Def INT": 1.0,
+        "Points Allowed": 3.0,
+        "Yards Allowed": 213.0,
+    }
+    assert _player(result, "Browns D/ST").stat_breakdown == {
+        "Sacks": 1.0,
+        "Def INT": 1.0,
+        "Fumble Recoveries": 1.0,
+        "Points Allowed": 24.0,
+        "Yards Allowed": 322.0,
+    }
+
+
 async def test_live_fixture_availability_states(live_payload: dict) -> None:
     result = await get_league_box_scores(_StubEspnClient(live_payload), season=2026)
     players = [p for m in result.matchups for p in m.players]
