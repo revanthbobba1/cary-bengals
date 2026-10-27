@@ -24,8 +24,14 @@ async def get_league_schedule(espn: EspnClient, season: int) -> LeagueScheduleRe
     warnings: list[str] = []
 
     for matchup in parsed.schedule:
-        if matchup.home is None or matchup.away is None:
-            warnings.append(f"Skipped matchup id={matchup.id}: missing a home or away team (bye?)")
+        # A playoff bye: ESPN sends the entry with only one side populated. Normalize whichever
+        # side is present into home (both observed instances had it in `home`, but nothing
+        # guarantees that), leaving the away fields null.
+        is_bye = matchup.home is None or matchup.away is None
+        home = matchup.home or matchup.away
+        away = None if is_bye else matchup.away
+        if home is None:
+            warnings.append(f"Skipped matchup id={matchup.id}: neither a home nor away team")
             continue
 
         matchups.append(
@@ -33,15 +39,16 @@ async def get_league_schedule(espn: EspnClient, season: int) -> LeagueScheduleRe
                 espn_matchup_id=matchup.id,
                 week=matchup.matchupPeriodId,
                 is_playoffs=matchup.playoffTierType != "NONE",
-                home_espn_team_id=matchup.home.teamId,
-                home_score=_team_score(matchup.home),
-                away_espn_team_id=matchup.away.teamId,
-                away_score=_team_score(matchup.away),
+                is_bye=is_bye,
+                home_espn_team_id=home.teamId,
+                home_score=_team_score(home),
+                away_espn_team_id=away.teamId if away else None,
+                away_score=_team_score(away) if away else None,
                 winner=matchup.winner,
-                home_projected_score=matchup.home.totalProjectedPoints,
-                away_projected_score=matchup.away.totalProjectedPoints,
-                home_win_probability=matchup.home.winProbability,
-                away_win_probability=matchup.away.winProbability,
+                home_projected_score=home.totalProjectedPoints,
+                away_projected_score=away.totalProjectedPoints if away else None,
+                home_win_probability=home.winProbability,
+                away_win_probability=away.winProbability if away else None,
             )
         )
 

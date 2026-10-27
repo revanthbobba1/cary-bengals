@@ -17,7 +17,8 @@ router = APIRouter(prefix="/v1", tags=["schedule"], dependencies=[Depends(verify
         "Every matchup for every week with scores. For the in-progress week, scores are the "
         "live running total and projected score / win probability are populated; for other "
         "weeks those are null.\n\n"
-        "A matchup missing a home or away team (a bye) is skipped and reported in `warnings`.\n\n"
+        "A playoff bye (only one team in the entry) is returned with `is_bye` true; the present "
+        "team is reported as home and the away fields are null.\n\n"
         "**Not cached** -- polled every ~10 minutes during live games."
     ),
     responses=V1_RESPONSES,

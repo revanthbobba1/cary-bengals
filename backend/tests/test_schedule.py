@@ -94,18 +94,52 @@ async def test_get_league_schedule_marks_playoffs(raw_payload: dict) -> None:
     assert all(m.is_playoffs is False for m in result.matchups[1:])
 
 
-async def test_get_league_schedule_skips_bye_matchup(raw_payload: dict) -> None:
-    # An odd team count (a future season) has ESPN omit one side of a matchup entirely rather
-    # than send a placeholder -- confirm that's skipped with a warning, not a hard failure for
-    # the whole response.
+async def test_get_league_schedule_maps_bye_matchup(raw_payload: dict) -> None:
+    # A playoff bye: ESPN sends the entry with `away` absent. It must still produce a row, with
+    # the present team as home and the away fields null.
     payload = json.loads(json.dumps(raw_payload))
     original_count = len(payload["schedule"])
+    home_team_id = payload["schedule"][0]["home"]["teamId"]
+    del payload["schedule"][0]["away"]
+
+    result = await get_league_schedule(_StubEspnClient(payload), season=2026)
+
+    assert len(result.matchups) == original_count
+    bye = result.matchups[0]
+    assert bye.is_bye is True
+    assert bye.home_espn_team_id == home_team_id
+    assert bye.away_espn_team_id is None
+    assert bye.away_score is None
+    assert bye.away_projected_score is None
+    assert bye.away_win_probability is None
+    assert all(m.is_bye is False for m in result.matchups[1:])
+    assert result.warnings == []
+
+
+async def test_get_league_schedule_normalizes_bye_in_away_slot_to_home(raw_payload: dict) -> None:
+    # Defensive: if ESPN ever populates only `away`, that team still becomes the home side.
+    payload = json.loads(json.dumps(raw_payload))
+    away_team_id = payload["schedule"][0]["away"]["teamId"]
+    del payload["schedule"][0]["home"]
+
+    result = await get_league_schedule(_StubEspnClient(payload), season=2026)
+
+    bye = result.matchups[0]
+    assert bye.is_bye is True
+    assert bye.home_espn_team_id == away_team_id
+    assert bye.away_espn_team_id is None
+
+
+async def test_get_league_schedule_skips_matchup_with_no_teams(raw_payload: dict) -> None:
+    payload = json.loads(json.dumps(raw_payload))
+    original_count = len(payload["schedule"])
+    del payload["schedule"][0]["home"]
     del payload["schedule"][0]["away"]
 
     result = await get_league_schedule(_StubEspnClient(payload), season=2026)
 
     assert len(result.matchups) == original_count - 1
-    assert any("missing a home or away team" in warning for warning in result.warnings)
+    assert any("neither a home nor away team" in warning for warning in result.warnings)
 
 
 async def test_get_league_schedule_prefers_live_total_when_present(raw_payload: dict) -> None:

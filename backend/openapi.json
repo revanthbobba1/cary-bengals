@@ -267,8 +267,16 @@
       "MatchupOut": {
         "properties": {
           "away_espn_team_id": {
-            "title": "Away Espn Team Id",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null when is_bye.",
+            "title": "Away Espn Team Id"
           },
           "away_projected_score": {
             "anyOf": [
@@ -283,9 +291,16 @@
             "title": "Away Projected Score"
           },
           "away_score": {
-            "description": "Away team's points; same semantics as home_score.",
-            "title": "Away Score",
-            "type": "number"
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Away team's points; same semantics as home_score. Null when is_bye.",
+            "title": "Away Score"
           },
           "away_win_probability": {
             "anyOf": [
@@ -338,6 +353,12 @@
             "description": "Home win probability, 0-1. Null except for the current week.",
             "title": "Home Win Probability"
           },
+          "is_bye": {
+            "default": false,
+            "description": "True when only one team is in this entry (a playoff bye). The present team is always reported as home; the away fields are null.",
+            "title": "Is Bye",
+            "type": "boolean"
+          },
           "is_playoffs": {
             "description": "True for any playoff tier, false for regular season.",
             "title": "Is Playoffs",
@@ -362,8 +383,6 @@
           "is_playoffs",
           "home_espn_team_id",
           "home_score",
-          "away_espn_team_id",
-          "away_score",
           "winner"
         ],
         "title": "MatchupOut",
@@ -734,7 +753,7 @@
     },
     "/v1/league/{season}/schedule": {
       "get": {
-        "description": "Every matchup for every week with scores. For the in-progress week, scores are the live running total and projected score / win probability are populated; for other weeks those are null.\n\nA matchup missing a home or away team (a bye) is skipped and reported in `warnings`.\n\n**Not cached** -- polled every ~10 minutes during live games.",
+        "description": "Every matchup for every week with scores. For the in-progress week, scores are the live running total and projected score / win probability are populated; for other weeks those are null.\n\nA playoff bye (only one team in the entry) is returned with `is_bye` true; the present team is reported as home and the away fields are null.\n\n**Not cached** -- polled every ~10 minutes during live games.",
         "operationId": "get_schedule_v1_league__season__schedule_get",
         "parameters": [
           {

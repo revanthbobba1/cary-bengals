@@ -42,10 +42,11 @@ export async function syncMatchups(
     espn_matchup_id: number
     week_number: number
     is_playoffs: boolean
+    is_bye: boolean
     home_team_id: string
-    away_team_id: string
+    away_team_id: string | null
     home_score: number
-    away_score: number
+    away_score: number | null
     winner: string
     home_projected_score: number | null
     away_projected_score: number | null
@@ -55,13 +56,19 @@ export async function syncMatchups(
 
   for (const matchup of espnResponse.matchups) {
     const homeTeamId = dbTeamIdByEspnTeamId.get(matchup.home_espn_team_id)
-    const awayTeamId = dbTeamIdByEspnTeamId.get(matchup.away_espn_team_id)
-    if (!homeTeamId || !awayTeamId) {
+    // A bye has no away team to look up (and nothing to be "unpaired" on that side).
+    const awayTeamId =
+      matchup.is_bye || matchup.away_espn_team_id === null
+        ? null
+        : dbTeamIdByEspnTeamId.get(matchup.away_espn_team_id)
+    if (!homeTeamId || (!matchup.is_bye && !awayTeamId)) {
       // Also means a matchup already synced under a since-unpaired team's old espn_team_id is
       // never cleaned up (this only upserts, never deletes) -- accepted for now since nothing in
       // the normal pairing flow un-pairs a team once set; worth revisiting if that changes.
       warnings.push(
-        `Skipped matchup ${matchup.espn_matchup_id}: unpaired ESPN team id (home=${matchup.home_espn_team_id}, away=${matchup.away_espn_team_id})`
+        `Skipped matchup ${matchup.espn_matchup_id}: unpaired ESPN team id (home=${matchup.home_espn_team_id}${
+          matchup.is_bye ? ', bye' : `, away=${matchup.away_espn_team_id}`
+        })`
       )
       continue
     }
@@ -70,8 +77,9 @@ export async function syncMatchups(
       espn_matchup_id: matchup.espn_matchup_id,
       week_number: matchup.week,
       is_playoffs: matchup.is_playoffs,
+      is_bye: matchup.is_bye,
       home_team_id: homeTeamId,
-      away_team_id: awayTeamId,
+      away_team_id: awayTeamId ?? null,
       home_score: matchup.home_score,
       away_score: matchup.away_score,
       winner: matchup.winner,

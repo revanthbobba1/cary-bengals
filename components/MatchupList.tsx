@@ -28,7 +28,7 @@ export default function MatchupList({ matchups, teamNameById, allowExpand = fals
   const scoreValues = useMemo(() => {
     const values: Record<string, string> = {}
     for (const matchup of matchups) {
-      values[matchup.id] = `${matchup.home_score}|${matchup.away_score}`
+      values[matchup.id] = `${matchup.home_score}|${matchup.away_score ?? ''}`
     }
     return values
   }, [matchups])
@@ -42,7 +42,9 @@ export default function MatchupList({ matchups, teamNameById, allowExpand = fals
     <ul className="space-y-3">
       {matchups.map((matchup) => {
         const homeName = teamNameById[matchup.home_team_id] ?? 'Unknown team'
-        const awayName = teamNameById[matchup.away_team_id] ?? 'Unknown team'
+        const awayName = matchup.away_team_id
+          ? (teamNameById[matchup.away_team_id] ?? 'Unknown team')
+          : null
         const homeWon = matchup.winner === 'HOME'
         const awayWon = matchup.winner === 'AWAY'
         const isExpanded = allowExpand && expandedMatchupId === matchup.id
@@ -80,7 +82,9 @@ export default function MatchupList({ matchups, teamNameById, allowExpand = fals
               className={`shrink-0 rounded-md px-2 py-1 text-center transition-colors duration-1000 ${isScoreFlashing ? 'bg-yellow-100 dark:bg-yellow-900/30' : ''}`}
             >
               <p className="font-mono text-base tabular-nums text-ink dark:text-gray-100">
-                {matchup.home_score.toFixed(2)} – {matchup.away_score.toFixed(2)}
+                {matchup.is_bye || matchup.away_score === null
+                  ? matchup.home_score.toFixed(2)
+                  : `${matchup.home_score.toFixed(2)} – ${matchup.away_score.toFixed(2)}`}
               </p>
               {hasProjection && (
                 <p className="font-mono text-xs tabular-nums text-gray-400 dark:text-gray-500">
@@ -91,10 +95,12 @@ export default function MatchupList({ matchups, teamNameById, allowExpand = fals
               )}
             </div>
             <div className="min-w-0 flex-1 text-right">
+              {/* An explicit label, not the 'Unknown team' fallback -- that's indistinguishable
+                  from a real data error. */}
               <p
                 className={`truncate text-base ${awayWon ? 'font-semibold text-ink dark:text-gray-100' : 'text-gray-600 dark:text-gray-400'}`}
               >
-                {awayName}
+                {matchup.is_bye ? 'BYE' : awayName}
               </p>
               {matchup.away_win_probability != null && (
                 <p className="text-xs text-gray-400 dark:text-gray-500">
@@ -130,12 +136,15 @@ export default function MatchupList({ matchups, teamNameById, allowExpand = fals
               <div
                 id={boxScorePanelId}
                 role="region"
-                aria-label={`${homeName} vs ${awayName} box score`}
+                aria-label={
+                  matchup.is_bye ? `${homeName} box score` : `${homeName} vs ${awayName} box score`
+                }
                 className="border-t border-gray-200 px-6 py-4 dark:border-gray-800"
               >
                 <MatchupBoxScore
                   homeName={homeName}
-                  awayName={awayName}
+                  awayName={awayName ?? ''}
+                  isBye={matchup.is_bye}
                   home={matchup.home_player_scores}
                   away={matchup.away_player_scores}
                 />

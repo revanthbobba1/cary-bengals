@@ -87,13 +87,23 @@ class MatchupOut(BaseModel):
     espn_matchup_id: int = Field(description="ESPN's numeric matchup ID. Joins to box scores.")
     week: int = Field(description="Matchup period (week) number.", examples=[7])
     is_playoffs: bool = Field(description="True for any playoff tier, false for regular season.")
+    is_bye: bool = Field(
+        default=False,
+        description=(
+            "True when only one team is in this entry (a playoff bye). The present team is "
+            "always reported as home; the away fields are null."
+        ),
+    )
     home_espn_team_id: int
     home_score: float = Field(
         description="Home team's points. Live running total during the current week.",
         examples=[104.52],
     )
-    away_espn_team_id: int
-    away_score: float = Field(description="Away team's points; same semantics as home_score.")
+    away_espn_team_id: int | None = Field(default=None, description="Null when is_bye.")
+    away_score: float | None = Field(
+        default=None,
+        description="Away team's points; same semantics as home_score. Null when is_bye.",
+    )
     winner: str = Field(
         description=(
             "HOME, AWAY, TIE or UNDECIDED (week not final). Passed through from ESPN, so an "
