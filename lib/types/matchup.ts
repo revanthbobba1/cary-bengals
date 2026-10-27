@@ -12,10 +12,12 @@ export interface Matchup {
   season_year: number
   week_number: number
   is_playoffs: boolean
+  // A playoff bye: the present team is always home_*, away_* are null (see migration 046).
+  is_bye: boolean
   home_team_id: string
-  away_team_id: string
+  away_team_id: string | null
   home_score: number
-  away_score: number
+  away_score: number | null
   winner: string
   espn_matchup_id: number
   synced_at: string

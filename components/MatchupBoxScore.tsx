@@ -9,6 +9,9 @@ import type { MatchupPlayerScore } from '@/lib/types/matchup'
 interface Props {
   homeName: string
   awayName: string
+  // A bye has no away side, ever -- away is permanently null there even though home's box score
+  // is real, so that can't be treated as "not synced yet" like it is for a normal matchup.
+  isBye?: boolean
   home: MatchupPlayerScore[] | null
   away: MatchupPlayerScore[] | null
 }
@@ -76,7 +79,24 @@ function PlayerList({ players }: { players: MatchupPlayerScore[] }) {
   )
 }
 
-export default function MatchupBoxScore({ homeName, awayName, home, away }: Props) {
+export default function MatchupBoxScore({ homeName, awayName, isBye = false, home, away }: Props) {
+  if (isBye) {
+    if (home === null) {
+      return (
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          On bye this week. No player breakdown yet.
+        </p>
+      )
+    }
+    return (
+      <div>
+        <h4 className="mb-1 text-sm font-semibold text-ink dark:text-gray-100">{homeName}</h4>
+        <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">On bye this week</p>
+        <PlayerList players={home} />
+      </div>
+    )
+  }
+
   if (home === null || away === null) {
     return (
       <p className="text-sm text-gray-600 dark:text-gray-400">No player breakdown for this week.</p>

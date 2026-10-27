@@ -96,10 +96,12 @@ export interface EspnMatchup {
   espn_matchup_id: number
   week: number
   is_playoffs: boolean
+  // True for a playoff bye: the present team is always reported as home, away fields are null.
+  is_bye: boolean
   home_espn_team_id: number
   home_score: number
-  away_espn_team_id: number
-  away_score: number
+  away_espn_team_id: number | null
+  away_score: number | null
   winner: string
   // Populated only for the current matchup period -- null for a past (final) or future (not yet
   // computed) week.
