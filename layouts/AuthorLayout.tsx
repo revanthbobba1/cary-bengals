@@ -3,6 +3,7 @@ import type { Authors } from 'contentlayer/generated'
 import SocialIcon from '@/components/social-icons'
 import Image from '@/components/Image'
 import RosterModal from '@/components/RosterModal'
+import TeamLogo from '@/components/TeamLogo'
 import { getBlurProps } from '@/lib/blurPlaceholders'
 import type { RosterPlayer } from '@/lib/types/roster'
 
@@ -35,21 +36,7 @@ export default function AuthorLayout({ children, content, team, teamLogo, roster
         {name}
       </h3>
       <div className="flex items-center justify-center gap-1.5 text-center text-base text-gray-500 dark:text-gray-400">
-        {teamLogo && (
-          // External ESPN-hosted logo (often SVG), not a fit for next/image's optimizer for
-          // something purely decorative.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={teamLogo}
-            alt=""
-            width={20}
-            height={20}
-            className="h-5 w-5 shrink-0 rounded-full object-contain"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none'
-            }}
-          />
-        )}
+        <TeamLogo src={teamLogo ?? null} />
         {team ?? `Team ${name.split(' ')[0]}`}
       </div>
       {roster && roster.length > 0 && (
