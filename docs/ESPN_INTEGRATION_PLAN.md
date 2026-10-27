@@ -856,14 +856,8 @@ equivalent on the backend, shared by `roster.py` and `boxscore.py`.
 
 **Known limitations, accepted rather than fixed in this pass** (found in `medium`-effort review):
 
-- **A bye-adjacent team's box score is silently dropped.** `schedule.py` skips an entire bye
-  matchup rather than writing a partial `matchups` row (`get_league_schedule`'s existing
-  home-or-away-missing check), so `boxScoreSync.ts` can never resolve that matchup's
-  `espn_matchup_id` even though the surviving team's own box-score data is present and valid --
-  it's warned-and-skipped the same way an unpaired team already is elsewhere in this sync.
-  Inherits an existing gap (matchups themselves have the identical bye-skip behavior) rather than
-  introducing a new one, and doesn't apply to this league (12 teams, even, confirmed no byes) --
-  worth a real fix only if/when the league size becomes odd (see the `season-rollover` skill).
+- **A bye-adjacent team's box score is silently dropped.** _Fixed in Phase 8e below -- this was
+  wrong about the league having no byes: its 6-team playoffs put 2 teams on bye each week._
 - **Two separate ESPN fetches per sync cycle, not deduped.** `syncMatchups` and
   `syncMatchupPlayerScores` each call a different backend endpoint (`/schedule` vs `/boxscores`),
   which independently re-fetch overlapping `mMatchupScore` data from ESPN -- unlike `/teams`,
@@ -874,6 +868,38 @@ equivalent on the backend, shared by `roster.py` and `boxscore.py`.
   area than this pass's actual pain justifies (one extra GET every ~10 minutes during a live
   window, against a backend that's already warm by the time the second call fires). Revisit if
   ESPN rate-limiting ever becomes a real constraint.
+
+**Phase 8e (2026-10-26) — playoff bye weeks (PR #151, migration `046`).** This league's playoffs
+are 6 teams: 4 play, 2 sit out each week. A hand-probe of the league's own 2025 week 15 showed
+ESPN sends a bye as a matchup entry with `home` populated and `away` absent, `winner` permanently
+`"UNDECIDED"`. `schedule.py` now emits it as `is_bye: true` instead of skipping it, normalizing
+whichever side is present into `home_*` (`boxscore.py` applies the same rule so a bye's box score
+attaches to the same side as its `matchups` row). `matchups.away_team_id`/`away_score` became
+nullable behind a CHECK tying them to `is_bye`; the UI shows an explicit BYE and a single score.
+Live polling keys off `currentWeek`, not `winner`, so the permanent `UNDECIDED` is harmless.
+Still unobserved (needs a real playoff week): whether ESPN populates a bye _fantasy_ team's roster
+live (the `mRoster` fallback is built only if not), and what score it reports for a bye team.
+
+**Phase 8f (2026-10-26) — per-stat breakdown and player availability (PRs #152/#153, migration
+`047`).** Captured a live week-7 `mMatchupScore` + `mLiveScoring` response
+(`backend/tests/fixtures/mmatchupscore_live_2026.json`). On a `statSourceId: 0` line, `stats` holds
+raw counts keyed by numeric stat id and `appliedStats` holds fantasy _points_ per scoring category;
+the breakdown reads `stats`. Each id in `STAT_IDS` (`espn_labels.py`) was verified by checking raw
+count x this league's scoring rule against `appliedStats` (kicker FG yards against the FG distance
+buckets; D/ST points/yards allowed against the scoring bracket each team landed in). Ids never seen
+in a capture (return TDs, safeties, blocked kicks) are deliberately absent. The breakdown is stored
+already labeled in a JSONB column; JSONB does not preserve key order, so
+`lib/espn/statDisplay.ts` supplies the display order.
+
+`availability` explains a missing stat line (`bye`/`ir`/`out`/`dnp`/`pending`, null = played). The
+box-score payload cannot tell an NFL bye from a game that hasn't started (both have no actual-stats
+line at all), so `boxscore.py` makes one extra public ESPN call (`GET /seasons/{year}?view=
+proTeamSchedules_wl`, each pro team's `byeWeek`) concurrently with the league fetch. If that call
+fails the box score still syncs, with would-be byes reading `pending` and a warning. A team that
+played but whose player has an empty `stats` map is `dnp` -- not always an injury (one healthy
+scratch in the capture). `injuryStatus` (`OUT`, `QUESTIONABLE`, ...) is in the same payload, so no
+`mRoster` call is needed for it. Deploy lesson: `047` must be applied _before_ the code ships,
+because `scheduleData.ts` selects the new columns.
 
 ## 10. Anticipated friction
 
