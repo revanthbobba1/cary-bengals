@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { focusRingClasses } from '@/lib/focusRing'
 import MatchupBoxScore from '@/components/MatchupBoxScore'
+import TeamLogo from '@/components/TeamLogo'
 import { useChangeFlash } from '@/lib/hooks/useChangeFlash'
 import type { Matchup } from '@/lib/types/matchup'
 
@@ -16,28 +17,6 @@ interface Props {
   // Default false: /admin/poll's "last week's matchups" preview is a quick glance while ranking,
   // not a play-by-play view, so it renders plain rows. Only /schedule opts in.
   allowExpand?: boolean
-}
-
-// Small enough to sit inline with the team name without dominating the row; hidden outright on
-// load failure (a dead/changed ESPN URL) rather than showing a broken-image icon -- the name text
-// next to it already carries the real information.
-function TeamLogo({ src }: { src: string | null }) {
-  if (!src) return null
-  return (
-    // External ESPN-hosted logos (often SVG) aren't a fit for next/image's optimizer, which
-    // also requires allowlisting every source domain for something purely decorative.
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={src}
-      alt=""
-      width={20}
-      height={20}
-      className="h-5 w-5 shrink-0 rounded-full object-contain"
-      onError={(e) => {
-        e.currentTarget.style.display = 'none'
-      }}
-    />
-  )
 }
 
 // Rendered by /schedule (one week at a time, via ScheduleWeekBrowser) and /admin/poll's "last
