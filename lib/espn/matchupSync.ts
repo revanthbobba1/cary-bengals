@@ -66,7 +66,9 @@ export async function syncMatchups(
       // never cleaned up (this only upserts, never deletes) -- accepted for now since nothing in
       // the normal pairing flow un-pairs a team once set; worth revisiting if that changes.
       warnings.push(
-        `Skipped matchup ${matchup.espn_matchup_id}: unpaired ESPN team id (home=${matchup.home_espn_team_id}, away=${matchup.away_espn_team_id})`
+        `Skipped matchup ${matchup.espn_matchup_id}: unpaired ESPN team id (home=${matchup.home_espn_team_id}${
+          matchup.is_bye ? ', bye' : `, away=${matchup.away_espn_team_id}`
+        })`
       )
       continue
     }

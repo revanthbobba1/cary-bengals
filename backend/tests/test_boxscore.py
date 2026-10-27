@@ -91,3 +91,17 @@ async def test_get_league_box_scores_skips_unnamed_player(raw_payload: dict) -> 
     )
     assert len(matchup_37_home.players) == original_count - 1
     assert any("no usable name" in warning for warning in result.warnings)
+
+
+async def test_get_league_box_scores_labels_one_sided_matchup_as_home(raw_payload: dict) -> None:
+    # A bye populated only in `away` must still be reported as "home", matching schedule.py's
+    # normalization -- otherwise its box score would attach to the wrong side of the matchups row.
+    payload = json.loads(json.dumps(raw_payload))
+    current = next(m for m in payload["schedule"] if m["matchupPeriodId"] == 7)
+    assert current["away"].get("rosterForCurrentScoringPeriod") is not None
+    del current["home"]
+
+    result = await get_league_box_scores(_StubEspnClient(payload), season=2026)
+
+    sides = [b.team_side for b in result.matchups if b.espn_matchup_id == current["id"]]
+    assert sides == ["home"]

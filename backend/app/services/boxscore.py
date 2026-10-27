@@ -45,7 +45,13 @@ async def get_league_box_scores(espn: EspnClient, season: int) -> LeagueBoxScore
     warnings: list[str] = []
 
     for matchup in parsed.schedule:
-        for team_side, team in (("home", matchup.home), ("away", matchup.away)):
+        # Same bye normalization as services/schedule.py: a one-sided entry is always reported as
+        # "home", so its box score attaches to the same side as its matchups row.
+        sides = [("home", matchup.home), ("away", matchup.away)]
+        if (matchup.home is None) != (matchup.away is None):
+            sides = [("home", matchup.home or matchup.away)]
+
+        for team_side, team in sides:
             if team is None or team.rosterForCurrentScoringPeriod is None:
                 continue
 

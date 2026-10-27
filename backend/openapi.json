@@ -753,7 +753,7 @@
     },
     "/v1/league/{season}/schedule": {
       "get": {
-        "description": "Every matchup for every week with scores. For the in-progress week, scores are the live running total and projected score / win probability are populated; for other weeks those are null.\n\nA matchup missing a home or away team (a bye) is skipped and reported in `warnings`.\n\n**Not cached** -- polled every ~10 minutes during live games.",
+        "description": "Every matchup for every week with scores. For the in-progress week, scores are the live running total and projected score / win probability are populated; for other weeks those are null.\n\nA playoff bye (only one team in the entry) is returned with `is_bye` true; the present team is reported as home and the away fields are null.\n\n**Not cached** -- polled every ~10 minutes during live games.",
         "operationId": "get_schedule_v1_league__season__schedule_get",
         "parameters": [
           {
