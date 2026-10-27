@@ -17,10 +17,17 @@ plus a `playerPoolEntry.player`) -- only the points field and the warning messag
 
 from datetime import UTC, datetime
 
-from app.clients.espn import EspnClient
-from app.espn_labels import label_player
+import httpx
+
+from app.clients.espn import EspnClient, EspnRequestError
+from app.espn_labels import label_player, label_stat_breakdown
 from app.schemas.api import BoxScorePlayerOut, LeagueBoxScoresResponse, MatchupBoxScoreOut
-from app.schemas.espn_raw import RawBoxScoreEntry, RawLeagueBoxScoresResponse
+from app.schemas.espn_raw import (
+    RawBoxScoreEntry,
+    RawBoxScoreStat,
+    RawLeagueBoxScoresResponse,
+    RawProTeamsResponse,
+)
 
 # ESPN's "actual, live" stats line, as opposed to statSourceId 1 ("projected") -- confirmed
 # against a real captured payload: before a game starts, only a statSourceId=1 entry exists and
@@ -30,11 +37,50 @@ from app.schemas.espn_raw import RawBoxScoreEntry, RawLeagueBoxScoresResponse
 _ACTUAL_STAT_SOURCE_ID = 0
 
 
-def _player_points(entry: RawBoxScoreEntry) -> float:
+_IR_LINEUP_SLOT_ID = 21
+
+
+def _actual_stat(entry: RawBoxScoreEntry) -> RawBoxScoreStat | None:
     for stat in entry.playerPoolEntry.player.stats:
         if stat.statSourceId == _ACTUAL_STAT_SOURCE_ID:
-            return stat.appliedTotal
-    return 0.0
+            return stat
+    return None
+
+
+def _availability(
+    entry: RawBoxScoreEntry, actual: RawBoxScoreStat | None, on_bye: bool
+) -> str | None:
+    """Why a player has no stat line, or None if they played. Derived from a live capture:
+    played = an actual line with non-empty `stats`; DNP = an actual line with empty `stats`
+    (the team played, the player didn't -- not always an injury); no actual line at all = either
+    the NFL team is on bye or the game hasn't started, told apart only by the pro team's
+    byeWeek (see _load_bye_teams)."""
+    if actual is not None and actual.stats:
+        return None
+    if on_bye:
+        return "bye"
+    if entry.lineupSlotId == _IR_LINEUP_SLOT_ID:
+        return "ir"
+    if entry.playerPoolEntry.player.injuryStatus == "OUT":
+        return "out"
+    return "dnp" if actual is not None else "pending"
+
+
+async def _load_bye_teams(
+    espn: EspnClient, season: int, scoring_period: int | None, warnings: list[str]
+) -> set[int]:
+    """Pro team ids on bye in the scoring period. Best-effort: if this lookup fails, the box
+    score is still useful, so a would-be bye just reads as "pending" instead of failing the sync."""
+    if scoring_period is None:
+        return set()
+    try:
+        parsed = RawProTeamsResponse.model_validate(await espn.fetch_pro_teams(season))
+    except (EspnRequestError, httpx.HTTPError, ValueError) as exc:
+        warnings.append(
+            f"Could not load NFL bye weeks ({type(exc).__name__}); byes show as pending"
+        )
+        return set()
+    return {team.id for team in parsed.settings.proTeams if team.byeWeek == scoring_period}
 
 
 async def get_league_box_scores(espn: EspnClient, season: int) -> LeagueBoxScoresResponse:
@@ -43,6 +89,7 @@ async def get_league_box_scores(espn: EspnClient, season: int) -> LeagueBoxScore
 
     matchups: list[MatchupBoxScoreOut] = []
     warnings: list[str] = []
+    bye_teams = await _load_bye_teams(espn, season, parsed.scoringPeriodId, warnings)
 
     for matchup in parsed.schedule:
         # Same bye normalization as services/schedule.py: a one-sided entry is always reported as
@@ -67,6 +114,7 @@ async def get_league_box_scores(espn: EspnClient, season: int) -> LeagueBoxScore
                     )
                     continue
 
+                actual = _actual_stat(entry)
                 players.append(
                     BoxScorePlayerOut(
                         name=labeled.name,
@@ -74,7 +122,9 @@ async def get_league_box_scores(espn: EspnClient, season: int) -> LeagueBoxScore
                         pro_team=labeled.pro_team,
                         lineup_slot=labeled.lineup_slot,
                         is_starter=labeled.is_starter,
-                        points=_player_points(entry),
+                        points=actual.appliedTotal if actual else 0.0,
+                        stat_breakdown=label_stat_breakdown(actual.stats) if actual else {},
+                        availability=_availability(entry, actual, player.proTeamId in bye_teams),
                     )
                 )
 

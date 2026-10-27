@@ -61,6 +61,31 @@ PRO_TEAMS = {
 }
 
 
+# Per-category stat ids worth showing under a player. Each was verified against a live capture by
+# checking raw count x this league's scoring rule == the matching appliedStats points, across
+# 17-101 players per id (fumbles lost: matches the community list, seen on QB/RB/WR/TE).
+# K and D/ST ids are deliberately absent until confirmed against named stat lines. Not
+# position-restricted: whatever of these a player has a non-zero value for is shown.
+STAT_IDS = {
+    3: "Passing Yards",
+    4: "Passing TDs",
+    20: "INT",
+    24: "Rushing Yards",
+    25: "Rushing TDs",
+    42: "Receiving Yards",
+    43: "Receiving TDs",
+    53: "Receptions",
+    72: "Fumbles Lost",
+}
+
+
+def label_stat_breakdown(stats: dict[str, float]) -> dict[str, float]:
+    """Labeled, non-zero subset of a player's raw ESPN stat counts."""
+    return {
+        label: value for stat_id, label in STAT_IDS.items() if (value := stats.get(str(stat_id)))
+    }
+
+
 @dataclass
 class LabeledPlayer:
     name: str

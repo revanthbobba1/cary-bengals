@@ -178,6 +178,11 @@ class RawBoxScoreStat(BaseModel):
     statSourceId: int
     scoringPeriodId: int
     appliedTotal: float = 0.0
+    # Raw per-category counts (yards, TDs, ...) keyed by ESPN's numeric stat id as a string.
+    # NOT appliedStats, which is fantasy *points* per scoring category -- confirmed against a
+    # live capture. Only present on an actual (statSourceId 0) line once a game has been played;
+    # empty `{}` when the player's team played but the player didn't.
+    stats: dict[str, float] = {}
 
 
 class RawBoxScorePlayer(BaseModel):
@@ -187,6 +192,8 @@ class RawBoxScorePlayer(BaseModel):
     fullName: str
     defaultPositionId: int
     proTeamId: int
+    # ACTIVE / DAY_TO_DAY / QUESTIONABLE / OUT / INJURY_RESERVE observed; absent for D/ST.
+    injuryStatus: str | None = None
     stats: list[RawBoxScoreStat] = []
 
 
@@ -231,4 +238,28 @@ class RawLeagueBoxScoresResponse(BaseModel):
 
     id: int
     seasonId: int
+    # The week being scored; compared to a pro team's byeWeek to tell an NFL bye from a game that
+    # hasn't started (both look the same in this payload: no actual-stats line at all).
+    scoringPeriodId: int | None = None
     schedule: list[RawBoxScoreMatchup] = []
+
+
+class RawProTeam(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: int
+    byeWeek: int = 0
+
+
+class RawProTeamsSettings(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    proTeams: list[RawProTeam] = []
+
+
+class RawProTeamsResponse(BaseModel):
+    """`/seasons/{year}?view=proTeamSchedules_wl` -- NFL-wide, not league-specific."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    settings: RawProTeamsSettings

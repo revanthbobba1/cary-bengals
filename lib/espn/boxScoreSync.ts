@@ -5,7 +5,7 @@
 // syncMatchups has committed for the same season, not alongside it (see refreshAll.ts's comment).
 
 import type { createClient } from '@/lib/supabase/server'
-import { fetchEspnBoxScores } from '@/lib/espn/client'
+import { fetchEspnBoxScores, type EspnBoxScorePlayer } from '@/lib/espn/client'
 
 type SupabaseServerClient = ReturnType<typeof createClient>
 
@@ -41,14 +41,7 @@ export async function syncMatchupPlayerScores(
   const payload: Array<{
     matchup_id: string
     team_side: 'home' | 'away'
-    players: Array<{
-      name: string
-      position: string
-      pro_team: string
-      lineup_slot: string
-      is_starter: boolean
-      points: number
-    }>
+    players: EspnBoxScorePlayer[]
   }> = []
 
   for (const boxScore of espnResponse.matchups) {

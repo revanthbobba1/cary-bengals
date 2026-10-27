@@ -16,6 +16,10 @@ _LEAGUE_URL_PATTERN = re.compile(
 )
 
 
+_PRO_TEAMS_URL_PATTERN = re.compile(re.escape(f"{ESPN_BASE_URL}/seasons/2026") + r"(\?.*)?$")
+_PRO_TEAMS_FIXTURE_PATH = Path(__file__).parent / "fixtures" / "proteams_2026.json"
+
+
 @pytest.fixture
 def espn_payload() -> dict:
     return json.loads(FIXTURE_PATH.read_text())
@@ -29,6 +33,9 @@ def test_boxscores_requires_service_token(client: TestClient) -> None:
 @respx.mock
 def test_boxscores_returns_mapped_payload(client: TestClient, espn_payload: dict) -> None:
     respx.get(url__regex=_LEAGUE_URL_PATTERN).mock(return_value=Response(200, json=espn_payload))
+    respx.get(url__regex=_PRO_TEAMS_URL_PATTERN).mock(
+        return_value=Response(200, json=json.loads(_PRO_TEAMS_FIXTURE_PATH.read_text()))
+    )
 
     response = client.get("/v1/league/2026/boxscores", headers={"X-Service-Token": "test-token"})
 
@@ -45,6 +52,9 @@ def test_boxscores_does_not_cache_across_requests(client: TestClient, espn_paylo
     # during a live game needs the real current state each time.
     route = respx.get(url__regex=_LEAGUE_URL_PATTERN).mock(
         return_value=Response(200, json=espn_payload)
+    )
+    respx.get(url__regex=_PRO_TEAMS_URL_PATTERN).mock(
+        return_value=Response(200, json=json.loads(_PRO_TEAMS_FIXTURE_PATH.read_text()))
     )
 
     headers = {"X-Service-Token": "test-token"}
