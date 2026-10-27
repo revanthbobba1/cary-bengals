@@ -704,8 +704,8 @@ gates itself in America/New_York time (DST-correct, no padded UTC hours) and POS
 The full sync runs Tue-Fri at 8am ET, with the :30 run as a retry. Scheduled functions are cut
 off at 30s and can't wait out a Render cold start, so a run against a cold backend may fail (its
 `/healthz` ping still wakes it) and the next one succeeds; a pre-window warm-up ping was tried and
-dropped as not worth the extra branch. The GitHub workflows are kept as a backup until Netlify
-runs prove reliable, then their `schedule:` blocks should be removed (keep `workflow_dispatch`).
+dropped as not worth the extra branch. Netlify ran the Sunday 2026-10-25 live window cleanly (a run every 10 minutes, ~4s each), so the
+GitHub workflows' `schedule:` blocks were removed; they remain as manual `workflow_dispatch` triggers.
 Both workflows now log the response body instead of hiding it behind `curl -f`. Separately,
 `totalPoints` stays 0.0 all week in ESPN's `mMatchupScore`; the running score is `totalPointsLive`
 (current week only), which `services/schedule.py` now reads.

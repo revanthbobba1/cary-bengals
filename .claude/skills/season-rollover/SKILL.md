@@ -65,8 +65,8 @@ observed to recur that way.
 
 ## Explicitly NOT needed (so this list doesn't look incomplete by omission)
 
-- GitHub Actions cron schedules (`.github/workflows/espn-matchup-sync.yml`,
-  `espn-full-sync.yml`) are based on NFL day-of-week/time windows, not tied
+- The Netlify scheduled functions (`netlify/functions/espn-matchup-sync.mts`,
+  `espn-full-sync.mts`) are based on NFL day-of-week/time windows, not tied
   to a specific season — no change needed year to year.
 - `matchups`, `team_rosters`, and `espn_schedule_state` are already scoped
   per `season_year` and purely additive — old seasons' rows just stop being
