@@ -1,6 +1,4 @@
-# Cary Bengals Tailwind Nextjs Starter Blog
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/git/external?repository-url=https://github.com/timlrx/tailwind-nextjs-starter-blog)
+# Cary Bengals Fantasy Football
 
 ## External services this app depends on
 
@@ -34,8 +32,6 @@ This is a [Next.js](https://nextjs.org/) and [Tailwind CSS](https://tailwindcss.
 Probably the most feature-rich Next.js markdown blogging template out there. Easily configurable and customizable. Perfect as a replacement to existing Jekyll and Hugo individual blogs.
 
 Check out the documentation below to get started.
-
-Facing issues? Check the [FAQ page](https://github.com/timlrx/tailwind-nextjs-starter-blog/wiki) and do a search on past issues. Feel free to open a new issue if none has been posted previously.
 
 Looking for an Astro alternative? Check out the unofficial [Tailwind Astro Template](https://github.com/wanoo21/tailwind-astro-starting-blog).
 
@@ -76,11 +72,10 @@ I wanted it to be nearly as feature-rich as popular blogging templates like [bea
 1. Personalize `siteMetadata.js` (site related information)
 2. Modify the content security policy in `next.config.js` if you want to use
    other analytics provider or a commenting solution other than giscus.
-3. Personalize `authors/default.md` (main author)
-4. Modify `projectsData.js`
-5. Modify `headerNavLinks.js` to customize navigation links
-6. Add blog posts
-7. Deploy on Vercel
+3. Add league members as files in `data/members/`
+4. Modify `headerNavLinks.ts` to customize navigation links
+5. Add articles through the Supabase-backed article workflow (see `AGENTS.md`)
+6. Deploy on Netlify
 
 ## Installation
 
@@ -104,15 +99,11 @@ Edit the layout in `app` or content in `data`. With live reloading, the pages au
 
 `data/siteMetadata.js` - contains most of the site related information which should be modified for a user's need.
 
-`data/authors/default.md` - default author information (required). Additional authors can be added as files in `data/authors`.
+`data/members/` - one file per league member. Press conferences and articles live in Supabase, not in files.
 
-`data/projectsData.js` - data used to generate styled card on the projects page.
+`data/headerNavLinks.ts` - navigation links.
 
-`data/headerNavLinks.js` - navigation links.
-
-`data/logo.svg` - replace with your own logo.
-
-`data/blog` - replace with your own blog posts.
+`data/logo.svg` - site logo.
 
 `public/static` - store assets such as images and favicons.
 
@@ -161,10 +152,8 @@ See [Next.js on Netlify](https://docs.netlify.com/integrations/frameworks/next-j
 5. Run `yarn build`. The generated static content is in the `out` folder.
 6. Deploy the `out` folder to your hosting service of choice or run `npx serve out` to view the website locally.
 
-## Support
-
-Using the template? Support this effort by giving a star on GitHub, sharing your own blog and giving a shoutout on Twitter or becoming a project [sponsor](https://github.com/sponsors/timlrx).
-
 ## Licence
+
+Built from the [tailwind-nextjs-starter-blog](https://github.com/timlrx/tailwind-nextjs-starter-blog) template.
 
 [MIT](https://github.com/timlrx/tailwind-nextjs-starter-blog/blob/main/LICENSE) © [Timothy Lin](https://www.timlrx.com)
