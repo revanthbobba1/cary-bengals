@@ -119,12 +119,12 @@ export default async function ArticlePage({ params }: { params: { slug: string[]
   const prev = articleIndex >= 0 ? sameSeasonArticles[articleIndex + 1] : undefined
   const next = articleIndex > 0 ? sameSeasonArticles[articleIndex - 1] : undefined
 
-  const contentlayerAuthor = members.find((a) => a.slug === article.author_slug)
-  const author = contentlayerAuthor
+  const member = members.find((a) => a.slug === article.author_slug)
+  const author = member
     ? {
-        name: contentlayerAuthor.name,
-        avatar: contentlayerAuthor.avatar,
-        twitter: contentlayerAuthor.twitter,
+        name: member.name,
+        avatar: member.avatar,
+        twitter: member.twitter,
       }
     : null
 

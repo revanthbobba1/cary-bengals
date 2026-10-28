@@ -73,12 +73,12 @@ export default async function Page() {
       </div>
       <hr className="border-gray-200 dark:border-gray-700 mb-6" />
       <div className="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
-        {members.map((author) => {
-          const teamInfo = teamByOwner.get(normalizeName(author.name.split(' ')[0]))
+        {members.map((member) => {
+          const teamInfo = teamByOwner.get(normalizeName(member.name.split(' ')[0]))
           return (
-            <div key={author.slug} className="flex flex-col items-center">
+            <div key={member.slug} className="flex flex-col items-center">
               <MemberLayout
-                content={author}
+                content={member}
                 team={teamInfo?.name}
                 teamLogo={teamInfo?.logo}
                 roster={teamInfo ? rosterByTeamId.get(teamInfo.id) : undefined}

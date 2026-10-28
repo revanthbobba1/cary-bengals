@@ -63,12 +63,12 @@ export default async function PreviewArticlePage({ params }: { params: { id: str
     return []
   })
 
-  const contentlayerAuthor = members.find((a) => a.slug === articleWithMatchups.author_slug)
-  const author = contentlayerAuthor
+  const member = members.find((a) => a.slug === articleWithMatchups.author_slug)
+  const author = member
     ? {
-        name: contentlayerAuthor.name,
-        avatar: contentlayerAuthor.avatar,
-        twitter: contentlayerAuthor.twitter,
+        name: member.name,
+        avatar: member.avatar,
+        twitter: member.twitter,
       }
     : null
 
