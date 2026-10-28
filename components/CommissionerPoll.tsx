@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { allAuthors } from 'contentlayer/generated'
+import { allMembers } from 'contentlayer/generated'
 import CommissionerPollClient from './CommissionerPollClient'
 import { normalizeOwnerKey, type PollHistoryRow } from '@/lib/pollChart'
 import type { PollResultWithTeam } from '@/lib/types/poll'
@@ -81,7 +81,7 @@ function localResults(year: number, week: number): PollResultWithTeam[] {
 
 // Owners are matched to league members by first name, the same way /league-members pairs teams.
 const avatarByOwner = Object.fromEntries(
-  allAuthors.filter((a) => a.avatar).map((a) => [normalizeOwnerKey(a.name), a.avatar as string])
+  allMembers.filter((a) => a.avatar).map((a) => [normalizeOwnerKey(a.name), a.avatar as string])
 )
 
 const localYears = Object.keys(LOCAL_WEEKS)

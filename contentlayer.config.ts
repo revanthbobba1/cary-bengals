@@ -39,9 +39,9 @@ const computedFields: ComputedFields = {
   toc: { type: 'string', resolve: (doc) => extractTocHeadings(doc.body.raw) },
 }
 
-export const Authors = defineDocumentType(() => ({
-  name: 'Authors',
-  filePathPattern: 'authors/**/*.mdx',
+export const Member = defineDocumentType(() => ({
+  name: 'Member',
+  filePathPattern: 'members/**/*.mdx',
   contentType: 'mdx',
   fields: {
     name: { type: 'string', required: true },
@@ -58,7 +58,7 @@ export const Authors = defineDocumentType(() => ({
 
 export default makeSource({
   contentDirPath: 'data',
-  documentTypes: [Authors],
+  documentTypes: [Member],
   mdx: {
     cwd: process.cwd(),
     remarkPlugins: [

@@ -1,4 +1,4 @@
-import { allAuthors } from 'contentlayer/generated'
+import { allMembers } from 'contentlayer/generated'
 import type { Metadata } from 'next'
 import PageTitle from '@/components/PageTitle'
 import SectionContainer from '@/components/SectionContainer'
@@ -29,7 +29,7 @@ export async function generateMetadata({
   }
   if (!article) return
 
-  const author = allAuthors.find((a) => a.slug === article.author_slug)
+  const author = allMembers.find((a) => a.slug === article.author_slug)
   const publishedAt = article.published_at
     ? new Date(article.published_at).toISOString()
     : undefined
@@ -119,7 +119,7 @@ export default async function ArticlePage({ params }: { params: { slug: string[]
   const prev = articleIndex >= 0 ? sameSeasonArticles[articleIndex + 1] : undefined
   const next = articleIndex > 0 ? sameSeasonArticles[articleIndex - 1] : undefined
 
-  const contentlayerAuthor = allAuthors.find((a) => a.slug === article.author_slug)
+  const contentlayerAuthor = allMembers.find((a) => a.slug === article.author_slug)
   const author = contentlayerAuthor
     ? {
         name: contentlayerAuthor.name,

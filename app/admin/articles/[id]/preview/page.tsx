@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { allAuthors } from 'contentlayer/generated'
+import { allMembers } from 'contentlayer/generated'
 import { genPageMetadata } from 'app/seo'
 import { createClient } from '@/lib/supabase/server'
 import { isCommissioner } from '@/lib/supabase/roles'
@@ -63,7 +63,7 @@ export default async function PreviewArticlePage({ params }: { params: { id: str
     return []
   })
 
-  const contentlayerAuthor = allAuthors.find((a) => a.slug === articleWithMatchups.author_slug)
+  const contentlayerAuthor = allMembers.find((a) => a.slug === articleWithMatchups.author_slug)
   const author = contentlayerAuthor
     ? {
         name: contentlayerAuthor.name,
