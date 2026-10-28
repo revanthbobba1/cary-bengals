@@ -1,5 +1,5 @@
 import { ReactNode } from 'react'
-import type { Authors } from 'contentlayer/generated'
+import type { Member } from 'contentlayer/generated'
 import SocialIcon from '@/components/social-icons'
 import Image from '@/components/Image'
 import RosterModal from '@/components/RosterModal'
@@ -9,7 +9,7 @@ import type { RosterPlayer } from '@/lib/types/roster'
 
 interface Props {
   children: ReactNode
-  content: Omit<Authors, '_id' | '_raw' | 'body'>
+  content: Omit<Member, '_id' | '_raw' | 'body'>
   team?: string
   // Null for a team with no logo set in ESPN (not every owner picks one); undefined when there's
   // no team match at all, same as `team` itself.
@@ -17,7 +17,7 @@ interface Props {
   roster?: RosterPlayer[]
 }
 
-export default function AuthorLayout({ children, content, team, teamLogo, roster }: Props) {
+export default function MemberLayout({ children, content, team, teamLogo, roster }: Props) {
   const { name, avatar, company, email, twitter, linkedin, github } = content
 
   return (

@@ -5,7 +5,7 @@ This file is the canonical source for repository-specific agent instructions.
 ## Project context
 
 Cary Bengals Fantasy Football is a Next.js 13.5 App Router site using TypeScript, Tailwind CSS,
-Contentlayer, Supabase, and Netlify. Authors live in `data/authors/`; public articles, teams, and
+Contentlayer, Supabase, and Netlify. League members live in `data/members/`; public articles, teams, and
 poll data are Supabase-backed. The ESPN service in `backend/` securely fetches team metadata;
 public pages must never call ESPN directly or expose ESPN credentials.
 
@@ -40,7 +40,7 @@ format and lint staged files. Update `next.config.js` CSP rules when adding exte
 
 ## Detailed architecture
 
-Contentlayer processes author MDX files under `data/authors/` at build time. Generated types are
+Contentlayer processes author MDX files under `data/members/` at build time. Generated types are
 available from `contentlayer/generated`. `layouts/` contains page-level templates, while
 `components/` contains reusable UI pieces. Client components use the `'use client'` directive.
 
@@ -66,7 +66,7 @@ Login failures should remain generic to avoid user enumeration.
 
 ## Content workflows
 
-- New league members are author files under `data/authors/` with required `name` and optional
+- New league members are member files under `data/members/` with required `name` and optional
   `avatar`, `team`, `email`, `twitter`, `linkedin`, and `github` fields.
 - Press conference entries are Supabase-backed (`press_conferences` table); a commissioner adds
   them from `/admin/commissioner`, not by editing a file. `data/projectsData.ts` no longer exists.

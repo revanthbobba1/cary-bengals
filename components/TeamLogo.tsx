@@ -3,7 +3,7 @@
 // Small enough to sit inline with a team name without dominating the row; hidden outright on
 // load failure (a dead/changed ESPN URL) rather than showing a broken-image icon -- the name
 // text next to it already carries the real information. A Client Component specifically because
-// onError needs interactivity a Server Component can't carry (AuthorLayout, one of this
+// onError needs interactivity a Server Component can't carry (MemberLayout, one of this
 // component's two callers, is one) -- "Event handlers cannot be passed to Client Component
 // props" is the exact error a plain <img onError> throws there otherwise.
 export default function TeamLogo({ src }: { src: string | null }) {

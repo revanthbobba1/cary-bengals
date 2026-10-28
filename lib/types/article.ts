@@ -20,7 +20,7 @@ export interface Article {
   published_at: string | null
   /** The assignee, and the byline. Null only if the account was deleted. */
   author_id: string | null
-  /** Points at a data/authors/*.mdx entry for the rendered byline (avatar, twitter). */
+  /** Points at a data/members/*.mdx entry for the rendered byline (avatar, twitter). */
   author_slug: string | null
   created_at: string
   updated_at: string
