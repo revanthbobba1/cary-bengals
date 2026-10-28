@@ -5,7 +5,7 @@ This file is the canonical source for repository-specific agent instructions.
 ## Project context
 
 Cary Bengals Fantasy Football is a Next.js 13.5 App Router site using TypeScript, Tailwind CSS,
-Contentlayer, Supabase, and Netlify. League members live in `data/members/`; public articles, teams, and
+Supabase, and Netlify. League members live in `data/members.ts`; public articles, teams, and
 poll data are Supabase-backed. The ESPN service in `backend/` securely fetches team metadata;
 public pages must never call ESPN directly or expose ESPN credentials.
 
@@ -40,16 +40,16 @@ format and lint staged files. Update `next.config.js` CSP rules when adding exte
 
 ## Detailed architecture
 
-Contentlayer processes author MDX files under `data/members/` at build time. Generated types are
-available from `contentlayer/generated`. `layouts/` contains page-level templates, while
+League members are a typed array in `data/members.ts` (exported `Member` type and `members`).
+`layouts/` contains page-level templates, while
 `components/` contains reusable UI pieces. Client components use the `'use client'` directive.
 
-Pliny provides analytics wrappers, comments, newsletter components, command-palette search, and
-content utilities. The main configuration files are:
+Pliny provides analytics wrappers, comments, newsletter components, command-palette search (fed by `/api/search-index`, which reads published
+articles from Supabase), and content utilities. The main configuration files are:
 
 - `data/siteMetadata.js` — site title, URLs, analytics, comments, search, and newsletter settings
 - `data/headerNavLinks.ts` — navigation items
-- `contentlayer.config.ts` — MDX processing and document definitions
+- `data/members.ts` — league member profiles (slug is the stable ID articles reference)
 - `css/tailwind.css` and `tailwind.config.js` — application styling
 
 ## Authentication details
@@ -66,8 +66,9 @@ Login failures should remain generic to avoid user enumeration.
 
 ## Content workflows
 
-- New league members are member files under `data/members/` with required `name` and optional
-  `avatar`, `team`, `email`, `twitter`, `linkedin`, and `github` fields.
+- New league members are entries in the `members` array in `data/members.ts` with required `slug`
+  (stable, referenced by article `author_slug`), `name`, and optional
+  `avatar`, `email`, `twitter`, `linkedin`, and `github` fields.
 - Press conference entries are Supabase-backed (`press_conferences` table); a commissioner adds
   them from `/admin/commissioner`, not by editing a file. `data/projectsData.ts` no longer exists.
 - Current poll rankings and team metadata belong in Supabase; do not treat legacy
@@ -77,7 +78,6 @@ Login failures should remain generic to avoid user enumeration.
 
 ## Build and review notes
 
-- The production build also generates the search index through Contentlayer.
 - Netlify uses Node 18, Yarn 3.6.1, and the Next.js runtime plugin. `netlify.toml`'s
   `build.command` is `yarn build` -- run that exact command locally before opening a PR, not just
   `yarn lint`. `yarn build` also runs the TypeScript check that `yarn lint` alone does not, and is

@@ -1,7 +1,5 @@
-import { Member, allMembers } from 'contentlayer/generated'
-import { MDXLayoutRenderer } from 'pliny/mdx-components'
+import { members } from '@/data/members'
 import MemberLayout from '@/layouts/MemberLayout'
-import { coreContent } from 'pliny/utils/contentlayer'
 import { genPageMetadata } from 'app/seo'
 import { createPublicClient } from '@/lib/supabase/public'
 import siteMetadata from '@/data/siteMetadata'
@@ -75,19 +73,16 @@ export default async function Page() {
       </div>
       <hr className="border-gray-200 dark:border-gray-700 mb-6" />
       <div className="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
-        {allMembers.map((author) => {
-          const mainContent = coreContent(author as Member)
-          const teamInfo = teamByOwner.get(normalizeName(author.name.split(' ')[0]))
+        {members.map((member) => {
+          const teamInfo = teamByOwner.get(normalizeName(member.name.split(' ')[0]))
           return (
-            <div key={author.slug} className="flex flex-col items-center">
+            <div key={member.slug} className="flex flex-col items-center">
               <MemberLayout
-                content={mainContent}
+                content={member}
                 team={teamInfo?.name}
                 teamLogo={teamInfo?.logo}
                 roster={teamInfo ? rosterByTeamId.get(teamInfo.id) : undefined}
-              >
-                <MDXLayoutRenderer code={author.body.code} />
-              </MemberLayout>
+              />
             </div>
           )
         })}

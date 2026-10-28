@@ -1,5 +1,4 @@
-import { ReactNode } from 'react'
-import type { Member } from 'contentlayer/generated'
+import type { Member } from '@/data/members'
 import SocialIcon from '@/components/social-icons'
 import Image from '@/components/Image'
 import RosterModal from '@/components/RosterModal'
@@ -8,8 +7,7 @@ import { getBlurProps } from '@/lib/blurPlaceholders'
 import type { RosterPlayer } from '@/lib/types/roster'
 
 interface Props {
-  children: ReactNode
-  content: Omit<Member, '_id' | '_raw' | 'body'>
+  content: Member
   team?: string
   // Null for a team with no logo set in ESPN (not every owner picks one); undefined when there's
   // no team match at all, same as `team` itself.
@@ -17,8 +15,8 @@ interface Props {
   roster?: RosterPlayer[]
 }
 
-export default function MemberLayout({ children, content, team, teamLogo, roster }: Props) {
-  const { name, avatar, company, email, twitter, linkedin, github } = content
+export default function MemberLayout({ content, team, teamLogo, roster }: Props) {
+  const { name, avatar, email, twitter, linkedin, github } = content
 
   return (
     <div className="flex h-full w-full min-h-[420px] flex-col items-center rounded-card border border-gray-200 bg-white p-8 shadow-card dark:border-gray-800 dark:bg-gray-900 dark:shadow-card-dark">
@@ -42,14 +40,12 @@ export default function MemberLayout({ children, content, team, teamLogo, roster
       {roster && roster.length > 0 && (
         <RosterModal teamName={team ?? `Team ${name.split(' ')[0]}`} players={roster} />
       )}
-      <div className="text-base text-gray-500 dark:text-gray-400">{company}</div>
       <div className="flex min-h-9 items-center gap-2 pt-5">
         <SocialIcon kind="mail" href={`mailto:${email}`} size={6} />
         <SocialIcon kind="github" href={github} size={6} />
         <SocialIcon kind="linkedin" href={linkedin} size={6} />
         <SocialIcon kind="twitter" href={twitter} size={6} />
       </div>
-      <div className="prose w-full pt-6 text-center dark:prose-invert">{children}</div>
     </div>
   )
 }

@@ -16,7 +16,7 @@ import matter from 'gray-matter'
 
 const ROOT = path.join(path.dirname(new URL(import.meta.url).pathname), '..')
 const NEWSFEED_DIR = path.join(ROOT, 'data/newsfeed')
-const MEMBERS_DIR = path.join(ROOT, 'data/members')
+const MEMBERS_FILE = path.join(ROOT, 'data/members.ts')
 const SQL_OUTPUT = path.join(ROOT, 'supabase/migrations/029_backfill_articles.sql')
 const REVIEW_OUTPUT = path.join(ROOT, 'review.md')
 
@@ -71,14 +71,13 @@ const SUMMARY_OVERRIDES = new Map([
 ])
 
 function loadAuthorRoster() {
-  const files = fs.readdirSync(MEMBERS_DIR).filter((f) => f.endsWith('.mdx'))
+  // data/members.ts is TypeScript, so pull slug/name out textually rather than importing it.
+  const raw = fs.readFileSync(MEMBERS_FILE, 'utf8')
   const slugs = new Set()
   const ownerNames = new Set()
-  for (const file of files) {
-    const raw = fs.readFileSync(path.join(MEMBERS_DIR, file), 'utf8')
-    const { data } = matter(raw)
-    slugs.add(file.replace(/\.mdx$/, ''))
-    if (data.name) ownerNames.add(String(data.name).trim())
+  for (const m of raw.matchAll(/slug: '([^']+)',\s*name: '([^']+)'/g)) {
+    slugs.add(m[1])
+    ownerNames.add(m[2].trim())
   }
   return { slugs, ownerNames }
 }
@@ -492,7 +491,7 @@ function resolveAuthorSlug(frontmatter, warnings) {
   }
   const slug = authors[0]
   if (!AUTHOR_SLUGS.has(slug)) {
-    warnings.push(`author slug "${slug}" has no matching file in data/members/`)
+    warnings.push(`author slug "${slug}" has no matching entry in data/members.ts`)
   }
   return slug
 }

@@ -54,8 +54,7 @@ The build process includes:
 
 1. Next.js build with Netlify's Next.js runtime plugin (supports API routes)
 2. RSS feed generation
-3. Content processing with Contentlayer
-4. Automatic optimization by Netlify's Next.js plugin
+3. Automatic optimization by Netlify's Next.js plugin
 
 ## Why Netlify Next.js Plugin?
 
