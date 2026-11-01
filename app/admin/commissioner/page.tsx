@@ -91,6 +91,7 @@ export default async function CommissionerToolsPage({
   // user_id -> team names in rank order. Readable only by the commissioner (RLS policy
   // "Commissioner can view all submissions", migration 010); this page is also role-gated above.
   const ballotsByUser = new Map<string, string[]>()
+  let ballotsError = false
   if (section === 'poll' && selectedWeek) {
     const [statusRes, teamsRes, submissionsRes] = await Promise.all([
       supabase.rpc('get_poll_week_submission_status', { p_poll_week_id: selectedWeek.id }),
@@ -101,8 +102,11 @@ export default async function CommissionerToolsPage({
         .eq('poll_week_id', selectedWeek.id)
         .order('rank', { ascending: true }),
     ])
-    if (submissionsRes.error) {
-      console.error('Failed to load ballots:', submissionsRes.error)
+    // Without team names every ranking would read "Unknown team", so a failure in either query
+    // hides the rankings (and says so) rather than showing misleading ones.
+    if (submissionsRes.error || teamsRes.error) {
+      ballotsError = true
+      if (submissionsRes.error) console.error('Failed to load ballots:', submissionsRes.error)
     } else {
       const teamNames = new Map((teamsRes.data ?? []).map((t) => [t.id, t.name]))
       for (const row of submissionsRes.data ?? []) {
@@ -154,6 +158,7 @@ export default async function CommissionerToolsPage({
                   key={selectedWeek.id}
                   rows={leagueStatus}
                   teamCount={teamCount}
+                  ballotsError={ballotsError}
                   ballotsByUser={Object.fromEntries(ballotsByUser)}
                 />
               </div>

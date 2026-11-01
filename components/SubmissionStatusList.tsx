@@ -10,9 +10,16 @@ interface Props {
   teamCount: number | null
   // user_id -> team names in rank order. Only ever passed from the commissioner page.
   ballotsByUser: Record<string, string[]>
+  // True when the ballot or team-name query failed, so there are no rankings to show.
+  ballotsError: boolean
 }
 
-export default function SubmissionStatusList({ rows, teamCount, ballotsByUser }: Props) {
+export default function SubmissionStatusList({
+  rows,
+  teamCount,
+  ballotsByUser,
+  ballotsError,
+}: Props) {
   const [showBallots, setShowBallots] = useState(false)
 
   return (
@@ -25,6 +32,11 @@ export default function SubmissionStatusList({ rows, teamCount, ballotsByUser }:
       >
         {showBallots ? 'Hide rankings' : 'Show rankings'}
       </button>
+      {showBallots && ballotsError && (
+        <p className="mb-2 text-sm text-red-600 dark:text-red-400">
+          Couldn't load rankings right now — try refreshing the page.
+        </p>
+      )}
       <ul className="divide-y divide-gray-100 dark:divide-gray-800">
         {rows.map((row) => {
           const ballot = ballotsByUser[row.user_id]
