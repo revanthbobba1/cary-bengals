@@ -180,6 +180,8 @@ export default function ArticleEditor({
         const extra = labels.slice(prev.length).map((l) => ({ ...blankMatchup(), slot_label: l }))
         return [...next, ...extra]
       })
+      // ESPN's order has no relation to last week's slot order, so the pairing is a guess.
+      toast.success('Slot labels copied by position -- check each one matches its game.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to copy last week’s slots')
     } finally {
@@ -352,7 +354,7 @@ export default function ArticleEditor({
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold text-ink dark:text-gray-100">Matchups</h2>
           <div className="flex gap-2">
-            {copyFromArticleId && items.every((m) => !m.slot_label) && (
+            {copyFromArticleId && matchups.length === 0 && items.every((m) => !m.slot_label) && (
               <button
                 type="button"
                 onClick={handleCopySlots}

@@ -57,9 +57,12 @@ export function prefillMatchupsFromEspn(
 
     let line = ''
     if (kind === 'preview' && m.home_projected_score != null && m.away_projected_score != null) {
-      const margin = Math.abs(m.home_projected_score - m.away_projected_score)
-      const favorite = m.home_projected_score >= m.away_projected_score ? home : away
-      line = `${teamDisplayName(favorite)} -${margin.toFixed(1)}`
+      const margin = Math.abs(m.home_projected_score - m.away_projected_score).toFixed(1)
+      // A pick'em has no favorite, so leave the line for the author rather than print "-0.0".
+      if (Number(margin) > 0) {
+        const favorite = m.home_projected_score > m.away_projected_score ? home : away
+        line = `${teamDisplayName(favorite)} -${margin}`
+      }
     }
 
     const isFinal = m.winner !== 'UNDECIDED'
