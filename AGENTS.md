@@ -101,6 +101,10 @@ Login failures should remain generic to avoid user enumeration.
 - Update CSP rules when adding external scripts, images, comments, analytics, or API domains.
 - Create feature branches from `develop`.
 - Open pull requests against `develop`, not `main`.
+- Close an issue as soon as its PR merges into `develop`; don't wait for the release to `main`.
+  GitHub's `Closes #N` keyword only auto-closes on merges to the default branch (`main`), so after
+  merging into `develop`, close the issue by hand with `gh issue close <N> --comment "Merged in #<PR>"`.
+  Still put `Closes #N` in the PR body so the issue is linked.
 - Do not commit directly to `develop`.
 - Keep changes focused and use separate pull requests for unrelated work.
 - Run the relevant checks before opening a pull request.
