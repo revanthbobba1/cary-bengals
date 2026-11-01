@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { isCommissioner } from '@/lib/supabase/roles'
 import { formatDeadline } from '@/lib/formatDeadline'
 import { getDisplayName } from '@/lib/displayName'
-import type { PollWeek, SubmissionStatus } from '@/lib/types/poll'
+import type { PollWeek } from '@/lib/types/poll'
 import type { Article } from '@/lib/types/article'
 import Link from 'next/link'
 import AdminSubNav from '@/components/AdminSubNav'
@@ -32,11 +32,11 @@ export default async function AdminPage() {
 
   const showCommissionerTools = isCommissioner(user)
 
-  // The four queries below are all independent of each other once openWeek/user/showCommissionerTools
+  // The three queries below are all independent of each other once openWeek/user
   // are known (none reads another's result), so they're fired together instead of one-at-a-time
   // -- sequential round trips to Supabase were the largest contributor to this page feeling slow,
   // since each one pays the full network latency rather than all of them sharing it.
-  const [teamCountRes, userSubmissionsRes, leagueStatusRes, myDraftsRes] = await Promise.all([
+  const [teamCountRes, userSubmissionsRes, myDraftsRes] = await Promise.all([
     openWeek
       ? supabase
           .from('teams')
@@ -49,12 +49,6 @@ export default async function AdminPage() {
           .select('submitted_at, rank')
           .eq('poll_week_id', openWeek.id)
           .eq('user_id', user.id)
-      : null,
-    // League-wide "who has/hasn't submitted" — commissioner only. The RPC itself enforces the
-    // commissioner check server-side (SECURITY DEFINER function reading the JWT), this is just
-    // avoiding a pointless call for members who'd get an error back anyway.
-    openWeek && showCommissionerTools
-      ? supabase.rpc('get_poll_week_submission_status', { p_poll_week_id: openWeek.id })
       : null,
     // "Do I have a draft assigned?" -- explicitly filtered to this user's own rows even
     // though RLS would already restrict a plain admin to them: the commissioner's FOR ALL
@@ -71,9 +65,8 @@ export default async function AdminPage() {
       : null,
   ])
 
-  // Shared by both the personal card and the commissioner list below — both need "how many
-  // teams make up this season's full roster" to tell a genuinely current submission apart
-  // from a stale one left over from before the roster grew (see migration 024). Compares
+  // The personal card needs "how many teams make up this season's full roster" to tell a
+  // genuinely current submission apart from a stale one left over from before the roster grew (see migration 024). Compares
   // against the season's actual team count rather than a hardcoded 12 — matches
   // get_poll_week_submission_status (017), which already does this correctly. `null` means
   // the count is genuinely unknown (query failed), not that the roster is empty — treated
@@ -117,17 +110,6 @@ export default async function AdminPage() {
     }
   }
 
-  let leagueStatus: SubmissionStatus[] | null = null
-  let leagueStatusError = false
-  if (leagueStatusRes) {
-    if (leagueStatusRes.error) {
-      console.error('Failed to load league submission status:', leagueStatusRes.error)
-      leagueStatusError = true
-    } else {
-      leagueStatus = leagueStatusRes.data
-    }
-  }
-
   let myDrafts: Article[] = []
   if (myDraftsRes) {
     if (myDraftsRes.error) {
@@ -150,13 +132,9 @@ export default async function AdminPage() {
 
       <AdminSubNav active="dashboard" showCommissionerTools={showCommissionerTools} />
 
-      {/* Each admin feature gets its own labeled section here. As more admin
-          features are added, they should follow this same "section with an
-          <h2> label + one or more cards" pattern rather than being appended
-          to a single flat block. Member-facing and commissioner-only content
-          get entirely separate sections (not just separate cards within one
-          section) so it's unambiguous which parts of the page are "things
-          every member checks" vs. "things only the commissioner checks". */}
+      {/* Each admin feature gets its own labeled section here (<h2> label + one or more cards).
+          Commissioner-only content lives on the Commissioner tab, not here, so this page is
+          just the things every member checks. */}
       <div className="space-y-12 py-8">
         <section aria-labelledby="poll-section-heading">
           <h2
@@ -267,69 +245,6 @@ export default async function AdminPage() {
             )}
           </div>
         </section>
-
-        {/* Commissioner-only section. Everything a commissioner needs to check that a regular
-            member never sees lives here — a single place to look, rather than scattered
-            per-card badges that are easy to forget to add consistently (as happened when the
-            submission-status list below was first added without one). */}
-        {showCommissionerTools && (
-          <section aria-labelledby="commissioner-section-heading">
-            <h2
-              id="commissioner-section-heading"
-              className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"
-            >
-              Commissioner
-              <span className="rounded-full bg-gray-200 dark:bg-gray-700 px-2 py-0.5 text-[10px] font-semibold normal-case tracking-normal text-gray-600 dark:text-gray-300">
-                Only visible to you
-              </span>
-            </h2>
-
-            {/* No "Commissioner Tools" card here on purpose — that's exactly what the
-                "Commissioner Tools" tab in AdminSubNav already navigates to, and a static
-                description + link would add nothing beyond what the tab label already
-                says. This section is for live, dashboard-only oversight content instead
-                (things with no dedicated tab of their own), not a second copy of navigation. */}
-            {leagueStatus && leagueStatus.length > 0 ? (
-              <div className="rounded-card border border-gray-200 bg-white p-6 shadow-card dark:border-gray-800 dark:bg-gray-900 dark:shadow-card-dark">
-                <h3 className="text-lg font-semibold mb-4">
-                  Week {openWeek?.week_number} Submission Status (
-                  {leagueStatus.filter((row) => row.has_submitted).length}/{leagueStatus.length})
-                </h3>
-                <ul className="divide-y divide-gray-100 dark:divide-gray-800">
-                  {leagueStatus.map((row) => (
-                    <li
-                      key={row.user_id}
-                      className="flex items-center justify-between py-2 text-sm"
-                    >
-                      <span>{getDisplayName(row.full_name, row.email, 'Unknown member')}</span>
-                      {row.has_submitted ? (
-                        <span className="text-green-600 dark:text-green-400">✓ Submitted</span>
-                      ) : row.submission_count > 0 && resolvedTeamCount !== null ? (
-                        // Same "stale, not partial" reasoning as the personal card above —
-                        // get_poll_week_submission_status (017) uses the identical
-                        // count >= team_count threshold for has_submitted.
-                        <span className="text-yellow-600 dark:text-yellow-400">
-                          Needs update ({row.submission_count}/{resolvedTeamCount})
-                        </span>
-                      ) : (
-                        <span className="text-gray-400">Not submitted</span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : leagueStatusError ? (
-              <p className="text-sm text-red-600 dark:text-red-400">
-                Couldn't load submission status right now — try refreshing the page.
-              </p>
-            ) : (
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                No poll is currently open, so there's no submission status to show. Manage poll
-                weeks from the tab above.
-              </p>
-            )}
-          </section>
-        )}
       </div>
     </div>
   )
