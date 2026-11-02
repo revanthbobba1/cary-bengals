@@ -70,8 +70,10 @@ The plugin enables these features while still providing excellent performance.
 
 Pages that read cookies (`/admin/*`, `/poll`) render on every request. Public pages that use the
 cookie-free `createPublicClient` can be prerendered and cached instead, via `export const
-revalidate = <seconds>` -- but only when nothing ever needs to invalidate that cache early. The
-home page is the one page in this app that actually fits that description.
+revalidate = <seconds>` -- but only when nothing ever needs to invalidate that cache early. No
+page in this app currently fits that description: the home page used to (a plain article feed on
+`revalidate = 300`), but it is now a league snapshot (standings, scores, latest poll, press
+conference, article) and renders per request like the others.
 
 **Rule: never pair `revalidate` with `revalidatePath()` on a page whose data changes from an
 admin/commissioner action or a cron sync.** This has failed twice, not once:
