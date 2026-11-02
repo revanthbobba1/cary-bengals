@@ -15,8 +15,22 @@ for (const member of members) {
   if (!avatarByFirstName.has(key)) avatarByFirstName.set(key, member.avatar)
 }
 
+// A logo a manager uploads themselves lives on ESPN's image API, which answers 401 to anyone not
+// signed in to ESPN (checked against the real league: both custom-uploaded logos did, while every
+// built-in logo-pack image on g.espncdn.com loads for anyone). Those never render on this site, so
+// treat them as "no logo" up front rather than showing a hidden broken image.
+const PRIVATE_LOGO_HOST = 'mystique-api.fantasy.espn.com'
+
+function isPubliclyLoadable(logo: string): boolean {
+  try {
+    return new URL(logo).hostname !== PRIVATE_LOGO_HOST
+  } catch {
+    return false
+  }
+}
+
 export function teamLogoOrAvatar(logo: string | null, ownerName: string | null): string | null {
-  if (logo) return logo
+  if (logo && isPubliclyLoadable(logo)) return logo
   if (!ownerName) return null
   return avatarByFirstName.get(normalizeName(ownerName)) ?? null
 }
