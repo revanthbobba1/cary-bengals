@@ -202,7 +202,13 @@ class LeagueBoxScoresResponse(BaseModel):
 
 
 class TransactionItemOut(BaseModel):
-    action: Literal["ADD", "DROP"]
+    action: Literal["ADD", "DROP", "TRADE", "FAAB"] = Field(
+        description=(
+            "ADD/DROP for claims, pickups and forced drops. TRADE is a player moving between "
+            "teams in a trade. FAAB is budget moving between teams in a trade: ESPN reports the "
+            "direction but not the dollar amount."
+        )
+    )
     player_name: str = Field(examples=["Bengals D/ST"])
     position: str = _POSITION
     pro_team: str = _PRO_TEAM

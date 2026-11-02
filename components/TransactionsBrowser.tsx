@@ -130,18 +130,44 @@ export default function TransactionsBrowser({
         : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
     }`
 
-  const renderSummary = (txn: Transaction) => {
+  // The teams a row is about: both sides of a trade, otherwise the one that acted.
+  const rowTeams = (txn: Transaction): number[] => {
+    if (txn.kind !== 'TRADE') return [txn.espn_team_id]
+    const ids: number[] = []
+    for (const item of txn.items) {
+      for (const id of [item.from_espn_team_id, item.to_espn_team_id]) {
+        if (id !== 0 && !ids.includes(id)) ids.push(id)
+      }
+    }
+    return ids.length > 0 ? ids : [txn.espn_team_id]
+  }
+
+  const renderSummary = (txn: Transaction): string[] => {
     const added = txn.items.filter((item) => item.action === 'ADD')
     const dropped = txn.items.filter((item) => item.action === 'DROP')
     const droppedNote =
       dropped.length > 0 ? `, dropped ${dropped.map(describePlayer).join(', ')}` : ''
 
     if (txn.kind === 'TRADE') {
-      return `Trade: ${txn.items.map((item) => `${item.action === 'ADD' ? 'received' : 'sent'} ${describePlayer(item)}`).join(', ')}`
+      // One line per team: what it sent (players, and FAAB budget if it gave any), plus any
+      // forced drop it had to make afterward.
+      return rowTeams(txn).map((teamId) => {
+        const sent = txn.items
+          .filter((item) => item.action === 'TRADE' && item.from_espn_team_id === teamId)
+          .map(describePlayer)
+        if (txn.items.some((item) => item.action === 'FAAB' && item.from_espn_team_id === teamId)) {
+          sent.push('FAAB budget')
+        }
+        const drops = dropped
+          .filter((item) => item.from_espn_team_id === teamId)
+          .map(describePlayer)
+        const dropNote = drops.length > 0 ? `, then dropped ${drops.join(', ')}` : ''
+        return `${teamName(txn.season_year, teamId)} sent ${sent.length > 0 ? sent.join(', ') : 'nothing'}${dropNote}`
+      })
     }
     if (txn.status === 'EXECUTED') {
       const bid = txn.kind === 'WAIVER' ? ` for ${formatBid(txn.bid_amount)}` : ''
-      return `Added ${added.map(describePlayer).join(', ')}${bid}${droppedNote}`
+      return [`Added ${added.map(describePlayer).join(', ')}${bid}${droppedNote}`]
     }
     const reason =
       txn.winner_espn_team_id !== null
@@ -150,7 +176,9 @@ export default function TransactionsBrowser({
           (txn.status === 'FAILED_INVALIDPLAYERSOURCE'
             ? 'player already claimed'
             : 'did not go through'))
-    return `Bid ${formatBid(txn.bid_amount)} on ${added.map(describePlayer).join(', ')} failed — ${reason}`
+    return [
+      `Bid ${formatBid(txn.bid_amount)} on ${added.map(describePlayer).join(', ')} failed — ${reason}`,
+    ]
   }
 
   return (
@@ -207,22 +235,37 @@ export default function TransactionsBrowser({
                   const failed = txn.status !== 'EXECUTED'
                   return (
                     <li key={txn.id} className="flex items-start gap-3 px-4 py-3">
-                      <TeamLogo
-                        src={teamLogoByKey[teamKey(txn.season_year, txn.espn_team_id)] ?? null}
-                      />
+                      <div className="flex shrink-0 -space-x-1 pt-0.5">
+                        {rowTeams(txn).map((teamId) => (
+                          <TeamLogo
+                            key={teamId}
+                            src={teamLogoByKey[teamKey(txn.season_year, teamId)] ?? null}
+                          />
+                        ))}
+                      </div>
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-ink dark:text-gray-100">
-                          {teamName(txn.season_year, txn.espn_team_id)}
+                          {rowTeams(txn)
+                            .map((teamId) => teamName(txn.season_year, teamId))
+                            .join(' ⇄ ')}
+                          {txn.kind === 'TRADE' && (
+                            <span className="ml-2 rounded-full bg-gray-200 px-2 py-0.5 text-[10px] font-semibold text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                              Trade
+                            </span>
+                          )}
                         </p>
-                        <p
-                          className={`text-sm ${
-                            failed
-                              ? 'text-gray-500 dark:text-gray-500'
-                              : 'text-gray-700 dark:text-gray-300'
-                          }`}
-                        >
-                          {renderSummary(txn)}
-                        </p>
+                        {renderSummary(txn).map((line) => (
+                          <p
+                            key={line}
+                            className={`text-sm ${
+                              failed
+                                ? 'text-gray-500 dark:text-gray-500'
+                                : 'text-gray-700 dark:text-gray-300'
+                            }`}
+                          >
+                            {line}
+                          </p>
+                        ))}
                       </div>
                     </li>
                   )
