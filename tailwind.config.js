@@ -7,18 +7,13 @@ module.exports = {
   content: [
     './node_modules/pliny/**/*.js',
     './app/**/*.{js,ts,jsx,tsx}',
-    './pages/**/*.{js,ts,tsx}',
     './components/**/*.{js,ts,tsx}',
     './layouts/**/*.{js,ts,tsx}',
-    './data/**/*.mdx',
   ],
   darkMode: 'class',
   theme: {
     extend: {
       lineHeight: {
-        11: '2.75rem',
-        12: '3rem',
-        13: '3.25rem',
         14: '3.5rem',
       },
       fontFamily: {
@@ -42,11 +37,8 @@ module.exports = {
       boxShadow: {
         card: '0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06)',
         raised: '0 4px 12px -2px rgb(0 0 0 / 0.10), 0 2px 6px -2px rgb(0 0 0 / 0.06)',
-        // Matches PollSubmissionForm.tsx's existing whileDrag shadow — keep in sync if that changes.
-        overlay: '0 10px 25px -5px rgb(0 0 0 / 0.25), 0 8px 10px -6px rgb(0 0 0 / 0.15)',
         'card-dark': '0 1px 3px 0 rgb(0 0 0 / 0.3), 0 0 0 1px rgb(255 255 255 / 0.04)',
         'raised-dark': '0 4px 16px -2px rgb(0 0 0 / 0.4), 0 0 0 1px rgb(255 255 255 / 0.06)',
-        'overlay-dark': '0 20px 40px -8px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(255 255 255 / 0.08)',
         // Floating header bar: accent-tinted instead of neutral black, and deepens on scroll
         // (see components/Header.tsx's useScrolled) rather than staying static.
         nav: '0 10px 20px -8px rgb(79 70 229 / 0.06), 0 0 0 1px rgb(15 15 35 / 0.04)',
@@ -61,7 +53,6 @@ module.exports = {
       borderRadius: {
         control: '0.5rem',
         card: '0.75rem',
-        overlay: '1rem',
       },
       transitionTimingFunction: {
         // "Expo out" — accelerates at the start, reads as responsive. Default for anything

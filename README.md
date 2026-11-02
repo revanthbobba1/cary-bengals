@@ -23,59 +23,10 @@ commissioner's cookies → Render sanitizes the response and returns it → the 
 it into Supabase → public pages (e.g. `/league-members`) read only from Supabase, never from
 Render or ESPN directly.
 
-Two services are configured but optional, enabled only if their env vars are set in Netlify:
-**Umami** (self-hosted analytics, `NEXT_UMAMI_ID`) and **Giscus** (GitHub Discussions-backed
-comments, `NEXT_PUBLIC_GISCUS_*`) — see `data/siteMetadata.js`.
+**Umami** (self-hosted analytics, `NEXT_UMAMI_ID`) is configured but optional, enabled only if
+its env var is set in Netlify — see `data/siteMetadata.js`.
 
 This is a [Next.js](https://nextjs.org/) and [Tailwind CSS](https://tailwindcss.com/) app (App Router, React Server Components) backed by Supabase.
-
-Probably the most feature-rich Next.js markdown blogging template out there. Easily configurable and customizable. Perfect as a replacement to existing Jekyll and Hugo individual blogs.
-
-Check out the documentation below to get started.
-
-Looking for an Astro alternative? Check out the unofficial [Tailwind Astro Template](https://github.com/wanoo21/tailwind-astro-starting-blog).
-
-## Motivation
-
-I wanted to port my existing blog to Nextjs and Tailwind CSS but there was no easy out of the box template to use so I decided to create one. Design is adapted from [Tailwindlabs blog](https://github.com/tailwindlabs/blog.tailwindcss.com).
-
-I wanted it to be nearly as feature-rich as popular blogging templates like [beautiful-jekyll](https://github.com/daattali/beautiful-jekyll) and [Hugo Academic](https://github.com/wowchemy/wowchemy-hugo-modules) but with the best of React's ecosystem and current web development's best practices.
-
-## Features
-
-- Next.js with Typescript
-- Easy styling customization with [Tailwind 3.0](https://tailwindcss.com/blog/tailwindcss-v3) and primary color attribute
-- Near perfect lighthouse score - [Lighthouse report](https://www.webpagetest.org/result/230805_BiDcBQ_4H7)
-- Lightweight, 85kB first load JS
-- Mobile-friendly view
-- Light and dark theme
-- Font optimization with [next/font](https://nextjs.org/docs/app/api-reference/components/font)
-- Integration with [pliny](https://github.com/timlrx/pliny) that provides:
-  - Multiple analytics options including [Umami](https://umami.is/), [Plausible](https://plausible.io/), [Simple Analytics](https://simpleanalytics.com/), Posthog and Google Analytics
-  - Comments via [Giscus](https://github.com/laymonage/giscus), [Utterances](https://github.com/utterance/utterances) or Disqus
-  - Newsletter API and component with support for Mailchimp, Buttondown, Convertkit, Klaviyo, Revue, and Emailoctopus
-  - Command palette search with [Kbar](https://github.com/timc1/kbar) or Algolia
-- Server-side syntax highlighting with line numbers and line highlighting via [rehype-prism-plus](https://github.com/timlrx/rehype-prism-plus)
-- Math display supported via [KaTeX](https://katex.org/)
-- Citation and bibliography support via [rehype-citation](https://github.com/timlrx/rehype-citation)
-- Automatic image optimization via [next/image](https://nextjs.org/docs/basic-features/image-optimization)
-- Support for tags - each unique tag will be its own page
-- 3 different blog layouts
-- 2 different blog listing layouts
-- Support for nested routing of blog posts
-- Projects page
-- Preconfigured security headers
-- SEO friendly with RSS feed, sitemaps and more!
-
-## Quick Start Guide
-
-1. Personalize `siteMetadata.js` (site related information)
-2. Modify the content security policy in `next.config.js` if you want to use
-   other analytics provider or a commenting solution other than giscus.
-3. Add league members as files in `data/members/`
-4. Modify `headerNavLinks.ts` to customize navigation links
-5. Add articles through the Supabase-backed article workflow (see `AGENTS.md`)
-6. Deploy on Netlify
 
 ## Installation
 
@@ -99,8 +50,6 @@ Edit the layout in `app` or content in `data`. With live reloading, the pages au
 
 `data/siteMetadata.js` - contains most of the site related information which should be modified for a user's need.
 
-`data/members/` - one file per league member. Press conferences and articles live in Supabase, not in files.
-
 `data/headerNavLinks.ts` - navigation links.
 
 `data/logo.svg` - site logo.
@@ -109,9 +58,7 @@ Edit the layout in `app` or content in `data`. With live reloading, the pages au
 
 `tailwind.config.js` and `css/tailwind.css` - tailwind configuration and stylesheet which can be modified to change the overall look and feel of the site.
 
-`css/prism.css` - controls the styles associated with the code blocks. Feel free to customize it and use your preferred prismjs theme e.g. [prism themes](https://github.com/PrismJS/prism-themes).
-
-`data/members.ts` - league member profiles (name, avatar, social links); add an entry to add a member.
+`data/members.ts` - league member profiles (name, avatar, social links); add an entry to add a member. Press conferences and articles live in Supabase, not in files.
 
 `layouts` - page-level templates (currently `MemberLayout` for `/league-members`).
 
@@ -121,36 +68,9 @@ Edit the layout in `app` or content in `data`. With live reloading, the pages au
 
 ## Deploy
 
-**Vercel**  
-The easiest way to deploy the template is to deploy on [Vercel](https://vercel.com). Check out the [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-
-**Netlify**
-[Netlify](https://www.netlify.com/)’s Next.js runtime configures enables key Next.js functionality on your website without the need for additional configurations. Netlify generates serverless functions that will handle Next.js functionalities such as server-side rendered (SSR) pages, incremental static regeneration (ISR), `next/images`, etc.
-
-See [Next.js on Netlify](https://docs.netlify.com/integrations/frameworks/next-js/overview/#next-js-runtime) for suggested configuration values and more details.
-
-**Static hosting services / GitHub Pages / S3 / Firebase etc.**
-
-1. Add `output: 'export'` in `next.config.js`. See [static exports documentation](https://nextjs.org/docs/app/building-your-application/deploying/static-exports#configuration) for more information.
-2. Comment out `headers()` from `next.config.js`.
-3. Change `components/Image.tsx` to use a standard `<img>` tag instead of `next/image`:
-
-   ```ts
-   /* eslint-disable jsx-a11y/alt-text */
-   /* eslint-disable @next/next/no-img-element */
-   import NextImage, { ImageProps } from 'next/image'
-
-   // @ts-ignore
-   const Image = ({ ...rest }: ImageProps) => <img {...rest} />
-
-   export default Image
-   ```
-
-   Alternatively, to continue using `next/image`, you can use an alternative image optimization provider such as Imgix, Cloudinary or Akamai. See [image optimization documentation](https://nextjs.org/docs/app/building-your-application/deploying/static-exports#image-optimization) for more details.
-
-4. Remove `api` folder and components which call the server-side function such as the Newsletter component. Not technically required and the site will build successfully, but the APIs cannot be used as they are server-side functions.
-5. Run `yarn build`. The generated static content is in the `out` folder.
-6. Deploy the `out` folder to your hosting service of choice or run `npx serve out` to view the website locally.
+The app deploys to Netlify from `main` (see `netlify.toml` and `docs/NETLIFY_DEPLOYMENT.md`). It
+relies on server-rendered pages, Route Handlers, and Server Actions, so it can't be exported as a
+static site.
 
 ## Licence
 

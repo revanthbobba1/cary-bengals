@@ -55,7 +55,7 @@ interface ClaimsWithAmr {
  * When the user last authenticated in this session, in Unix seconds, or null if the token doesn't
  * say. Supabase Auth records this per session at sign-in and replays it unchanged on refresh.
  */
-export function authenticatedAt(claims: ClaimsWithAmr): number | null {
+function authenticatedAt(claims: ClaimsWithAmr): number | null {
   const timestamps = (claims.amr ?? []).flatMap((entry) =>
     typeof entry === 'object' && typeof entry.timestamp === 'number' ? [entry.timestamp] : []
   )

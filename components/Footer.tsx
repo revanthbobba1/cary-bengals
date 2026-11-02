@@ -59,11 +59,7 @@ export default function Footer() {
           </p>
           <div className="mt-1 flex items-center gap-2.5">
             <SocialIcon kind="mail" href={`mailto:${siteMetadata.email}`} size={5} />
-            <SocialIcon kind="github" href={siteMetadata.github} size={5} />
-            <SocialIcon kind="facebook" href={siteMetadata.facebook} size={5} />
             <SocialIcon kind="youtube" href={siteMetadata.youtube} size={5} />
-            <SocialIcon kind="linkedin" href={siteMetadata.linkedin} size={5} />
-            <SocialIcon kind="twitter" href={siteMetadata.twitter} size={5} />
           </div>
         </div>
 

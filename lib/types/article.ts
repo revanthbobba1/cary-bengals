@@ -55,26 +55,6 @@ export interface ArticleWithMatchups extends Article {
 }
 
 /**
- * A season's worth of articles keyed by week, for the hub's week-paired rows.
- * Either side can be absent — a week with a preview and no recap is the common case.
- */
-export interface WeekPair {
-  week_number: number
-  preview: Article | null
-  recap: Article | null
-}
-
-/** Editor form state. Matchups carry no id until they've been saved. */
-export interface ArticleMatchupDraft
-  extends Omit<ArticleMatchup, 'id' | 'article_id' | 'created_at' | 'updated_at'> {
-  id?: string
-}
-
-export function isRecap(article: Pick<Article, 'kind'>): article is Article & { kind: 'recap' } {
-  return article.kind === 'recap'
-}
-
-/**
  * Winner of a played matchup, or null when it hasn't been played, wasn't scored, or tied.
  * Only meaningful on recaps — previews carry no scores.
  */

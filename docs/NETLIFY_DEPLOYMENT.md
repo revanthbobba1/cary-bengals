@@ -12,13 +12,6 @@ Set these environment variables in your Netlify dashboard under Site Settings > 
 
 - `NEXT_UMAMI_ID`: Your Umami website ID for analytics
 
-### Optional (Comments - Giscus)
-
-- `NEXT_PUBLIC_GISCUS_REPO`: Your GitHub repository (e.g., `username/repo`)
-- `NEXT_PUBLIC_GISCUS_REPOSITORY_ID`: Your repository ID
-- `NEXT_PUBLIC_GISCUS_CATEGORY`: Category name (e.g., `General`)
-- `NEXT_PUBLIC_GISCUS_CATEGORY_ID`: Your category ID
-
 ### Build Configuration
 
 - `ANALYZE`: Set to `false` for production builds
@@ -60,7 +53,7 @@ The build process includes:
 
 Your app uses:
 
-- **API Routes** (`/app/api/newsletter`) - requires server runtime
+- **API Routes** (`/app/api/espn/*`, `/app/api/search-index`) - requires server runtime
 - **Image Optimization** - Next.js Image component needs server runtime
 - **Next.js Features** - Better support for SSR, ISR, and other Next.js features
 
@@ -77,8 +70,10 @@ The plugin enables these features while still providing excellent performance.
 
 Pages that read cookies (`/admin/*`, `/poll`) render on every request. Public pages that use the
 cookie-free `createPublicClient` can be prerendered and cached instead, via `export const
-revalidate = <seconds>` -- but only when nothing ever needs to invalidate that cache early. The
-home page is the one page in this app that actually fits that description.
+revalidate = <seconds>` -- but only when nothing ever needs to invalidate that cache early. No
+page in this app currently fits that description: the home page used to (a plain article feed on
+`revalidate = 300`), but it is now a league snapshot (standings, scores, latest poll, press
+conference, article) and renders per request like the others.
 
 **Rule: never pair `revalidate` with `revalidatePath()` on a page whose data changes from an
 admin/commissioner action or a cron sync.** This has failed twice, not once:

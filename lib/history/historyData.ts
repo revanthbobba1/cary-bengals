@@ -72,7 +72,7 @@ export interface OwnerSummary {
   worstRank: number
 }
 
-export function isFixtureEnv(): boolean {
+function isFixtureEnv(): boolean {
   return (
     !process.env.NEXT_PUBLIC_SUPABASE_URL ||
     process.env.NEXT_PUBLIC_SUPABASE_URL.includes('your-project-ref')
@@ -83,7 +83,7 @@ export function ownerSlug(ownerName: string): string {
   return normalizeName(ownerName)
 }
 
-export function winPct(wins: number, losses: number, ties: number): number {
+function winPct(wins: number, losses: number, ties: number): number {
   const games = wins + losses + ties
   return games === 0 ? 0 : (wins + ties / 2) / games
 }

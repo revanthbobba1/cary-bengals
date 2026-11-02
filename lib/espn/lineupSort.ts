@@ -12,7 +12,7 @@ interface SortableLineupEntry {
 // ESPN's standard starting lineup order, as shown in its own app -- not derivable from the
 // payload itself (its own entries array isn't in this order; see backend/app/services/roster.py).
 // Slot labels match app/espn_labels.py's LINEUP_SLOTS values exactly.
-export const STARTER_SLOT_ORDER: Record<string, number> = {
+const STARTER_SLOT_ORDER: Record<string, number> = {
   QB: 0,
   RB: 1,
   'RB/WR': 2,
@@ -28,7 +28,7 @@ export const STARTER_SLOT_ORDER: Record<string, number> = {
 // Bench has no ESPN-documented display order we could find -- the payload's own array order
 // doesn't match what ESPN's app shows either. Grouping by position (then IR last, since that's
 // a distinct status players are pulled out for) is the closest reasonable approximation.
-export const BENCH_POSITION_ORDER: Record<string, number> = {
+const BENCH_POSITION_ORDER: Record<string, number> = {
   QB: 0,
   RB: 1,
   WR: 2,
