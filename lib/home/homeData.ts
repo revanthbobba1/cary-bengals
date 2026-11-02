@@ -227,8 +227,8 @@ async function loadStandingsAndMatchups(season: number): Promise<{
       m.away_team_id !== null && m.away_score !== null
   )
 
-  // High/low across both sides of last week's games, not just the winners: the top score can
-  // belong to a team that lost.
+  // High/low across every team's score last week. The high always belongs to a winner and the low
+  // to a loser (barring ties), so `won` on each line is just a display convenience.
   const lastWeekSides = past
     .filter((m) => m.week_number === week - 1)
     .flatMap((m) => [
