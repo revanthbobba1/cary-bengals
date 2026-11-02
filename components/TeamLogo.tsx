@@ -17,7 +17,7 @@ export default function TeamLogo({ src }: { src: string | null }) {
       alt=""
       width={20}
       height={20}
-      className="h-5 w-5 shrink-0 rounded-full object-contain"
+      className="h-5 w-5 shrink-0 rounded-full object-cover"
       onError={(e) => {
         e.currentTarget.style.display = 'none'
       }}

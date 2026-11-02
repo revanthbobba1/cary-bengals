@@ -10,6 +10,7 @@
 
 import { createPublicClient } from '@/lib/supabase/public'
 import type { Matchup, MatchupPlayerScore } from '@/lib/types/matchup'
+import { teamLogoOrAvatar } from '@/lib/memberAvatar'
 
 export interface ScheduleData {
   currentWeek: number | null
@@ -17,8 +18,7 @@ export interface ScheduleData {
   // boundary (for the week selector's instant client-side switching), and a Map doesn't survive
   // that serialization.
   teamNameById: Record<string, string>
-  // Null for a team with no logo set in ESPN (not every owner picks one), same nullability as
-  // teams.espn_logo_url itself.
+  // The team's ESPN logo, else its owner's league-member photo; null only if neither exists.
   teamLogoById: Record<string, string | null>
   matchups: Matchup[]
 }
@@ -39,7 +39,10 @@ export async function loadScheduleData(seasonYear: number): Promise<ScheduleData
       .select('current_week')
       .eq('season_year', seasonYear)
       .maybeSingle(),
-    supabase.from('teams').select('id, name, espn_logo_url').eq('season_year', seasonYear),
+    supabase
+      .from('teams')
+      .select('id, name, owner_name, espn_logo_url')
+      .eq('season_year', seasonYear),
     supabase
       .from('matchups')
       .select('*')
@@ -62,7 +65,7 @@ export async function loadScheduleData(seasonYear: number): Promise<ScheduleData
   const teamLogoById: Record<string, string | null> = {}
   for (const team of teamsResult.data ?? []) {
     teamNameById[team.id] = team.name
-    teamLogoById[team.id] = team.espn_logo_url
+    teamLogoById[team.id] = teamLogoOrAvatar(team.espn_logo_url, team.owner_name)
   }
 
   type SyncedMatchup = Omit<Matchup, 'home_player_scores' | 'away_player_scores'>
