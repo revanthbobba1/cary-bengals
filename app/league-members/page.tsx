@@ -5,6 +5,7 @@ import { createPublicClient } from '@/lib/supabase/public'
 import siteMetadata from '@/data/siteMetadata'
 import type { RosterPlayer } from '@/lib/types/roster'
 import { normalizeName } from '@/lib/memberAvatar'
+import { loadHistoryBase, summarizeOwners } from '@/lib/history/historyData'
 
 export const metadata = genPageMetadata({ title: 'League Members' })
 
@@ -61,6 +62,13 @@ export default async function Page() {
     }
   }
 
+  // Finals results come from the same inferred brackets as /history; a load failure just leaves
+  // the cards without a trophy line.
+  const history = await loadHistoryBase()
+  const trophiesBySlug = new Map(
+    (history ? summarizeOwners(history) : []).map((owner) => [owner.slug, owner])
+  )
+
   return (
     <>
       <div className="space-y-2 pb-8 pt-6 md:space-y-5">
@@ -79,6 +87,8 @@ export default async function Page() {
                 team={teamInfo?.name}
                 teamLogo={teamInfo?.logo}
                 roster={teamInfo ? rosterByTeamId.get(teamInfo.id) : undefined}
+                titles={trophiesBySlug.get(member.slug)?.titles}
+                runnerUps={trophiesBySlug.get(member.slug)?.runnerUps}
               />
             </div>
           )

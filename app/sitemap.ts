@@ -18,10 +18,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error('Failed to load published articles for the sitemap:', error)
   }
 
-  const routes = ['', 'articles', 'league-members', 'conferences', 'poll'].map((route) => ({
-    url: `${siteUrl}/${route}`,
-    lastModified: new Date().toISOString().split('T')[0],
-  }))
+  const routes = ['', 'articles', 'league-members', 'conferences', 'poll', 'history'].map(
+    (route) => ({
+      url: `${siteUrl}/${route}`,
+      lastModified: new Date().toISOString().split('T')[0],
+    })
+  )
 
   return [...routes, ...articleRoutes]
 }
