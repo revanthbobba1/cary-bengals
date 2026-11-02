@@ -1,3 +1,4 @@
+import PageHeader from '@/components/PageHeader'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { isCommissioner } from '@/lib/supabase/roles'
@@ -140,13 +141,11 @@ export default async function AdminPollPage() {
   return (
     <div className="py-12 max-w-4xl mx-auto">
       <AdminSubNav active="poll" showCommissionerTools={showCommissionerTools} />
-      <h1 className="text-2xl font-bold tracking-tight text-ink dark:text-gray-100 mb-2">
-        Submit Poll Rankings
-      </h1>
-      <p className="text-gray-600 dark:text-gray-400 mb-6">
-        Season {openWeek.season_year}, Week {openWeek.week_number} - Deadline:{' '}
-        {formatDeadline(openWeek.deadline)}
-      </p>
+      <PageHeader
+        variant="section"
+        title="Submit Poll Rankings"
+        subtitle={`Season ${openWeek.season_year}, Week ${openWeek.week_number} - Deadline: ${formatDeadline(openWeek.deadline)}`}
+      />
 
       {previousWeekMatchups.length > 0 && (
         <div className="mb-8">

@@ -2,6 +2,7 @@ import { genPageMetadata } from 'app/seo'
 import siteMetadata from '@/data/siteMetadata'
 import { loadTransactionData } from '@/lib/espn/transactionData'
 import TransactionsBrowser from '@/components/TransactionsBrowser'
+import PageHeader from '@/components/PageHeader'
 
 export const metadata = genPageMetadata({ title: 'Transactions' })
 
@@ -35,15 +36,8 @@ export default async function Page({
   )
 
   return (
-    <div className="container py-12">
-      <div className="space-y-2 pb-8 md:space-y-5">
-        <h1 className="text-3xl font-extrabold leading-9 tracking-tight text-ink dark:text-gray-100 sm:text-4xl sm:leading-10 md:text-6xl md:leading-14">
-          Transactions
-        </h1>
-        <p className="text-lg leading-7 text-gray-600 dark:text-gray-400">
-          Waiver claims, free-agent pickups and trades
-        </p>
-      </div>
+    <div className="container pb-12">
+      <PageHeader title="Transactions" subtitle="Waiver claims, free-agent pickups and trades" />
       <TransactionsBrowser
         transactions={data.transactions}
         seasons={data.seasons}
