@@ -55,8 +55,9 @@ def test_transactions_do_not_cache_across_requests(client: TestClient) -> None:
     client.get("/v1/league/2026/transactions", headers=headers)
     client.get("/v1/league/2026/transactions", headers=headers)
 
-    # Two ESPN calls per request (transactions, then player names).
-    assert route.call_count == 4
+    # Nine ESPN calls per request: the unfiltered transactions call, periods 1-7 (the fixture's
+    # current period is 8), then one player-name lookup.
+    assert route.call_count == 18
 
 
 @respx.mock
