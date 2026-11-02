@@ -28,7 +28,7 @@ rankings and team metadata are stored in Supabase; legacy `data/pollData.ts` is 
 source of truth.
 
 Required/optional environment variables include `NEXT_PUBLIC_SUPABASE_URL`,
-`NEXT_PUBLIC_SUPABASE_ANON_KEY`, optional analytics values, and server-only
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, optional analytics values, and server-only
 `ESPN_SERVICE_URL`/`ESPN_SERVICE_TOKEN`. Never commit secrets, local environment files, ESPN
 cookies, or service tokens.
 
@@ -83,7 +83,7 @@ Login failures should remain generic to avoid user enumeration.
   the only local command that reproduces what Netlify actually runs.
 - `yarn build` succeeds without a real Supabase project as long as `NEXT_PUBLIC_SUPABASE_URL`
   contains the literal substring `your-project-ref` (see `.env.example`) and
-  `NEXT_PUBLIC_SUPABASE_ANON_KEY` is any non-empty string; code paths that check for that
+  `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` is any non-empty string; code paths that check for that
   substring fall back to local fixture data instead of calling Supabase.
 - Pre-commit hooks (Husky + lint-staged) run ESLint and Prettier, but only on staged files.
   `package.json` is missing Husky's `prepare` script, so `yarn install` never wires up
