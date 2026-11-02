@@ -3,10 +3,11 @@ import HistoryTabs, { HISTORY_TABS, type HistoryTab } from '@/components/history
 import SeasonSelect from '@/components/history/SeasonSelect'
 import SeasonView from '@/components/history/SeasonView'
 import OwnersTable from '@/components/history/OwnersTable'
+import HeadToHeadTable from '@/components/history/HeadToHeadTable'
 import RecordsView from '@/components/history/RecordsView'
 import TransactionStatsView from '@/components/history/TransactionStatsView'
 import { loadHistoryBase, summarizeOwners } from '@/lib/history/historyData'
-import { loadRecords, loadTransactionStats } from '@/lib/history/recordsData'
+import { loadHeadToHead, loadRecords, loadTransactionStats } from '@/lib/history/recordsData'
 
 export const metadata = genPageMetadata({ title: 'League History' })
 
@@ -56,6 +57,7 @@ async function renderTab(
 ) {
   if (tab === 'owners') {
     // Titles and playoff appearances need an inferred bracket; say so if a season has none.
+    const headToHead = await loadHeadToHead()
     const missing = base.seasons.filter((year) => !base.results[year]?.bracket)
     return (
       <div className="space-y-4">
@@ -67,6 +69,11 @@ async function renderTab(
           </p>
         )}
         <OwnersTable owners={summarizeOwners(base)} />
+        {headToHead ? (
+          <HeadToHeadTable headToHead={headToHead} />
+        ) : (
+          <p>Head-to-head records could not be loaded.</p>
+        )}
       </div>
     )
   }
