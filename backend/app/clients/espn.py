@@ -39,9 +39,12 @@ class EspnClient:
         season: int,
         views: list[str],
         x_fantasy_filter: str | None = None,
+        scoring_period: int | None = None,
     ) -> dict:
         url = f"{ESPN_BASE_URL}/seasons/{season}/segments/0/leagues/{self._league_id}"
         params = [("view", view) for view in views]
+        if scoring_period is not None:
+            params.append(("scoringPeriodId", str(scoring_period)))
         headers = {"X-Fantasy-Filter": x_fantasy_filter} if x_fantasy_filter else {}
 
         response = await self._http.get(url, params=params, headers=headers)

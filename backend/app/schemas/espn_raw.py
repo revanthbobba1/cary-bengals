@@ -284,9 +284,11 @@ class RawTransactionItem(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     playerId: int
-    # ADD / DROP for waiver and free-agent moves; LINEUP for roster shuffles. Free text, same
-    # reasoning as RawRosterEntry.acquisitionType.
-    type: str
+    # ADD / DROP for waiver and free-agent moves; LINEUP for roster shuffles; TRADE and
+    # ACQUISITION_BUDGET_TRADE for trades. Free text, same reasoning as
+    # RawRosterEntry.acquisitionType -- and nullable, since a TRADE_DECLINE item has been seen
+    # with a null type.
+    type: str | None = None
     fromTeamId: int = 0
     toTeamId: int = 0
 
@@ -297,8 +299,10 @@ class RawTransaction(BaseModel):
     id: str
     # WAIVER / FREEAGENT / TRADE_ACCEPT observed, plus ROSTER and FUTURE_ROSTER lineup moves.
     type: str
-    # EXECUTED / PENDING / FAILED_ROSTERLIMIT / FAILED_INVALIDPLAYERSOURCE observed.
-    status: str
+    # EXECUTED / PENDING / CANCELED / FAILED_* observed. Absent on some trade entries (a
+    # TRADE_PROPOSAL, or the companion TRADE_ACCEPT for the other team), which one required field
+    # would otherwise turn into a failure for the whole response.
+    status: str = ""
     teamId: int
     bidAmount: float = 0.0
     # Epoch milliseconds. processDate is absent while a claim is still PENDING.
@@ -313,6 +317,9 @@ class RawLeagueTransactionsResponse(BaseModel):
 
     id: int
     seasonId: int
+    # The league's current scoring period. A request with no scoringPeriodId returns only this
+    # period's transactions, so the service walks 1..this to get the whole season.
+    scoringPeriodId: int = 1
     transactions: list[RawTransaction] = []
 
 

@@ -37,6 +37,8 @@ function formatBid(amount: number): string {
 
 const FAILURE_REASONS: Record<string, string> = {
   FAILED_ROSTERLIMIT: 'roster was full',
+  FAILED_PLAYERALREADYDROPPED: 'player was already dropped',
+  FAILED_AUCTIONBUDGETEXCEEDED: 'over budget',
 }
 
 export default function TransactionsBrowser({
