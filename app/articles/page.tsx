@@ -1,3 +1,4 @@
+import PageHeader from '@/components/PageHeader'
 import ArticlesList from '@/components/articles/ArticlesList'
 import { getPublishedArticles } from '@/lib/supabase/articles'
 import { genPageMetadata } from 'app/seo'
@@ -35,11 +36,7 @@ export default async function ArticlesPage({
 
   return (
     <div>
-      <div className="space-y-2 pb-10 pt-14 md:space-y-5 md:pb-12 md:pt-16">
-        <h1 className="text-4xl font-extrabold leading-10 tracking-tight text-ink dark:text-gray-100 sm:text-5xl sm:leading-tight md:text-6xl md:leading-14">
-          Articles
-        </h1>
-      </div>
+      <PageHeader title="Articles" subtitle="Recaps and takes from around the league" />
       {loadError ? (
         <p className="text-gray-500 dark:text-gray-400">
           Couldn&apos;t load articles right now — try refreshing the page.

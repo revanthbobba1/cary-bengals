@@ -1,3 +1,4 @@
+import PageHeader from '@/components/PageHeader'
 import { redirect } from 'next/navigation'
 import { genPageMetadata } from 'app/seo'
 import { createClient } from '@/lib/supabase/server'
@@ -71,9 +72,7 @@ export default async function AdminArticlesPage() {
   return (
     <div className="py-12 max-w-4xl mx-auto">
       <AdminSubNav active="articles" showCommissionerTools={showCommissionerTools} />
-      <h1 className="text-2xl font-bold tracking-tight text-ink dark:text-gray-100 mb-6">
-        Articles
-      </h1>
+      <PageHeader variant="section" title="Articles" />
 
       {/* Same "section per audience" split as the /admin dashboard: member-facing content (your
           own articles) and commissioner-only content (assignment + the full duty roster) get

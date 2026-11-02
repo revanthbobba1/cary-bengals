@@ -1,3 +1,4 @@
+import PageHeader from '@/components/PageHeader'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { isCommissioner } from '@/lib/supabase/roles'
@@ -132,9 +133,7 @@ export default async function CommissionerToolsPage({
     <div className="py-12 max-w-4xl mx-auto">
       <div>
         <AdminSubNav active="commissioner" showCommissionerTools={showCommissionerTools} />
-        <h1 className="text-2xl font-bold tracking-tight text-ink dark:text-gray-100 mb-6">
-          Commissioner Tools
-        </h1>
+        <PageHeader variant="section" title="Commissioner Tools" />
       </div>
 
       {/* One tab per kind of commissioner work (see CommissionerSectionNav), so the page isn't

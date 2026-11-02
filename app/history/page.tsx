@@ -5,6 +5,7 @@ import SeasonView from '@/components/history/SeasonView'
 import OwnersTable from '@/components/history/OwnersTable'
 import HeadToHeadTable from '@/components/history/HeadToHeadTable'
 import RecordsView from '@/components/history/RecordsView'
+import PageHeader from '@/components/PageHeader'
 import TransactionStatsView from '@/components/history/TransactionStatsView'
 import { loadHistoryBase, summarizeOwners } from '@/lib/history/historyData'
 import { loadHeadToHead, loadRecords, loadTransactionStats } from '@/lib/history/recordsData'
@@ -30,16 +31,11 @@ export default async function Page({
   const base = await loadHistoryBase()
 
   return (
-    <div className="container py-12">
-      <div className="space-y-2 pb-8 md:space-y-5">
-        <h1 className="text-3xl font-extrabold leading-9 tracking-tight text-ink dark:text-gray-100 sm:text-4xl sm:leading-10 md:text-6xl md:leading-14">
-          League History
-        </h1>
-        <p className="text-lg leading-7 text-gray-600 dark:text-gray-400">
-          Past champions, standings and records for the league. A season appears once it has
-          finished.
-        </p>
-      </div>
+    <div className="container pb-12">
+      <PageHeader
+        title="League History"
+        subtitle="Past champions, standings and records for the league. A season appears once it has finished."
+      />
       <HistoryTabs active={tab} />
       {!base || base.seasons.length === 0 ? (
         <p className="text-gray-600 dark:text-gray-400">No completed seasons to display.</p>
