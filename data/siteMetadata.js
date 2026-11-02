@@ -8,9 +8,8 @@ const siteMetadata = {
   language: 'en-us',
   theme: 'system', // system, dark or light
   siteUrl: 'https://cary-bengals.netlify.app',
-  // Stopgap default OG/Twitter card image — no dedicated 1200x630 social banner exists yet,
-  // so this reuses the app icon rather than shipping a broken/undefined image reference.
-  socialBanner: '/static/favicons/apple-touch-icon.png',
+  // Default OG/Twitter card image (1200x630) for pages without their own image.
+  socialBanner: '/static/images/social-banner.png',
   youtube: 'https://www.youtube.com/@carybengalsffl',
   locale: 'en-US',
   currentSeason: 2026,
