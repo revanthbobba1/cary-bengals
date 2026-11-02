@@ -30,7 +30,7 @@ export default async function Page({
           Transactions
         </h1>
         <p className="text-lg leading-7 text-gray-600 dark:text-gray-400">
-          Waiver claims, free-agent pickups and trades — including bids that didn’t win.
+          Waiver claims, free-agent pickups and trades
         </p>
       </div>
       <TransactionsBrowser

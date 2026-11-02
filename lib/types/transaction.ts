@@ -33,4 +33,6 @@ export interface Transaction {
   // identified. ESPN doesn't say who won a contested player, so this is inferred -- see
   // lib/espn/transactionData.ts.
   winner_espn_team_id: number | null
+  // The winning claim itself, so the page can list a failed bid under the claim that beat it.
+  winner_transaction_id: string | null
 }
