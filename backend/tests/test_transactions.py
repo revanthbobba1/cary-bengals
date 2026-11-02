@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from app.clients.espn import EspnRequestError
+from app.clients.espn import EspnNotFoundError, EspnRequestError
 from app.schemas.espn_raw import RawLeagueTransactionsResponse
 from app.services.transactions import get_league_transactions
 
@@ -361,6 +361,19 @@ async def test_an_unreadable_feed_degrades_to_a_warning(
     )
 
     result = await get_league_transactions(stub, season=2026)
+
+    assert len(result.transactions) == 36
+    assert any("Activity feed unavailable" in w for w in result.warnings)
+
+
+async def test_a_feed_404_for_a_past_season_degrades_to_a_warning(
+    transactions_payload: dict, players_payload: dict
+) -> None:
+    stub = _StubEspnClient(
+        transactions_payload, players_payload, feed=EspnNotFoundError("ESPN league not found")
+    )
+
+    result = await get_league_transactions(stub, season=2025)
 
     assert len(result.transactions) == 36
     assert any("Activity feed unavailable" in w for w in result.warnings)
