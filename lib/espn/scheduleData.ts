@@ -11,6 +11,7 @@
 import { createPublicClient } from '@/lib/supabase/public'
 import type { Matchup, MatchupPlayerScore } from '@/lib/types/matchup'
 import { teamLogoOrAvatar } from '@/lib/memberAvatar'
+import { FIRST_BACKFILLED_SEASON } from '@/lib/espn/firstSeason'
 
 export interface ScheduleData {
   currentWeek: number | null
@@ -21,6 +22,30 @@ export interface ScheduleData {
   // The team's ESPN logo, else its owner's league-member photo; null only if neither exists.
   teamLogoById: Record<string, string | null>
   matchups: Matchup[]
+}
+
+// Seasons with synced matchups, newest first. One-row probes per season (not a select of every
+// season_year, which would hit the API row cap) -- same approach as lib/espn/transactionData.ts.
+export async function loadScheduleSeasons(currentSeason: number): Promise<number[]> {
+  if (
+    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL.includes('your-project-ref')
+  ) {
+    return []
+  }
+  const supabase = createPublicClient()
+  const probes = await Promise.all(
+    Array.from({ length: currentSeason - FIRST_BACKFILLED_SEASON + 1 }, async (_, i) => {
+      const year = currentSeason - i
+      const { data } = await supabase
+        .from('matchups')
+        .select('season_year')
+        .eq('season_year', year)
+        .limit(1)
+      return data?.length ? year : null
+    })
+  )
+  return probes.filter((year): year is number => year !== null)
 }
 
 export async function loadScheduleData(seasonYear: number): Promise<ScheduleData> {

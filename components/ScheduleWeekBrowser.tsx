@@ -21,6 +21,10 @@ interface Props {
   // very first server-rendered HTML land on the right week with no flash, same as ArticlesList's
   // `season` prop.
   initialWeek: number | null
+  // Seasons with synced matchups, newest first; the dropdown is hidden with only one.
+  seasons: number[]
+  season: number
+  currentSeason: number
 }
 
 export default function ScheduleWeekBrowser({
@@ -29,6 +33,9 @@ export default function ScheduleWeekBrowser({
   teamLogoById,
   currentWeek,
   initialWeek,
+  seasons,
+  season,
+  currentSeason,
 }: Props) {
   const router = useRouter()
   const pathname = usePathname()
@@ -71,12 +78,40 @@ export default function ScheduleWeekBrowser({
 
   const selectWeek = (week: number) => {
     setPendingWeek(week)
+    const params = new URLSearchParams()
+    if (season !== currentSeason) params.set('season', String(season))
+    if (week !== defaultWeek) params.set('week', String(week))
+    const query = params.toString()
     startTransition(() => {
-      router.replace(week === defaultWeek ? pathname : `${pathname}?week=${week}`, {
+      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false })
+    })
+  }
+
+  // A season change drops the week (each season has its own weeks) and needs the server's data.
+  const selectSeason = (nextSeason: number) => {
+    startTransition(() => {
+      router.replace(nextSeason === currentSeason ? pathname : `${pathname}?season=${nextSeason}`, {
         scroll: false,
       })
     })
   }
+
+  const seasonSelect = seasons.length > 1 && (
+    <label className="mb-6 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+      Season
+      <select
+        value={season}
+        onChange={(e) => selectSeason(Number(e.target.value))}
+        className={`rounded-md border border-gray-300 bg-white px-2 py-1 text-sm text-ink dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 ${focusRingClasses}`}
+      >
+        {seasons.map((year) => (
+          <option key={year} value={year}>
+            {year}
+          </option>
+        ))}
+      </select>
+    </label>
+  )
 
   // Polls only while viewing the live week -- a past (final) or future (not yet started) week's
   // data can't change, so polling it would just be wasted reads. Also refreshes immediately when
@@ -107,6 +142,7 @@ export default function ScheduleWeekBrowser({
 
   return (
     <>
+      {seasonSelect}
       <nav className="mb-6 flex flex-wrap gap-2" aria-label="Select week">
         {weeks.map((week) => {
           const isSelected = week === selectedWeek

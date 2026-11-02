@@ -10,12 +10,10 @@
 import { createPublicClient } from '@/lib/supabase/public'
 import { teamKey, type Transaction } from '@/lib/types/transaction'
 import { teamLogoOrAvatar } from '@/lib/memberAvatar'
+import { FIRST_BACKFILLED_SEASON } from '@/lib/espn/firstSeason'
 
 // PostgREST's default max rows per response. Hitting it exactly means rows were probably cut off.
 const MAX_ROWS = 1000
-
-// Earliest season the wire was backfilled for; the season probe below counts down to it.
-const FIRST_BACKFILLED_SEASON = 2022
 
 export interface TransactionData {
   // Seasons that have ESPN data (a season with paired teams), newest first. A season with no
