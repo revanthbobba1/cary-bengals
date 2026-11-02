@@ -49,9 +49,6 @@ __pycache__/
 *.pyc
 
 
-# Contentlayer
-.contentlayer
-
 # Claude Code -- everything personal/local stays ignored (settings.local.json, worktrees,
 # scheduled_tasks.lock), but skills are project-specific and shared, so they're tracked.
 .claude/*

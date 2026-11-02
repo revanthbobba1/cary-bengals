@@ -1,6 +1,4 @@
-# Cary Bengals Tailwind Nextjs Starter Blog
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/git/external?repository-url=https://github.com/timlrx/tailwind-nextjs-starter-blog)
+# Cary Bengals Fantasy Football
 
 ## External services this app depends on
 
@@ -29,13 +27,11 @@ Two services are configured but optional, enabled only if their env vars are set
 **Umami** (self-hosted analytics, `NEXT_UMAMI_ID`) and **Giscus** (GitHub Discussions-backed
 comments, `NEXT_PUBLIC_GISCUS_*`) — see `data/siteMetadata.js`.
 
-This is a [Next.js](https://nextjs.org/), [Tailwind CSS](https://tailwindcss.com/) blogging starter template. Version 2 is based on Next App directory with [React Server Component](https://nextjs.org/docs/getting-started/react-essentials#server-components) and uses [Contentlayer](https://www.contentlayer.dev/) to manage markdown content.
+This is a [Next.js](https://nextjs.org/) and [Tailwind CSS](https://tailwindcss.com/) app (App Router, React Server Components) backed by Supabase.
 
 Probably the most feature-rich Next.js markdown blogging template out there. Easily configurable and customizable. Perfect as a replacement to existing Jekyll and Hugo individual blogs.
 
 Check out the documentation below to get started.
-
-Facing issues? Check the [FAQ page](https://github.com/timlrx/tailwind-nextjs-starter-blog/wiki) and do a search on past issues. Feel free to open a new issue if none has been posted previously.
 
 Looking for an Astro alternative? Check out the unofficial [Tailwind Astro Template](https://github.com/wanoo21/tailwind-astro-starting-blog).
 
@@ -48,9 +44,7 @@ I wanted it to be nearly as feature-rich as popular blogging templates like [bea
 ## Features
 
 - Next.js with Typescript
-- [Contentlayer](https://www.contentlayer.dev/) to manage content logic
 - Easy styling customization with [Tailwind 3.0](https://tailwindcss.com/blog/tailwindcss-v3) and primary color attribute
-- [MDX - write JSX in markdown documents!](https://mdxjs.com/)
 - Near perfect lighthouse score - [Lighthouse report](https://www.webpagetest.org/result/230805_BiDcBQ_4H7)
 - Lightweight, 85kB first load JS
 - Mobile-friendly view
@@ -66,7 +60,6 @@ I wanted it to be nearly as feature-rich as popular blogging templates like [bea
 - Citation and bibliography support via [rehype-citation](https://github.com/timlrx/rehype-citation)
 - Automatic image optimization via [next/image](https://nextjs.org/docs/basic-features/image-optimization)
 - Support for tags - each unique tag will be its own page
-- Support for multiple authors
 - 3 different blog layouts
 - 2 different blog listing layouts
 - Support for nested routing of blog posts
@@ -79,11 +72,10 @@ I wanted it to be nearly as feature-rich as popular blogging templates like [bea
 1. Personalize `siteMetadata.js` (site related information)
 2. Modify the content security policy in `next.config.js` if you want to use
    other analytics provider or a commenting solution other than giscus.
-3. Personalize `authors/default.md` (main author)
-4. Modify `projectsData.js`
-5. Modify `headerNavLinks.js` to customize navigation links
-6. Add blog posts
-7. Deploy on Vercel
+3. Add league members as files in `data/members/`
+4. Modify `headerNavLinks.ts` to customize navigation links
+5. Add articles through the Supabase-backed article workflow (see `AGENTS.md`)
+6. Deploy on Netlify
 
 ## Installation
 
@@ -107,15 +99,11 @@ Edit the layout in `app` or content in `data`. With live reloading, the pages au
 
 `data/siteMetadata.js` - contains most of the site related information which should be modified for a user's need.
 
-`data/authors/default.md` - default author information (required). Additional authors can be added as files in `data/authors`.
+`data/members/` - one file per league member. Press conferences and articles live in Supabase, not in files.
 
-`data/projectsData.js` - data used to generate styled card on the projects page.
+`data/headerNavLinks.ts` - navigation links.
 
-`data/headerNavLinks.js` - navigation links.
-
-`data/logo.svg` - replace with your own logo.
-
-`data/blog` - replace with your own blog posts.
+`data/logo.svg` - site logo.
 
 `public/static` - store assets such as images and favicons.
 
@@ -123,58 +111,13 @@ Edit the layout in `app` or content in `data`. With live reloading, the pages au
 
 `css/prism.css` - controls the styles associated with the code blocks. Feel free to customize it and use your preferred prismjs theme e.g. [prism themes](https://github.com/PrismJS/prism-themes).
 
-`contentlayer.config.ts` - configuration for Contentlayer, including definition of content sources and MDX plugins used. See [Contentlayer documentation](https://www.contentlayer.dev/docs/getting-started) for more information.
+`data/members.ts` - league member profiles (name, avatar, social links); add an entry to add a member.
 
-`components/MDXComponents.js` - pass your own JSX code or React component by specifying it over here. You can then use them directly in the `.mdx` or `.md` file. By default, a custom link, `next/image` component, table of contents component and Newsletter form are passed down. Note that the components should be default exported to avoid [existing issues with Next.js](https://github.com/vercel/next.js/issues/51593).
-
-`layouts` - main templates used in pages:
-
-- There are currently 3 post layouts available: `PostLayout`, `PostSimple` and `PostBanner`. `PostLayout` is the default 2 column layout with meta and author information. `PostSimple` is a simplified version of `PostLayout`, while `PostBanner` features a banner image.
-- There are 2 blog listing layouts: `ListLayout`, the layout used in version 1 of the template with a search bar and `ListLayoutWithTags`, currently used in version 2, which omits the search bar but includes a sidebar with information on the tags.
+`layouts` - page-level templates (currently `MemberLayout` for `/league-members`).
 
 `app` - pages to route to. Read the [Next.js documentation](https://nextjs.org/docs/app) for more information.
 
 `next.config.js` - configuration related to Next.js. You need to adapt the Content Security Policy if you want to load scripts, images etc. from other domains.
-
-## Post
-
-Content is modelled using [Contentlayer](https://www.contentlayer.dev/), which allows you to define your own content schema and use it to generate typed content objects. See [Contentlayer documentation](https://www.contentlayer.dev/docs/getting-started) for more information.
-
-### Frontmatter
-
-Frontmatter follows [Hugo's standards](https://gohugo.io/content-management/front-matter/).
-
-Please refer to `contentlayer.config.ts` for an up to date list of supported fields. The following fields are supported:
-
-```
-title (required)
-date (required)
-tags (optional)
-lastmod (optional)
-draft (optional)
-summary (optional)
-images (optional)
-authors (optional list which should correspond to the file names in `data/authors`. Uses `default` if none is specified)
-layout (optional list which should correspond to the file names in `data/layouts`)
-canonicalUrl (optional, canonical url for the post for SEO)
-```
-
-Here's an example of a post's frontmatter:
-
-```
----
-title: 'Introducing Tailwind Nexjs Starter Blog'
-date: '2021-01-12'
-lastmod: '2021-01-18'
-tags: ['next-js', 'tailwind', 'guide']
-draft: false
-summary: 'Looking for a performant, out of the box template, with all the best in web technology to support your blogging needs? Checkout the Tailwind Nextjs Starter Blog template.'
-images: ['/static/images/canada/mountains.jpg', '/static/images/canada/toronto.jpg']
-authors: ['default', 'sparrowhawk']
-layout: PostLayout
-canonicalUrl: https://tailwind-nextjs-starter-blog.vercel.app/blog/introducing-tailwind-nextjs-starter-blog
----
-```
 
 ## Deploy
 
@@ -209,132 +152,8 @@ See [Next.js on Netlify](https://docs.netlify.com/integrations/frameworks/next-j
 5. Run `yarn build`. The generated static content is in the `out` folder.
 6. Deploy the `out` folder to your hosting service of choice or run `npx serve out` to view the website locally.
 
-## Frequently Asked Questions
-
-### How can I add a custom MDX component?
-
-Here's an example on how to create a donut chart from Chart.js (assuming you already have the dependencies installed) and use it in MDX posts. First, create a new `DonutChart.tsx` component in `components`:
-
-```tsx
-'use client'
-
-import { Doughnut } from 'react-chartjs-2'
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
-
-ChartJS.register(ArcElement, Tooltip, Legend)
-
-const DonutChart = ({ data }) => {
-  return <Doughnut data={data} />
-}
-
-export default Doughnut
-```
-
-Since the underlying `Doughnut` component uses React hooks, we add the `'use client'` directive to specify that it is a client side component. Also, there is an existing issue which prevents named components from being used, so we need to export the component as the default export.
-
-Next, add the component to `MDXComponents.tsx`:
-
-```diff
-...
-+ import DonutChart from './DonutChart'
-
-export const components: MDXComponents = {
-  Image,
-  TOCInline,
-  a: CustomLink,
-  pre: Pre,
-+  DonutChart,
-  BlogNewsletterForm,
-}
-```
-
-You can now use the component in `.mdx` files:
-
-```mdx
-## Example Donut Chart
-
-export const data = {
-  labels: ['Red', 'Blue', 'Yellow'],
-  datasets: [
-    {
-      label: '# of Votes',
-      data: [12, 19, 3],
-      backgroundColor: [
-        'rgba(255, 99, 132, 0.2)',
-        'rgba(54, 162, 235, 0.2)',
-        'rgba(255, 206, 86, 0.2)',
-      ],
-      borderColor: ['rgba(255, 99, 132, 1)', 'rgba(54, 162, 235, 1)', 'rgba(255, 206, 86, 1)'],
-      borderWidth: 1,
-    },
-  ],
-}
-
-<DonutChart data={data} />
-```
-
-### How can I customize the `kbar` search?
-
-Add a `SearchProvider` component such as the one shown below and use it in place of the default `SearchProvider` component in `app/layout.tsx`.
-
-`defaultActions` are the initial list of actions.
-
-`onSearchDocumentsLoad` is a callback function that is called when the documents specified by `searchDocumentsPath` are loaded. Set `searchDocumentsPath` to `false` to disable the dynamically loaded search feature.
-
-```tsx
-'use client'
-
-import { KBarSearchProvider } from 'pliny/search/KBar'
-import { useRouter } from 'next/navigation'
-import { CoreContent } from 'pliny/utils/contentlayer'
-import { Blog } from 'contentlayer/generated'
-
-export const SearchProvider = ({ children }) => {
-  const router = useRouter()
-  return (
-    <KBarSearchProvider
-      kbarConfig={{
-        searchDocumentsPath: 'search.json',
-        defaultActions: [
-          {
-            id: 'homepage',
-            name: 'Homepage',
-            keywords: '',
-            shortcut: ['h', 'h'],
-            section: 'Home',
-            perform: () => router.push('/'),
-          },
-          {
-            id: 'projects',
-            name: 'Projects',
-            keywords: '',
-            shortcut: ['p'],
-            section: 'Home',
-            perform: () => router.push('/projects'),
-          },
-        ],
-        onSearchDocumentsLoad(json) {
-          return json.map((post: CoreContent<Blog>) => ({
-            id: post.path,
-            name: post.title,
-            keywords: post?.summary || '',
-            section: 'Blog',
-            subtitle: post.tags.join(', '),
-            perform: () => router.push(post.path),
-          }))
-        },
-      }}
-    >
-      {children}
-    </KBarSearchProvider>
-  )
-}
-```
-
-## Support
-
-Using the template? Support this effort by giving a star on GitHub, sharing your own blog and giving a shoutout on Twitter or becoming a project [sponsor](https://github.com/sponsors/timlrx).
-
 ## Licence
+
+Built from the [tailwind-nextjs-starter-blog](https://github.com/timlrx/tailwind-nextjs-starter-blog) template.
 
 [MIT](https://github.com/timlrx/tailwind-nextjs-starter-blog/blob/main/LICENSE) © [Timothy Lin](https://www.timlrx.com)

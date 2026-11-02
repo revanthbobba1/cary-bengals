@@ -11,6 +11,11 @@ import { focusRingClasses } from '@/lib/focusRing'
 import { publishArticleAction, unpublishArticleAction } from 'app/admin/articles/[id]/edit/actions'
 import type { Article, ArticleMatchup } from '@/lib/types/article'
 import type { Team } from '@/lib/types/poll'
+import {
+  prefillMatchupsFromEspn,
+  teamDisplayName,
+  type PrefillSourceMatchup,
+} from '@/lib/espn/articleMatchupPrefill'
 
 interface Props {
   article: Article
@@ -20,6 +25,8 @@ interface Props {
   teamsForSeason: Team[]
   /** team_id -> record as of the most recent locked poll week before this one, for autofill. */
   teamRecords: Record<string, string>
+  /** This week's ESPN-synced matchups, to prepopulate pairings, records, line, and recap scores. */
+  espnMatchups: PrefillSourceMatchup[]
   /** The most recent earlier same-kind article this season, to copy slot labels from. Null if none. */
   copyFromArticleId: string | null
 }
@@ -86,6 +93,7 @@ export default function ArticleEditor({
   isCommissioner,
   teamsForSeason,
   teamRecords,
+  espnMatchups,
   copyFromArticleId,
 }: Props) {
   const router = useRouter()
@@ -99,7 +107,16 @@ export default function ArticleEditor({
   const [summary, setSummary] = useState(article.summary ?? '')
   const [introMarkdown, setIntroMarkdown] = useState(article.intro_markdown ?? '')
   const [outroMarkdown, setOutroMarkdown] = useState(article.outro_markdown ?? '')
-  const [items, setItems] = useState<EditableMatchup[]>(() => matchups.map(toEditable))
+  // A brand-new article starts from this week's ESPN matchups (empty if ESPN has none yet). Not
+  // persisted until Save Draft; once saved, the article's own rows win. Slot labels are
+  // editorial and not in ESPN's data, so they stay blank.
+  const [items, setItems] = useState<EditableMatchup[]>(() =>
+    matchups.length > 0 || !canEditContent
+      ? matchups.map(toEditable)
+      : prefillMatchupsFromEspn(espnMatchups, teamsForSeason, teamRecords, article.kind).map(
+          (m) => ({ ...blankMatchup(), ...m })
+        )
+  )
 
   const [saving, setSaving] = useState(false)
   const [publishing, setPublishing] = useState(false)
@@ -155,7 +172,16 @@ export default function ArticleEditor({
 
       if (copyError) throw copyError
 
-      setItems((data ?? []).map((m) => ({ ...blankMatchup(), slot_label: m.slot_label ?? '' })))
+      // Apply labels by position onto whatever is already there (e.g. the auto-populated ESPN
+      // pairings), appending blank rows only if last week had more slots than we have matchups.
+      const labels = (data ?? []).map((m) => m.slot_label ?? '')
+      setItems((prev) => {
+        const next = prev.map((m, i) => (i < labels.length ? { ...m, slot_label: labels[i] } : m))
+        const extra = labels.slice(prev.length).map((l) => ({ ...blankMatchup(), slot_label: l }))
+        return [...next, ...extra]
+      })
+      // ESPN's order has no relation to last week's slot order, so the pairing is a guess.
+      toast.success('Slot labels copied by position -- check each one matches its game.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to copy last week’s slots')
     } finally {
@@ -328,7 +354,7 @@ export default function ArticleEditor({
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold text-ink dark:text-gray-100">Matchups</h2>
           <div className="flex gap-2">
-            {items.length === 0 && copyFromArticleId && (
+            {copyFromArticleId && matchups.length === 0 && items.every((m) => !m.slot_label) && (
               <button
                 type="button"
                 onClick={handleCopySlots}
@@ -466,17 +492,6 @@ function MatchupEditorRow({
     return Number.isNaN(n) ? null : n
   }
 
-  // teams.name carries a trailing "(Owner)" suffix for the poll UI's benefit (e.g. "Code Monkey
-  // (PR #414) (Ankith)"), but article_matchups' display convention -- set by all 19 backfilled
-  // articles -- never includes it (just "Code Monkey (PR #414)"). Strip exactly that known
-  // suffix, the same way the backfill parser's peelSide() stripped a trailing "(Owner)" paren
-  // when it recognized the content as a known owner name, rather than guessing with a generic
-  // regex that could wrongly eat a legitimate parenthetical nickname.
-  const displayName = (team: Team) => {
-    const suffix = `(${team.owner_name})`
-    return team.name.endsWith(suffix) ? team.name.slice(0, -suffix.length).trim() : team.name
-  }
-
   // Selecting a real team sets both the display name and the FK, and refreshes the record from
   // last week's poll results if we have one for them -- a fresh team means the old record no
   // longer applies regardless of what was typed before. Picking "Custom..." just clears the FK;
@@ -493,8 +508,8 @@ function MatchupEditorRow({
     const record = teamRecords[team.id] ?? ''
     onChange(
       side === 'away'
-        ? { away_team_name: displayName(team), away_team_id: team.id, away_record: record }
-        : { home_team_name: displayName(team), home_team_id: team.id, home_record: record }
+        ? { away_team_name: teamDisplayName(team), away_team_id: team.id, away_record: record }
+        : { home_team_name: teamDisplayName(team), home_team_id: team.id, home_record: record }
     )
   }
 

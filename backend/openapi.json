@@ -266,6 +266,48 @@
         "title": "LeagueTeamsResponse",
         "type": "object"
       },
+      "LeagueTransactionsResponse": {
+        "properties": {
+          "fetched_at": {
+            "description": "When this service fetched the data from ESPN (UTC, ISO 8601).",
+            "examples": ["2026-10-23T14:05:12.345678+00:00"],
+            "title": "Fetched At",
+            "type": "string"
+          },
+          "league_id": {
+            "description": "ESPN league ID this service is configured for.",
+            "examples": ["123456"],
+            "title": "League Id",
+            "type": "string"
+          },
+          "season": {
+            "description": "NFL season year the data belongs to.",
+            "examples": [2026],
+            "title": "Season",
+            "type": "integer"
+          },
+          "transactions": {
+            "description": "Processed waiver claims (including failed bids from every team), free-agent pickups and accepted trades, newest first. Lineup moves and still-pending claims are excluded.",
+            "items": {
+              "$ref": "#/components/schemas/TransactionOut"
+            },
+            "title": "Transactions",
+            "type": "array"
+          },
+          "warnings": {
+            "description": "Non-fatal problems, one string per skipped item (e.g. a player with no usable name). Empty when everything parsed cleanly.",
+            "examples": [[]],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": ["season", "league_id", "fetched_at", "transactions", "warnings"],
+        "title": "LeagueTransactionsResponse",
+        "type": "object"
+      },
       "MatchupBoxScoreOut": {
         "properties": {
           "espn_matchup_id": {
@@ -569,6 +611,128 @@
         },
         "required": ["espn_team_id", "players"],
         "title": "TeamRosterOut",
+        "type": "object"
+      },
+      "TransactionItemOut": {
+        "properties": {
+          "action": {
+            "description": "ADD/DROP for claims, pickups and forced drops. TRADE is a player moving between teams in a trade. FAAB is budget moving between teams in a trade: ESPN reports the direction but not the dollar amount.",
+            "enum": ["ADD", "DROP", "TRADE", "FAAB"],
+            "title": "Action",
+            "type": "string"
+          },
+          "from_espn_team_id": {
+            "description": "Team the player left; 0 means the free-agent pool.",
+            "examples": [0],
+            "title": "From Espn Team Id",
+            "type": "integer"
+          },
+          "player_name": {
+            "examples": ["Bengals D/ST"],
+            "title": "Player Name",
+            "type": "string"
+          },
+          "position": {
+            "description": "Player's natural position.",
+            "examples": ["QB", "RB", "WR", "TE", "K", "D/ST"],
+            "title": "Position",
+            "type": "string"
+          },
+          "pro_team": {
+            "description": "NFL team abbreviation.",
+            "examples": ["CIN"],
+            "title": "Pro Team",
+            "type": "string"
+          },
+          "to_espn_team_id": {
+            "description": "Team the player joined; 0 means the free-agent pool (a drop).",
+            "examples": [4],
+            "title": "To Espn Team Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "action",
+          "player_name",
+          "position",
+          "pro_team",
+          "from_espn_team_id",
+          "to_espn_team_id"
+        ],
+        "title": "TransactionItemOut",
+        "type": "object"
+      },
+      "TransactionOut": {
+        "properties": {
+          "bid_amount": {
+            "description": "FAAB bid in dollars. 0 for free-agent pickups and $0 bids.",
+            "examples": [5.0],
+            "title": "Bid Amount",
+            "type": "number"
+          },
+          "espn_team_id": {
+            "description": "The team that placed the claim or made the move.",
+            "title": "Espn Team Id",
+            "type": "integer"
+          },
+          "espn_transaction_id": {
+            "description": "ESPN's transaction UUID. Stable across polls.",
+            "title": "Espn Transaction Id",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionItemOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "kind": {
+            "description": "WAIVER is a FAAB claim; FREEAGENT is an immediate pickup.",
+            "enum": ["WAIVER", "FREEAGENT", "TRADE"],
+            "title": "Kind",
+            "type": "string"
+          },
+          "processed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When ESPN processed it (UTC, ISO 8601). Null if ESPN doesn't report one.",
+            "title": "Processed At"
+          },
+          "proposed_at": {
+            "description": "When it was placed (UTC, ISO 8601).",
+            "title": "Proposed At",
+            "type": "string"
+          },
+          "status": {
+            "description": "EXECUTED, or a FAILED_* reason (FAILED_ROSTERLIMIT: roster was full; FAILED_INVALIDPLAYERSOURCE: the player was already claimed or gone). Passed through from ESPN, so an unexpected value is possible.",
+            "examples": ["EXECUTED"],
+            "title": "Status",
+            "type": "string"
+          },
+          "week": {
+            "description": "Scoring period (week) the transaction was placed in.",
+            "title": "Week",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "espn_transaction_id",
+          "kind",
+          "status",
+          "espn_team_id",
+          "bid_amount",
+          "week",
+          "proposed_at",
+          "items"
+        ],
+        "title": "TransactionOut",
         "type": "object"
       },
       "ValidationError": {
@@ -950,6 +1114,76 @@
         ],
         "summary": "List league teams",
         "tags": ["league"]
+      }
+    },
+    "/v1/league/{season}/transactions": {
+      "get": {
+        "description": "Every processed waiver claim (executed or failed, from all teams, with FAAB bid amounts), free-agent pickup and accepted trade this season, newest first. Lineup moves are excluded, as are claims still pending -- those are bids that haven't run yet. Player names are resolved with a second ESPN call.\n\n**Not cached** -- the sync wants the real current state each time.",
+        "operationId": "get_transactions_v1_league__season__transactions_get",
+        "parameters": [
+          {
+            "description": "NFL season year to fetch. Must be one the league has data for.",
+            "in": "path",
+            "name": "season",
+            "required": true,
+            "schema": {
+              "description": "NFL season year to fetch. Must be one the league has data for.",
+              "examples": [2026],
+              "minimum": 2000,
+              "title": "Season",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueTransactionsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "`X-Service-Token` header missing or incorrect."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "ESPN could not be read: expired cookies (private leagues), unknown league ID, request failure/timeout, or a response shape this service doesn't recognize. `detail` says which."
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "List waiver claims, pickups and trades",
+        "tags": ["transactions"]
       }
     }
   }

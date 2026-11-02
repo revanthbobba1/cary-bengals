@@ -187,6 +187,11 @@ const nextjsSchemas = {
         description: 'Matchup sides whose player scores were written.',
         example: 12,
       },
+      transactionsUpdated: {
+        type: 'integer',
+        description: 'Waiver claims, pickups and trades written or changed.',
+        example: 8,
+      },
       warnings: {
         type: 'array',
         items: { type: 'string' },

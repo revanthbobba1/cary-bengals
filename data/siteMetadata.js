@@ -7,7 +7,7 @@ const siteMetadata = {
   email: 'revanthbobba1@gmail.com',
   language: 'en-us',
   theme: 'system', // system, dark or light
-  siteUrl: 'https://tailwind-nextjs-starter-blog.vercel.app',
+  siteUrl: 'https://cary-bengals.netlify.app',
   // Stopgap default OG/Twitter card image — no dedicated 1200x630 social banner exists yet,
   // so this reuses the app icon rather than shipping a broken/undefined image reference.
   socialBanner: '/static/favicons/apple-touch-icon.png',
@@ -23,7 +23,7 @@ const siteMetadata = {
       umamiWebsiteId: process.env.NEXT_UMAMI_ID, // e.g. 123e4567-e89b-12d3-a456-426614174000
     },
     // plausibleAnalytics: {
-    //   plausibleDataDomain: '', // e.g. tailwind-nextjs-starter-blog.vercel.app
+    //   plausibleDataDomain: '', // e.g. cary-bengals.netlify.app
     // },
     // simpleAnalytics: {},
     // posthogAnalytics: {

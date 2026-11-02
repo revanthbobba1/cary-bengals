@@ -199,3 +199,62 @@ class LeagueBoxScoresResponse(BaseModel):
         description="Current-week matchups only; a side with no lineup data yet is omitted."
     )
     warnings: list[str] = _WARNINGS
+
+
+class TransactionItemOut(BaseModel):
+    action: Literal["ADD", "DROP", "TRADE", "FAAB"] = Field(
+        description=(
+            "ADD/DROP for claims, pickups and forced drops. TRADE is a player moving between "
+            "teams in a trade. FAAB is budget moving between teams in a trade: ESPN reports the "
+            "direction but not the dollar amount."
+        )
+    )
+    player_name: str = Field(examples=["Bengals D/ST"])
+    position: str = _POSITION
+    pro_team: str = _PRO_TEAM
+    from_espn_team_id: int = Field(
+        description="Team the player left; 0 means the free-agent pool.", examples=[0]
+    )
+    to_espn_team_id: int = Field(
+        description="Team the player joined; 0 means the free-agent pool (a drop).", examples=[4]
+    )
+
+
+class TransactionOut(BaseModel):
+    espn_transaction_id: str = Field(description="ESPN's transaction UUID. Stable across polls.")
+    kind: Literal["WAIVER", "FREEAGENT", "TRADE"] = Field(
+        description="WAIVER is a FAAB claim; FREEAGENT is an immediate pickup."
+    )
+    status: str = Field(
+        description=(
+            "EXECUTED, or a FAILED_* reason (FAILED_ROSTERLIMIT: roster was full; "
+            "FAILED_INVALIDPLAYERSOURCE: the player was already claimed or gone). Passed "
+            "through from ESPN, so an unexpected value is possible."
+        ),
+        examples=["EXECUTED"],
+    )
+    espn_team_id: int = Field(description="The team that placed the claim or made the move.")
+    bid_amount: float = Field(
+        description="FAAB bid in dollars. 0 for free-agent pickups and $0 bids.", examples=[5.0]
+    )
+    week: int = Field(description="Scoring period (week) the transaction was placed in.")
+    proposed_at: str = Field(description="When it was placed (UTC, ISO 8601).")
+    processed_at: str | None = Field(
+        default=None,
+        description="When ESPN processed it (UTC, ISO 8601). Null if ESPN doesn't report one.",
+    )
+    items: list[TransactionItemOut]
+
+
+class LeagueTransactionsResponse(BaseModel):
+    season: int = _SEASON
+    league_id: str = _LEAGUE_ID
+    fetched_at: str = _FETCHED_AT
+    transactions: list[TransactionOut] = Field(
+        description=(
+            "Processed waiver claims (including failed bids from every team), free-agent "
+            "pickups and accepted trades, newest first. Lineup moves and still-pending "
+            "claims are excluded."
+        )
+    )
+    warnings: list[str] = _WARNINGS

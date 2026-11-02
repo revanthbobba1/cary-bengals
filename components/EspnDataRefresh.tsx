@@ -39,6 +39,7 @@ export default function EspnDataRefresh({ seasonYear }: Props) {
       recordsUpdated,
       matchupsUpdated,
       boxScoreSideCount,
+      transactionsUpdated,
       warnings,
     } = response.data
     // Names, rosters, records, matchups, and box scores now refresh independently (Promise.
@@ -50,7 +51,8 @@ export default function EspnDataRefresh({ seasonYear }: Props) {
       namesUpdated > 0 ||
       recordsUpdated > 0 ||
       matchupsUpdated > 0 ||
-      boxScoreSideCount > 0
+      boxScoreSideCount > 0 ||
+      transactionsUpdated > 0
     ) {
       const rosterNote =
         teamCount > 0
@@ -64,7 +66,11 @@ export default function EspnDataRefresh({ seasonYear }: Props) {
         matchupsUpdated > 0 ? `${matchupsUpdated} matchup${matchupsUpdated === 1 ? '' : 's'}` : null
       const boxScoreNote =
         boxScoreSideCount > 0 ? `box scores for ${boxScoreSideCount} team-sides` : null
-      const parts = [rosterNote, nameNote, recordNote, matchupNote, boxScoreNote]
+      const transactionNote =
+        transactionsUpdated > 0
+          ? `${transactionsUpdated} transaction${transactionsUpdated === 1 ? '' : 's'}`
+          : null
+      const parts = [rosterNote, nameNote, recordNote, matchupNote, boxScoreNote, transactionNote]
         .filter(Boolean)
         .join(', ')
       const caveat = warnings.length > 0 ? ' — see warnings below.' : '.'

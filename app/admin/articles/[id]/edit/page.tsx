@@ -54,8 +54,16 @@ export default async function EditArticlePage({ params }: { params: { id: string
   // auto-fill on selection, and a candidate earlier article to copy slot labels from. All three
   // depend on the article's season/week/kind (just fetched above) but not on each other, so they
   // run together rather than one sequential round trip apiece.
-  const [teamsRes, prevPollWeekRes, prevArticleRes] = await Promise.all([
+  const [teamsRes, espnMatchupsRes, prevPollWeekRes, prevArticleRes] = await Promise.all([
     supabase.from('teams').select('*').eq('season_year', articleFields.season_year).order('name'),
+    supabase
+      .from('matchups')
+      .select(
+        'home_team_id, away_team_id, home_score, away_score, winner, home_projected_score, away_projected_score'
+      )
+      .eq('season_year', articleFields.season_year)
+      .eq('week_number', articleFields.week_number)
+      .order('espn_matchup_id'),
     supabase
       .from('poll_weeks')
       .select('id')
@@ -77,6 +85,11 @@ export default async function EditArticlePage({ params }: { params: { id: string
     console.error('Failed to load teams:', teamsRes.error)
   }
   const teamsForSeason = teamsRes.data ?? []
+
+  if (espnMatchupsRes.error) {
+    console.error('Failed to load ESPN matchups for prefill:', espnMatchupsRes.error)
+  }
+  const espnMatchups = espnMatchupsRes.data ?? []
 
   if (prevPollWeekRes.error) {
     console.error('Failed to load prior poll week:', prevPollWeekRes.error)
@@ -112,6 +125,7 @@ export default async function EditArticlePage({ params }: { params: { id: string
         isCommissioner={showCommissionerTools}
         teamsForSeason={teamsForSeason}
         teamRecords={teamRecords}
+        espnMatchups={espnMatchups}
         copyFromArticleId={prevArticleRes.data?.id ?? null}
       />
     </div>

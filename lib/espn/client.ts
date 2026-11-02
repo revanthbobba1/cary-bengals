@@ -129,6 +129,45 @@ export async function fetchEspnSchedule(season: number): Promise<EspnLeagueSched
   return fetchFromEspnService<EspnLeagueScheduleResponse>(`/v1/league/${season}/schedule`)
 }
 
+export interface EspnTransactionItem {
+  // TRADE is a player moving between teams in a trade; FAAB is budget moving (ESPN gives the
+  // direction but no dollar amount).
+  action: 'ADD' | 'DROP' | 'TRADE' | 'FAAB'
+  player_name: string
+  position: string
+  pro_team: string
+  // 0 means the free-agent pool.
+  from_espn_team_id: number
+  to_espn_team_id: number
+}
+
+export interface EspnTransaction {
+  espn_transaction_id: string
+  kind: 'WAIVER' | 'FREEAGENT' | 'TRADE'
+  // EXECUTED or a FAILED_* reason. Pending claims are never returned by the service.
+  status: string
+  espn_team_id: number
+  bid_amount: number
+  week: number
+  proposed_at: string
+  processed_at: string | null
+  items: EspnTransactionItem[]
+}
+
+export interface EspnLeagueTransactionsResponse {
+  season: number
+  league_id: string
+  fetched_at: string
+  transactions: EspnTransaction[]
+  warnings: string[]
+}
+
+export async function fetchEspnTransactions(
+  season: number
+): Promise<EspnLeagueTransactionsResponse> {
+  return fetchFromEspnService<EspnLeagueTransactionsResponse>(`/v1/league/${season}/transactions`)
+}
+
 // Same label shape as EspnRosterPlayer plus points -- kept structurally linked rather than a
 // second hand-copied field list, so the two don't silently drift apart. Excludes
 // injured/acquisition_type: those are roster-only (mRoster), never present on a box-score player

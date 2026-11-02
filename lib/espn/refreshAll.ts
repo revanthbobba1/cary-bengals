@@ -13,6 +13,7 @@ import { syncRosters } from '@/lib/espn/rosterSync'
 import { syncTeamRecords } from '@/lib/espn/teamRecordSync'
 import { syncMatchups } from '@/lib/espn/matchupSync'
 import { syncMatchupPlayerScores } from '@/lib/espn/boxScoreSync'
+import { syncTransactions } from '@/lib/espn/transactionSync'
 
 type SupabaseServerClient = ReturnType<typeof createClient>
 
@@ -23,6 +24,7 @@ export interface EspnDataRefreshResult {
   recordsUpdated: number
   matchupsUpdated: number
   boxScoreSideCount: number
+  transactionsUpdated: number
   warnings: string[]
 }
 
@@ -48,16 +50,19 @@ export async function refreshAllEspnData(
   // losing track of which ones succeeded would misreport real progress as a total failure.
   // Matchups fetches its own endpoint (schedule, not teams), so it isn't part of the shared
   // teamsFetch above -- a failure there is independent of team names/records failing.
-  const [nameSettled, rosterSettled, recordSettled, matchupSettled] = await Promise.allSettled([
-    teamsFetch.ok
-      ? syncTeamNames(supabase, seasonYear, teamsFetch.value)
-      : Promise.reject(teamsFetch.err),
-    syncRosters(supabase, seasonYear),
-    teamsFetch.ok
-      ? syncTeamRecords(supabase, seasonYear, teamsFetch.value)
-      : Promise.reject(teamsFetch.err),
-    syncMatchups(supabase, seasonYear),
-  ])
+  // Transactions fetch their own endpoint too and don't depend on any other sync's writes.
+  const [nameSettled, rosterSettled, recordSettled, matchupSettled, transactionSettled] =
+    await Promise.allSettled([
+      teamsFetch.ok
+        ? syncTeamNames(supabase, seasonYear, teamsFetch.value)
+        : Promise.reject(teamsFetch.err),
+      syncRosters(supabase, seasonYear),
+      teamsFetch.ok
+        ? syncTeamRecords(supabase, seasonYear, teamsFetch.value)
+        : Promise.reject(teamsFetch.err),
+      syncMatchups(supabase, seasonYear),
+      syncTransactions(supabase, seasonYear),
+    ])
 
   // Box-score sync reads the `matchups` table to map espn_matchup_id -> matchup_id, so it must
   // run *after* syncMatchups resolves, not alongside it in the allSettled batch above -- otherwise
@@ -78,6 +83,7 @@ export async function refreshAllEspnData(
   let recordsUpdated = 0
   let matchupsUpdated = 0
   let boxScoreSideCount = 0
+  let transactionsUpdated = 0
 
   if (nameSettled.status === 'fulfilled') {
     namesUpdated = nameSettled.value.teamCount
@@ -115,6 +121,13 @@ export async function refreshAllEspnData(
     warnings.push(`Box score refresh failed: ${errorMessage(boxScoreSettled.reason)}`)
   }
 
+  if (transactionSettled.status === 'fulfilled') {
+    transactionsUpdated = transactionSettled.value.transactionCount
+    warnings.push(...transactionSettled.value.warnings)
+  } else {
+    warnings.push(`Transaction refresh failed: ${errorMessage(transactionSettled.reason)}`)
+  }
+
   return {
     namesUpdated,
     teamCount,
@@ -122,6 +135,7 @@ export async function refreshAllEspnData(
     recordsUpdated,
     matchupsUpdated,
     boxScoreSideCount,
+    transactionsUpdated,
     warnings,
   }
 }
