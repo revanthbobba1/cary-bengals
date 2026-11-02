@@ -272,3 +272,58 @@ class RawProTeamsResponse(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     settings: RawProTeamsSettings
+
+
+# --- mTransactions2 view -------------------------------------------------------------
+# Transactions carry only numeric player ids, never names -- those come from a second
+# `kona_player_info` fetch filtered to the ids seen here. Negative ids are team D/STs and resolve
+# through the same lookup. `memberId` is deliberately not modeled (PII-adjacent, unused).
+
+
+class RawTransactionItem(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    playerId: int
+    # ADD / DROP for waiver and free-agent moves; LINEUP for roster shuffles. Free text, same
+    # reasoning as RawRosterEntry.acquisitionType.
+    type: str
+    fromTeamId: int = 0
+    toTeamId: int = 0
+
+
+class RawTransaction(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: str
+    # WAIVER / FREEAGENT / TRADE_ACCEPT observed, plus ROSTER and FUTURE_ROSTER lineup moves.
+    type: str
+    # EXECUTED / PENDING / FAILED_ROSTERLIMIT / FAILED_INVALIDPLAYERSOURCE observed.
+    status: str
+    teamId: int
+    bidAmount: float = 0.0
+    # Epoch milliseconds. processDate is absent while a claim is still PENDING.
+    proposedDate: int
+    processDate: int | None = None
+    scoringPeriodId: int = 0
+    items: list[RawTransactionItem] = []
+
+
+class RawLeagueTransactionsResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: int
+    seasonId: int
+    transactions: list[RawTransaction] = []
+
+
+class RawPlayerInfoEntry(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: int
+    player: RawRosterPlayer
+
+
+class RawPlayerInfoResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    players: list[RawPlayerInfoEntry] = []
