@@ -80,7 +80,7 @@ const nextjsPaths = {
         '(`siteMetadata.currentSeason`) by reading the ESPN service and writing to Supabase with ' +
         'the service-role key. The four refreshes run independently: one failing does not undo ' +
         'the others, and is reported in `warnings` with a 200. Only a total failure returns 500. ' +
-        'Called by the `espn-full-sync` Netlify scheduled function Tuesday-Friday, and ' +
+        'Called by the `espn-full-sync` Netlify scheduled function daily at 8am ET, and ' +
         'equivalent to the commissioner\'s "Refresh ESPN Data" button.',
       security: [{ cronSecret: [] }],
       responses: {

@@ -10,8 +10,15 @@ a from/to team), sometimes plus ACQUISITION_BUDGET_TRADE items (FAAB moved -- ES
 direction but no dollar amount) and DROP items. ESPN also emits a companion TRADE_ACCEPT for the
 other team at the same instant, holding only that team's forced DROP or nothing at all; those are
 folded into the trade they belong to, matched on the shared `proposedDate`, and are not returned
-on their own. A companion DROP with no trade to fold into (seen once in the real league) is
-skipped.
+on their own. A companion DROP with no trade to fold into is skipped.
+
+ESPN does not always return a trade's main entry at all (seen once in the real league: a
+five-player trade whose only trace in mTransactions2 was the forced drop, for any scoring period or
+filter). The activity feed does carry every processed trade, so it is read as a fallback: a trade
+in the feed with no matching trade (same teams, within a minute) in the transaction data is added
+from the feed. The feed has no week and no FAAB direction, so a feed-sourced trade takes the week
+of the nearest transaction and carries no FAAB item. If the feed can't be read the rest of the wire
+is still returned, with a warning.
 """
 
 import asyncio
@@ -19,15 +26,19 @@ import json
 from datetime import UTC, datetime
 from typing import Literal, cast
 
-from app.clients.espn import EspnClient
+from pydantic import ValidationError
+
+from app.clients.espn import EspnClient, EspnRequestError
 from app.espn_labels import POSITIONS, PRO_TEAMS
 from app.sanitize import sanitize_name
 from app.schemas.api import LeagueTransactionsResponse, TransactionItemOut, TransactionOut
 from app.schemas.espn_raw import (
+    RawActivityFeedResponse,
     RawLeagueTransactionsResponse,
     RawPlayerInfoResponse,
     RawRosterPlayer,
     RawTransaction,
+    RawTransactionItem,
 )
 
 _KINDS: dict[str, Literal["WAIVER", "FREEAGENT", "TRADE"]] = {
@@ -45,6 +56,9 @@ _PLAYER_ITEM_TYPES = ("ADD", "DROP", "TRADE")
 # which tops out around 8KB, so this keeps a request well clear of it as the season grows.
 _PLAYER_CHUNK_SIZE = 200
 _MAX_CONCURRENT_WEEK_FETCHES = 4
+# The feed stamps a trade with its processing time, which matches the transaction data's
+# processDate to within a few milliseconds; a minute is generous without ever joining two trades.
+_SAME_TRADE_WINDOW_MS = 60 * 1000
 
 
 def _iso(epoch_ms: int) -> str:
@@ -128,6 +142,76 @@ def _fold_trades(transactions: list[RawTransaction]) -> list[RawTransaction]:
     return result
 
 
+async def _trades_missing_from(
+    espn: EspnClient,
+    season: int,
+    known: list[RawTransaction],
+    all_transactions: list[RawTransaction],
+) -> tuple[list[RawTransaction], list[str]]:
+    """Trades the activity feed has that the transaction data doesn't, rebuilt as TRADE_ACCEPT
+    entries so they flow through the same mapping as every other trade."""
+    try:
+        feed = RawActivityFeedResponse.model_validate(await espn.fetch_trade_activity(season))
+    except (EspnRequestError, ValidationError) as exc:
+        return [], [
+            "Activity feed unavailable, so a trade ESPN left out of its transaction data may be "
+            f"missing ({type(exc).__name__})"
+        ]
+
+    # Both timestamps count: ESPN rounds a trade's processDate in some cases (seen: exactly on the
+    # hour) while the feed carries the real moment, which lines up with proposedDate instead.
+    seen = [
+        (
+            {t.processDate or t.proposedDate, t.proposedDate},
+            frozenset(i.fromTeamId for i in t.items if i.type == "TRADE")
+            | frozenset(i.toTeamId for i in t.items if i.type == "TRADE"),
+        )
+        for t in known
+        if t.type == "TRADE_ACCEPT"
+    ]
+
+    added: list[RawTransaction] = []
+    for topic in feed.topics:
+        moves = [m for m in topic.messages if m.messageTypeId == 244]
+        if not moves:
+            continue
+        teams = frozenset(team for m in moves for team in (m.from_, m.to))
+        if any(
+            known_teams == teams
+            and any(abs(at - topic.date) <= _SAME_TRADE_WINDOW_MS for at in ats)
+            for ats, known_teams in seen
+        ):
+            continue
+
+        items = [
+            RawTransactionItem(playerId=m.targetId, type="TRADE", fromTeamId=m.from_, toTeamId=m.to)
+            for m in moves
+        ] + [
+            RawTransactionItem(playerId=m.targetId, type="DROP", fromTeamId=m.from_, toTeamId=m.to)
+            for m in topic.messages
+            if m.messageTypeId == 245
+        ]
+        # Scoring period 0 is the draft, which is no week for a trade to belong to.
+        nearest = min(
+            (t for t in all_transactions if t.scoringPeriodId >= 1),
+            key=lambda t: abs(t.proposedDate - topic.date),
+            default=None,
+        )
+        added.append(
+            RawTransaction(
+                id=topic.id,
+                type="TRADE_ACCEPT",
+                status="EXECUTED",
+                teamId=moves[0].from_,
+                proposedDate=topic.date,
+                processDate=topic.date,
+                scoringPeriodId=nearest.scoringPeriodId if nearest else 1,
+                items=items,
+            )
+        )
+    return added, []
+
+
 async def get_league_transactions(espn: EspnClient, season: int) -> LeagueTransactionsResponse:
     parsed = await _fetch_all_weeks(espn, season)
 
@@ -141,13 +225,19 @@ async def get_league_transactions(espn: EspnClient, season: int) -> LeagueTransa
             if t.type in _KINDS and t.status not in _UNPROCESSED_STATUSES
         ]
     )
+    warnings: list[str] = []
+    feed_trades, feed_warnings = await _trades_missing_from(
+        espn, season, relevant, parsed.transactions
+    )
+    relevant = relevant + feed_trades
+    warnings.extend(feed_warnings)
+
     player_ids = sorted(
         {i.playerId for t in relevant for i in t.items if i.type in _PLAYER_ITEM_TYPES}
     )
     players = await _fetch_players(espn, season, player_ids)
 
     transactions: list[TransactionOut] = []
-    warnings: list[str] = []
 
     for txn in sorted(relevant, key=lambda t: t.proposedDate, reverse=True):
         items: list[TransactionItemOut] = []

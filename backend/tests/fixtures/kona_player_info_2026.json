@@ -9,6 +9,14 @@
       }
     },
     {
+      "id": 4912218,
+      "player": {
+        "fullName": "Cyrus Allen",
+        "defaultPositionId": 3,
+        "proTeamId": 12
+      }
+    },
+    {
       "id": 17427,
       "player": {
         "fullName": "Cairo Santos",
@@ -113,6 +121,14 @@
       }
     },
     {
+      "id": 4596448,
+      "player": {
+        "fullName": "Bucky Irving",
+        "defaultPositionId": 2,
+        "proTeamId": 27
+      }
+    },
+    {
       "id": 4362081,
       "player": {
         "fullName": "Cameron Dicker",
@@ -126,6 +142,14 @@
         "fullName": "Chiefs D/ST",
         "defaultPositionId": 16,
         "proTeamId": 12
+      }
+    },
+    {
+      "id": 4429023,
+      "player": {
+        "fullName": "MarShawn Lloyd",
+        "defaultPositionId": 2,
+        "proTeamId": 9
       }
     },
     {
@@ -217,6 +241,14 @@
       }
     },
     {
+      "id": 3139477,
+      "player": {
+        "fullName": "Patrick Mahomes",
+        "defaultPositionId": 1,
+        "proTeamId": 12
+      }
+    },
+    {
       "id": -16028,
       "player": {
         "fullName": "Commanders D/ST",
@@ -265,6 +297,14 @@
       }
     },
     {
+      "id": 3121422,
+      "player": {
+        "fullName": "Terry McLaurin",
+        "defaultPositionId": 3,
+        "proTeamId": 28
+      }
+    },
+    {
       "id": 4567156,
       "player": {
         "fullName": "Treylon Burks",
@@ -278,6 +318,14 @@
         "fullName": "Tyler Allgeier",
         "defaultPositionId": 2,
         "proTeamId": 22
+      }
+    },
+    {
+      "id": 4239993,
+      "player": {
+        "fullName": "Tee Higgins",
+        "defaultPositionId": 3,
+        "proTeamId": 4
       }
     },
     {
@@ -302,6 +350,22 @@
         "fullName": "Harrison Mevis",
         "defaultPositionId": 5,
         "proTeamId": 0
+      }
+    },
+    {
+      "id": 4572680,
+      "player": {
+        "fullName": "Tucker Kraft",
+        "defaultPositionId": 4,
+        "proTeamId": 9
+      }
+    },
+    {
+      "id": 4432773,
+      "player": {
+        "fullName": "Brian Thomas Jr.",
+        "defaultPositionId": 3,
+        "proTeamId": 30
       }
     },
     {
@@ -342,6 +406,14 @@
         "fullName": "Tyler Loop",
         "defaultPositionId": 5,
         "proTeamId": 33
+      }
+    },
+    {
+      "id": 4569618,
+      "player": {
+        "fullName": "Garrett Wilson",
+        "defaultPositionId": 3,
+        "proTeamId": 20
       }
     },
     {
@@ -409,6 +481,14 @@
       }
     },
     {
+      "id": 4374302,
+      "player": {
+        "fullName": "Amon-Ra St. Brown",
+        "defaultPositionId": 3,
+        "proTeamId": 8
+      }
+    },
+    {
       "id": 2578570,
       "player": {
         "fullName": "Jacoby Brissett",
@@ -449,6 +529,14 @@
       }
     },
     {
+      "id": 4429096,
+      "player": {
+        "fullName": "Blake Corum",
+        "defaultPositionId": 2,
+        "proTeamId": 14
+      }
+    },
+    {
       "id": 4571557,
       "player": {
         "fullName": "Spencer Shrader",
@@ -476,6 +564,14 @@
       "id": 4433970,
       "player": {
         "fullName": "J.J. McCarthy",
+        "defaultPositionId": 1,
+        "proTeamId": 19
+      }
+    },
+    {
+      "id": 2969939,
+      "player": {
+        "fullName": "Jameis Winston",
         "defaultPositionId": 1,
         "proTeamId": 19
       }
@@ -537,6 +633,14 @@
       }
     },
     {
+      "id": 5083076,
+      "player": {
+        "fullName": "Harold Fannin Jr.",
+        "defaultPositionId": 4,
+        "proTeamId": 5
+      }
+    },
+    {
       "id": 3116389,
       "player": {
         "fullName": "Samaje Perine",
@@ -561,6 +665,14 @@
       }
     },
     {
+      "id": 4432710,
+      "player": {
+        "fullName": "TreVeyon Henderson",
+        "defaultPositionId": 2,
+        "proTeamId": 17
+      }
+    },
+    {
       "id": 4361411,
       "player": {
         "fullName": "Pat Freiermuth",
@@ -574,6 +686,14 @@
         "fullName": "Marvin Harrison Jr.",
         "defaultPositionId": 3,
         "proTeamId": 34
+      }
+    },
+    {
+      "id": 4685512,
+      "player": {
+        "fullName": "Jadarian Price",
+        "defaultPositionId": 2,
+        "proTeamId": 26
       }
     },
     {
