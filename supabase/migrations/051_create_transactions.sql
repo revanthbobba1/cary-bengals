@@ -84,7 +84,7 @@ BEGIN
       v_txn->>'kind',
       v_txn->>'status',
       (v_txn->>'espn_team_id')::integer,
-      (v_txn->>'bid_amount')::numeric,
+      COALESCE((v_txn->>'bid_amount')::numeric, 0),
       (v_txn->>'week_number')::integer,
       (v_txn->>'proposed_at')::timestamptz,
       (v_txn->>'processed_at')::timestamptz,
