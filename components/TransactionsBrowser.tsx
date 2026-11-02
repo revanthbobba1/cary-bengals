@@ -7,14 +7,18 @@ import { focusRingClasses } from '@/lib/focusRing'
 import { teamKey, type Transaction, type TransactionItem } from '@/lib/types/transaction'
 
 interface Props {
+  // One season's transactions (the server loads only the selected season).
   transactions: Transaction[]
+  seasons: number[]
+  season: number | null
+  defaultSeason: number | null
+  teams: { espnTeamId: number; name: string }[]
   teamNameByKey: Record<string, string>
   teamLogoByKey: Record<string, string | null>
-  currentSeason: number
-  // Already-validated from the page's `?season=` / `?week=` params (null if absent/invalid).
+  // Already-validated from the page's `?week=` / `?team=` params (null if absent/invalid).
   // `initialWeek` of 'all' means the whole season.
-  initialSeason: number | null
   initialWeek: number | 'all' | null
+  initialTeam: number | null
 }
 
 // The league plays in Eastern time, and waivers process around midnight ET, so grouping by the
@@ -68,37 +72,38 @@ function nestLostBids(rows: Transaction[]): { txn: Transaction; nested: boolean 
   return ordered
 }
 
+// A team's view of the wire: its own claims and pickups, trades it was part of, and bids that lost
+// to it (so a team's winning claim still shows who it beat).
+function involvesTeam(txn: Transaction, teamId: number): boolean {
+  if (txn.espn_team_id === teamId || txn.winner_espn_team_id === teamId) return true
+  return txn.items.some(
+    (item) => item.from_espn_team_id === teamId || item.to_espn_team_id === teamId
+  )
+}
+
 export default function TransactionsBrowser({
   transactions,
+  seasons,
+  season,
+  defaultSeason,
+  teams,
   teamNameByKey,
   teamLogoByKey,
-  currentSeason,
-  initialSeason,
   initialWeek,
+  initialTeam,
 }: Props) {
   const router = useRouter()
   const pathname = usePathname()
   const [isPending, startTransition] = useTransition()
-  const [pending, setPending] = useState<{ season: number; week: number | 'all' | null } | null>(
-    null
-  )
+  const [pending, setPending] = useState<{
+    season: number
+    week: number | 'all' | null
+    team: number | null
+  } | null>(null)
 
-  const seasons = useMemo(
-    () => [...new Set(transactions.map((txn) => txn.season_year))].sort((a, b) => b - a),
-    [transactions]
-  )
-  const defaultSeason = seasons.includes(currentSeason) ? currentSeason : (seasons[0] ?? null)
-  const resolvedSeason =
-    initialSeason !== null && seasons.includes(initialSeason) ? initialSeason : defaultSeason
-
-  const season = isPending && pending ? pending.season : resolvedSeason
-  const seasonTransactions = useMemo(
-    () => transactions.filter((txn) => txn.season_year === season),
-    [transactions, season]
-  )
   const weeks = useMemo(
-    () => [...new Set(seasonTransactions.map((txn) => txn.week_number))].sort((a, b) => a - b),
-    [seasonTransactions]
+    () => [...new Set(transactions.map((txn) => txn.week_number))].sort((a, b) => a - b),
+    [transactions]
   )
   // Default to the latest week with activity, not "all" -- the wire is mostly "what just
   // happened", and a full season is one click away.
@@ -107,14 +112,34 @@ export default function TransactionsBrowser({
     initialWeek === 'all' || (typeof initialWeek === 'number' && weeks.includes(initialWeek))
       ? initialWeek
       : defaultWeek
-  // A season change resets to that season's default week (pending.week is null then).
-  const week = isPending && pending ? (pending.week ?? defaultWeek) : resolvedWeek
+  const resolvedTeam =
+    initialTeam !== null && teams.some((team) => team.espnTeamId === initialTeam)
+      ? initialTeam
+      : null
 
-  const navigate = (nextSeason: number, nextWeek: number | 'all' | null) => {
-    setPending({ season: nextSeason, week: nextWeek })
+  // A week or team change filters rows already on the client, so it can render instantly instead
+  // of waiting out the (force-dynamic) server round trip. A season change genuinely needs the
+  // server's rows, so the old rows stay (dimmed) until the new season arrives.
+  const switchingSeason = isPending && pending !== null && pending.season !== season
+  const optimistic = isPending && pending !== null && !switchingSeason ? pending : null
+  const week = optimistic ? (optimistic.week ?? defaultWeek) : resolvedWeek
+  const team = optimistic ? optimistic.team : resolvedTeam
+  const shownSeason = isPending && pending ? pending.season : season
+
+  const navigate = (next: {
+    season?: number
+    week?: number | 'all' | null
+    team?: number | null
+  }) => {
+    const nextSeason = next.season ?? season
+    // A season change drops the week (each season has its own weeks); the team carries over.
+    const nextWeek = next.season !== undefined ? null : 'week' in next ? next.week : week
+    const nextTeam = 'team' in next ? next.team : team
+    setPending({ season: nextSeason as number, week: nextWeek ?? null, team: nextTeam ?? null })
     const params = new URLSearchParams()
     if (nextSeason !== defaultSeason) params.set('season', String(nextSeason))
-    if (nextWeek !== null) params.set('week', String(nextWeek))
+    if (nextWeek !== null && nextWeek !== undefined) params.set('week', String(nextWeek))
+    if (nextTeam !== null && nextTeam !== undefined) params.set('team', String(nextTeam))
     const query = params.toString()
     startTransition(() => {
       router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false })
@@ -123,7 +148,10 @@ export default function TransactionsBrowser({
 
   // Newest first by when it actually happened, grouped under ET day headings.
   const days = useMemo(() => {
-    const visible = seasonTransactions.filter((txn) => week === 'all' || txn.week_number === week)
+    const visible = transactions.filter(
+      (txn) =>
+        (week === 'all' || txn.week_number === week) && (team === null || involvesTeam(txn, team))
+    )
     const sorted = [...visible].sort(
       (a, b) =>
         Date.parse(b.processed_at ?? b.proposed_at) - Date.parse(a.processed_at ?? a.proposed_at)
@@ -137,7 +165,7 @@ export default function TransactionsBrowser({
       else groups.push({ key, label: DAY_FORMAT.format(date), rows: [txn] })
     }
     return groups.map((group) => ({ ...group, rows: nestLostBids(group.rows) }))
-  }, [seasonTransactions, week])
+  }, [transactions, week, team])
 
   if (seasons.length === 0 || season === null) {
     return (
@@ -149,7 +177,7 @@ export default function TransactionsBrowser({
 
   // Equal bids are settled by waiver priority, not by price, so "outbid" would be wrong there.
   const winnerPhrase = (lost: Transaction) => {
-    const winner = seasonTransactions.find((txn) => txn.id === lost.winner_transaction_id)
+    const winner = transactions.find((txn) => txn.id === lost.winner_transaction_id)
     if (winner && winner.bid_amount === lost.bid_amount)
       return 'lost the waiver-priority tiebreak to'
     return 'outbid by'
@@ -157,6 +185,8 @@ export default function TransactionsBrowser({
 
   const teamName = (seasonYear: number, espnTeamId: number) =>
     teamNameByKey[teamKey(seasonYear, espnTeamId)] ?? `Team ${espnTeamId}`
+
+  const selectClasses = `rounded-md border border-gray-300 bg-white px-2 py-1 text-sm text-ink dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 ${focusRingClasses}`
 
   const pillClasses = (selected: boolean) =>
     `rounded-full px-3 py-1 text-sm font-medium transition-colors ${focusRingClasses} ${
@@ -223,13 +253,32 @@ export default function TransactionsBrowser({
           <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
             Season
             <select
-              value={season}
-              onChange={(e) => navigate(Number(e.target.value), null)}
-              className={`rounded-md border border-gray-300 bg-white px-2 py-1 text-sm text-ink dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 ${focusRingClasses}`}
+              value={shownSeason ?? ''}
+              onChange={(e) => navigate({ season: Number(e.target.value) })}
+              className={selectClasses}
             >
               {seasons.map((year) => (
                 <option key={year} value={year}>
                   {year}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {teams.length > 0 && (
+          <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+            Team
+            <select
+              value={team ?? ''}
+              onChange={(e) =>
+                navigate({ team: e.target.value === '' ? null : Number(e.target.value) })
+              }
+              className={selectClasses}
+            >
+              <option value="">All teams</option>
+              {teams.map((t) => (
+                <option key={t.espnTeamId} value={t.espnTeamId}>
+                  {t.name}
                 </option>
               ))}
             </select>
@@ -240,7 +289,7 @@ export default function TransactionsBrowser({
             <button
               key={w}
               type="button"
-              onClick={() => navigate(season, w)}
+              onClick={() => navigate({ week: w })}
               className={pillClasses(w === week)}
             >
               {w}
@@ -248,7 +297,7 @@ export default function TransactionsBrowser({
           ))}
           <button
             type="button"
-            onClick={() => navigate(season, 'all')}
+            onClick={() => navigate({ week: 'all' })}
             className={pillClasses(week === 'all')}
           >
             All weeks
@@ -257,9 +306,13 @@ export default function TransactionsBrowser({
       </div>
 
       {days.length === 0 ? (
-        <p className="text-sm text-gray-600 dark:text-gray-400">No transactions this week.</p>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          {team !== null
+            ? 'No transactions for this team in this week.'
+            : 'No transactions this week.'}
+        </p>
       ) : (
-        <div className="space-y-8">
+        <div className={`space-y-8 transition-opacity ${switchingSeason ? 'opacity-50' : ''}`}>
           {days.map((day) => (
             <section key={day.key}>
               <h2 className="mb-3 text-lg font-semibold text-ink dark:text-gray-100">

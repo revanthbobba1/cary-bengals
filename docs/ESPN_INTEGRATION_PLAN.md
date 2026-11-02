@@ -701,7 +701,7 @@ started 4.5 hours late. Both schedules now also run as Netlify scheduled functio
 (`netlify/functions/espn-matchup-sync.mts` every 10 minutes, `espn-full-sync.mts` at :00/:30). Each
 gates itself in America/New_York time (DST-correct, no padded UTC hours) and POSTs the existing
 `/api/espn/sync-matchups` / `/api/espn/sync-all` handler; shared code is `netlify/lib/espnCron.ts`.
-The full sync runs Tue-Fri at 8am ET, with the :30 run as a retry. Scheduled functions are cut
+The full sync runs daily at 8am ET (it ran Tue-Fri until transactions were added to it, since free-agent pickups and trades happen any day), with the :30 run as a retry. Scheduled functions are cut
 off at 30s and can't wait out a Render cold start, so a run against a cold backend may fail (its
 `/healthz` ping still wakes it) and the next one succeeds; a pre-window warm-up ping was tried and
 dropped as not worth the extra branch. Netlify ran the Sunday 2026-10-25 live window cleanly (a run every 10 minutes, ~4s each), so the
