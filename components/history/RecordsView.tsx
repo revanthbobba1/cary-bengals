@@ -39,7 +39,7 @@ function gameRows(games: GameRecord[], right: (game: GameRecord) => string) {
         {game.owner_name} <span className="text-gray-500">vs {game.opp_owner_name}</span>{' '}
         <span className="text-gray-400">
           · {when(game.season_year, game.week_number)}
-          {game.is_playoffs ? ' (playoffs)' : ''}
+          {game.is_playoffs ? ' (postseason)' : ''}
         </span>
       </>
     ),
@@ -126,7 +126,8 @@ export default function RecordsView({ data }: { data: RecordsData }) {
 
       <Section title="Head-to-head">
         <p className="pb-3 text-sm text-gray-500">
-          Row owner&apos;s record against column owner, all games including playoffs.
+          Row owner&apos;s record against column owner, all games including the postseason
+          (consolation games count).
         </p>
         <div className="overflow-x-auto">
           <table className="text-center text-xs">

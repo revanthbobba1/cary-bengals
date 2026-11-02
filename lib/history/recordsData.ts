@@ -101,11 +101,29 @@ export async function loadRecords(): Promise<RecordsData | null> {
   const games = () => supabase.from('league_games').select('*')
 
   const results = await Promise.all([
-    games().order('pf', { ascending: false }).limit(LIST_SIZE),
-    games().order('pf', { ascending: true }).limit(LIST_SIZE),
+    games()
+      .order('pf', { ascending: false })
+      .order('season_year')
+      .order('week_number')
+      .limit(LIST_SIZE),
+    games()
+      .order('pf', { ascending: true })
+      .order('season_year')
+      .order('week_number')
+      .limit(LIST_SIZE),
     // Each game appears once per side; the winner's side carries the positive margin.
-    games().eq('result', 'W').order('margin', { ascending: false }).limit(LIST_SIZE),
-    games().eq('result', 'W').order('margin', { ascending: true }).limit(LIST_SIZE),
+    games()
+      .eq('result', 'W')
+      .order('margin', { ascending: false })
+      .order('season_year')
+      .order('week_number')
+      .limit(LIST_SIZE),
+    games()
+      .eq('result', 'W')
+      .order('margin', { ascending: true })
+      .order('season_year')
+      .order('week_number')
+      .limit(LIST_SIZE),
     supabase
       .from('league_streaks')
       .select('*')
@@ -123,11 +141,15 @@ export async function loadRecords(): Promise<RecordsData | null> {
       .select('season_year, week_number, player_name, position, owner_name, team_name, points')
       .eq('is_starter', true)
       .order('points', { ascending: false })
+      .order('season_year')
+      .order('week_number')
       .limit(LIST_SIZE),
     supabase
       .from('league_bench_weeks')
       .select('season_year, week_number, owner_name, team_name, bench_points')
       .order('bench_points', { ascending: false })
+      .order('season_year')
+      .order('week_number')
       .limit(LIST_SIZE),
     supabase
       .from('league_h2h')
@@ -201,7 +223,9 @@ export interface TransactionStats {
   biggestBids: BigBid[]
 }
 
-export async function loadTransactionStats(): Promise<TransactionStats | null> {
+// `seasons` are the completed seasons, so the bids match the owner-activity table (which the
+// `league_owner_transactions` view limits the same way).
+export async function loadTransactionStats(seasons: number[]): Promise<TransactionStats | null> {
   const supabase = createPublicClient()
   const [ownersResult, bidsResult, teamsResult] = await Promise.all([
     supabase.from('league_owner_transactions').select('*'),
@@ -210,7 +234,10 @@ export async function loadTransactionStats(): Promise<TransactionStats | null> {
       .select('season_year, week_number, espn_team_id, bid_amount, items')
       .eq('kind', 'WAIVER')
       .eq('status', 'EXECUTED')
+      .in('season_year', seasons)
       .order('bid_amount', { ascending: false })
+      .order('season_year')
+      .order('week_number')
       .limit(LIST_SIZE),
     supabase
       .from('teams')

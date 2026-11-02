@@ -15,6 +15,8 @@ export const metadata = genPageMetadata({ title: 'League Members' })
 export const dynamic = 'force-dynamic'
 
 export default async function Page() {
+  // Started up front so it runs alongside the team and roster queries below.
+  const historyPromise = loadHistoryBase()
   const teamByOwner = new Map<string, { id: string; name: string; logo: string | null }>()
   const rosterByTeamId = new Map<string, RosterPlayer[]>()
   const currentSeason = siteMetadata.currentSeason
@@ -64,7 +66,7 @@ export default async function Page() {
 
   // Finals results come from the same inferred brackets as /history; a load failure just leaves
   // the cards without a trophy line.
-  const history = await loadHistoryBase()
+  const history = await historyPromise
   const trophiesBySlug = new Map(
     (history ? summarizeOwners(history) : []).map((owner) => [owner.slug, owner])
   )

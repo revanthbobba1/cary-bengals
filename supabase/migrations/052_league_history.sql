@@ -9,9 +9,8 @@
 -- not -- they change every year). Only paired teams (`espn_team_id IS NOT NULL`) are included,
 -- which also leaves out the unpaired duplicate 2025 rows.
 --
--- Only COMPLETED seasons are in `league_games` (and so in every view built on it): a season with
--- playoff matchups and no undecided non-bye game. The season in progress would otherwise show a
--- half-played record as if it were history.
+-- Only COMPLETED seasons are included (see `league_completed_seasons`), in every view below: the
+-- season in progress would otherwise show a half-played record as if it were history.
 --
 -- Playoff placement (champion, runner-up, bracket) is deliberately NOT here: matchups carry no
 -- winners-bracket vs consolation flag, so it is inferred from the bracket shape in
@@ -20,13 +19,20 @@
 -- `security_invoker` makes each view run with the caller's RLS, so these stay exactly as public
 -- as the tables underneath (all public-read).
 
+-- A season is complete once all three playoff weeks exist and every non-bye game has a winner.
+-- Requiring three weeks (not just "some playoff rows") keeps a season out while its later
+-- playoff rounds are still to be added, when every row that exists so far is already decided.
+CREATE VIEW public.league_completed_seasons WITH (security_invoker = true) AS
+SELECT season_year
+FROM public.matchups
+GROUP BY season_year
+HAVING count(DISTINCT week_number) FILTER (WHERE is_playoffs) >= 3
+   AND NOT bool_or(NOT is_bye AND winner = 'UNDECIDED');
+
 -- One row per team per played (non-bye) game, from that team's point of view.
 CREATE VIEW public.league_games WITH (security_invoker = true) AS
 WITH completed AS (
-  SELECT season_year
-  FROM public.matchups
-  GROUP BY season_year
-  HAVING bool_or(is_playoffs) AND NOT bool_or(NOT is_bye AND winner = 'UNDECIDED')
+  SELECT season_year FROM public.league_completed_seasons
 ),
 sides AS (
   SELECT m.id AS matchup_id, m.season_year, m.week_number, m.is_playoffs,
@@ -153,6 +159,7 @@ SELECT p.id, m.season_year, m.week_number, m.is_playoffs,
        t.name AS team_name, t.owner_name, t.espn_owner_id AS owner_id
 FROM public.matchup_player_scores p
 JOIN public.matchups m ON m.id = p.matchup_id
+JOIN public.league_completed_seasons c ON c.season_year = m.season_year
 JOIN public.teams t ON t.id = CASE p.team_side WHEN 'home' THEN m.home_team_id ELSE m.away_team_id END
 WHERE t.espn_team_id IS NOT NULL;
 
@@ -164,6 +171,7 @@ SELECT m.season_year, m.week_number,
        sum(p.points) AS bench_points
 FROM public.matchup_player_scores p
 JOIN public.matchups m ON m.id = p.matchup_id
+JOIN public.league_completed_seasons c ON c.season_year = m.season_year
 JOIN public.teams t ON t.id = CASE p.team_side WHEN 'home' THEN m.home_team_id ELSE m.away_team_id END
 WHERE p.lineup_slot = 'Bench' AND t.espn_team_id IS NOT NULL
 GROUP BY m.id, p.team_side, m.season_year, m.week_number, t.name, t.owner_name, t.espn_owner_id;
@@ -182,11 +190,12 @@ SELECT t.espn_owner_id AS owner_id,
        count(*) FILTER (WHERE x.kind = 'FREEAGENT') AS free_agent_pickups,
        count(*) FILTER (WHERE x.kind = 'TRADE') AS trades
 FROM public.transactions x
+JOIN public.league_completed_seasons c ON c.season_year = x.season_year
 JOIN public.teams t ON t.season_year = x.season_year AND t.espn_team_id = x.espn_team_id
 GROUP BY t.espn_owner_id;
 
 GRANT SELECT ON
-  public.league_games, public.league_team_seasons, public.league_owner_totals,
+  public.league_completed_seasons, public.league_games, public.league_team_seasons, public.league_owner_totals,
   public.league_h2h, public.league_streaks, public.league_player_games,
   public.league_bench_weeks, public.league_owner_transactions
 TO anon, authenticated;

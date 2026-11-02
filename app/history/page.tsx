@@ -53,7 +53,21 @@ async function renderTab(
   base: NonNullable<Awaited<ReturnType<typeof loadHistoryBase>>>,
   requestedSeason: number
 ) {
-  if (tab === 'owners') return <OwnersTable owners={summarizeOwners(base)} />
+  if (tab === 'owners') {
+    // Titles and playoff appearances need an inferred bracket; say so if a season has none.
+    const missing = base.seasons.filter((year) => !base.results[year]?.bracket)
+    return (
+      <div className="space-y-4">
+        {missing.length > 0 && (
+          <p className="rounded border border-yellow-500/40 bg-yellow-500/10 p-3 text-sm text-gray-700 dark:text-gray-300">
+            No playoff bracket could be determined for {missing.join(', ')}, so titles and playoff
+            appearances exclude {missing.length > 1 ? 'those seasons' : 'that season'}.
+          </p>
+        )}
+        <OwnersTable owners={summarizeOwners(base)} />
+      </div>
+    )
+  }
 
   if (tab === 'records') {
     const data = await loadRecords()
@@ -61,7 +75,7 @@ async function renderTab(
   }
 
   if (tab === 'transactions') {
-    const stats = await loadTransactionStats()
+    const stats = await loadTransactionStats(base.seasons)
     return stats ? (
       <TransactionStatsView stats={stats} />
     ) : (
