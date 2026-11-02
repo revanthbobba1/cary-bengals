@@ -705,8 +705,9 @@ The full sync runs daily at 8am ET (it ran Tue-Fri until transactions were added
 off at 30s and can't wait out a Render cold start, so a run against a cold backend may fail (its
 `/healthz` ping still wakes it) and the next one succeeds; a pre-window warm-up ping was tried and
 dropped as not worth the extra branch. Netlify ran the Sunday 2026-10-25 live window cleanly (a run every 10 minutes, ~4s each), so the
-GitHub workflows' `schedule:` blocks were removed; they remain as manual `workflow_dispatch` triggers.
-Both workflows now log the response body instead of hiding it behind `curl -f`. Separately,
+GitHub workflows' `schedule:` blocks were removed; they remained as manual `workflow_dispatch` triggers
+until they were deleted outright in the repo cleanup (#195/#202), so the GitHub Actions secrets
+described below are no longer used. Both workflows logged the response body instead of hiding it behind `curl -f`. Separately,
 `totalPoints` stays 0.0 all week in ESPN's `mMatchupScore`; the running score is `totalPointsLive`
 (current week only), which `services/schedule.py` now reads.
 
