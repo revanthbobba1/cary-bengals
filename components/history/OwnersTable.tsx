@@ -9,8 +9,8 @@ export default function OwnersTable({ owners }: { owners: OwnerSummary[] }) {
   return (
     <div className="space-y-3">
       <p className="text-sm text-gray-500">
-        Grouped by owner, not team name (teams are renamed every year). Record and points are
-        regular season; titles and playoff appearances come from the playoff brackets.
+        Grouped by owner, since team names change each year. Records and points are regular season
+        only. Titles and playoff appearances come from each season&apos;s playoff bracket.
       </p>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[720px] text-left text-sm">

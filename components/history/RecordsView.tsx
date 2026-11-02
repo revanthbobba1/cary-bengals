@@ -126,8 +126,8 @@ export default function RecordsView({ data }: { data: RecordsData }) {
 
       <Section title="Head-to-head">
         <p className="pb-3 text-sm text-gray-500">
-          Row owner&apos;s record against column owner, all games including the postseason
-          (consolation games count).
+          Each row shows the owner&apos;s record against the owner in each column. Playoff and
+          consolation games are included.
         </p>
         <div className="overflow-x-auto">
           <table className="text-center text-xs">

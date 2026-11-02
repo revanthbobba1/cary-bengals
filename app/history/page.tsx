@@ -35,12 +35,13 @@ export default async function Page({
           League History
         </h1>
         <p className="text-lg leading-7 text-gray-600 dark:text-gray-400">
-          Champions, standings and all-time records. A season appears here once it has finished.
+          Past champions, standings and records for the league. A season appears once it has
+          finished.
         </p>
       </div>
       <HistoryTabs active={tab} />
       {!base || base.seasons.length === 0 ? (
-        <p className="text-gray-600 dark:text-gray-400">No completed seasons to show yet.</p>
+        <p className="text-gray-600 dark:text-gray-400">No completed seasons to display.</p>
       ) : (
         await renderTab(tab, base, Number(first(searchParams.season)))
       )}
@@ -60,8 +61,9 @@ async function renderTab(
       <div className="space-y-4">
         {missing.length > 0 && (
           <p className="rounded border border-yellow-500/40 bg-yellow-500/10 p-3 text-sm text-gray-700 dark:text-gray-300">
-            No playoff bracket could be determined for {missing.join(', ')}, so titles and playoff
-            appearances exclude {missing.length > 1 ? 'those seasons' : 'that season'}.
+            The playoff bracket could not be determined for {missing.join(', ')}, so{' '}
+            {missing.length > 1 ? 'those seasons are' : 'that season is'} not included in titles or
+            playoff appearances.
           </p>
         )}
         <OwnersTable owners={summarizeOwners(base)} />
