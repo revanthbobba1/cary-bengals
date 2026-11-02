@@ -3,6 +3,7 @@ import HistoryTabs, { HISTORY_TABS, type HistoryTab } from '@/components/history
 import SeasonSelect from '@/components/history/SeasonSelect'
 import SeasonView from '@/components/history/SeasonView'
 import OwnersTable from '@/components/history/OwnersTable'
+import HeadToHeadTable from '@/components/history/HeadToHeadTable'
 import RecordsView from '@/components/history/RecordsView'
 import TransactionStatsView from '@/components/history/TransactionStatsView'
 import { loadHistoryBase, summarizeOwners } from '@/lib/history/historyData'
@@ -56,6 +57,7 @@ async function renderTab(
 ) {
   if (tab === 'owners') {
     // Titles and playoff appearances need an inferred bracket; say so if a season has none.
+    const records = await loadRecords()
     const missing = base.seasons.filter((year) => !base.results[year]?.bracket)
     return (
       <div className="space-y-4">
@@ -67,6 +69,7 @@ async function renderTab(
           </p>
         )}
         <OwnersTable owners={summarizeOwners(base)} />
+        {records && <HeadToHeadTable headToHead={records.headToHead} />}
       </div>
     )
   }

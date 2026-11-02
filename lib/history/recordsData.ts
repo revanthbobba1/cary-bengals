@@ -6,6 +6,11 @@ import { num } from '@/lib/history/historyData'
 
 const LIST_SIZE = 10
 
+// In 2019 and 2020 each playoff round was a two-week matchup, so those scores are two-week totals.
+// They count toward win/loss records but not toward single-game scoring records.
+const SINGLE_WEEK_PLAYOFFS_FROM = 2021
+const SINGLE_WEEK_SCORES = `is_playoffs.eq.false,season_year.gte.${SINGLE_WEEK_PLAYOFFS_FROM}`
+
 export interface GameRecord {
   season_year: number
   week_number: number
@@ -98,7 +103,7 @@ function toStreak(row: Record<string, unknown>): Streak {
 
 export async function loadRecords(): Promise<RecordsData | null> {
   const supabase = createPublicClient()
-  const games = () => supabase.from('league_games').select('*')
+  const games = () => supabase.from('league_games').select('*').or(SINGLE_WEEK_SCORES)
 
   const results = await Promise.all([
     games()
