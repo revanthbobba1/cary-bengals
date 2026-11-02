@@ -22,7 +22,12 @@ export default async function Page({
   searchParams: { week?: string | string[]; season?: string | string[] }
 }) {
   const currentSeason = siteMetadata.currentSeason
-  const seasons = await loadScheduleSeasons(currentSeason)
+  // The current season is always an option, even before its first matchup sync (a rollover), so
+  // the dropdown matches the season the page falls back to.
+  const syncedSeasons = await loadScheduleSeasons(currentSeason)
+  const seasons = syncedSeasons.includes(currentSeason)
+    ? syncedSeasons
+    : [currentSeason, ...syncedSeasons]
   const rawSeason =
     typeof searchParams.season === 'string' ? Number(searchParams.season) : Number.NaN
   const season = seasons.includes(rawSeason) ? rawSeason : currentSeason

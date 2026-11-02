@@ -80,17 +80,11 @@ async def _fetch_pro_teams(espn: EspnClient, season: int) -> RawProTeamsResponse
         return f"Could not load NFL bye weeks ({type(exc).__name__}); byes show as pending"
 
 
-async def get_league_box_scores(
-    espn: EspnClient, season: int, scoring_period: int | None = None
-) -> LeagueBoxScoresResponse:
-    # `scoring_period` is for backfilling past seasons: without it ESPN only carries rosters for
-    # the current period, with it only that week's matchups carry them.
+async def get_league_box_scores(espn: EspnClient, season: int) -> LeagueBoxScoresResponse:
     # Concurrent, not sequential: the two calls are independent, and this runs under a tight
     # synchronous deadline (see lib/espn/client.ts).
     raw, pro_teams = await asyncio.gather(
-        espn.fetch_league(
-            season, views=["mMatchupScore", "mLiveScoring"], scoring_period=scoring_period
-        ),
+        espn.fetch_league(season, views=["mMatchupScore", "mLiveScoring"]),
         _fetch_pro_teams(espn, season),
     )
     parsed = RawLeagueBoxScoresResponse.model_validate(raw)

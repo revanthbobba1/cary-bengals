@@ -22,12 +22,8 @@ class _StubEspnClient:
     def __init__(self, payload: dict, pro_teams_error: Exception | None = None) -> None:
         self._payload = payload
         self._pro_teams_error = pro_teams_error
-        self.scoring_periods: list[int | None] = []
 
-    async def fetch_league(
-        self, season: int, views: list[str], x_fantasy_filter=None, scoring_period=None
-    ) -> dict:
-        self.scoring_periods.append(scoring_period)
+    async def fetch_league(self, season: int, views: list[str], x_fantasy_filter=None) -> dict:
         return self._payload
 
     async def fetch_pro_teams(self, season: int) -> dict:
@@ -39,14 +35,6 @@ class _StubEspnClient:
 @pytest.fixture
 def raw_payload() -> dict:
     return json.loads(FIXTURE_PATH.read_text())
-
-
-async def test_a_scoring_period_is_forwarded_to_espn(raw_payload: dict) -> None:
-    stub = _StubEspnClient(raw_payload)
-
-    await get_league_box_scores(stub, season=2025, scoring_period=5)
-
-    assert stub.scoring_periods == [5]
 
 
 async def test_get_league_box_scores_against_real_fixture(raw_payload: dict) -> None:

@@ -89,6 +89,7 @@ export default function ScheduleWeekBrowser({
 
   // A season change drops the week (each season has its own weeks) and needs the server's data.
   const selectSeason = (nextSeason: number) => {
+    setPendingWeek(null)
     startTransition(() => {
       router.replace(nextSeason === currentSeason ? pathname : `${pathname}?season=${nextSeason}`, {
         scroll: false,
