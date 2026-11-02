@@ -14,7 +14,7 @@ jobs:
       # (e.g. app/league-members/page.tsx, components/CommissionerPoll.tsx,
       # lib/supabase/articles.ts) falls back to local fixtures instead of hitting a real project.
       NEXT_PUBLIC_SUPABASE_URL: https://your-project-ref.supabase.co
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: placeholder-publishable-key
     steps:
       - uses: actions/checkout@v4
 
