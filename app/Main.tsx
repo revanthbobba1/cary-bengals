@@ -178,12 +178,13 @@ export default function Home({ snapshot }: { snapshot: HomeSnapshot }) {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      {/* 6 columns so the bottom row can be two equal halves (standings | poll). */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-6">
         <Section
           title="Latest Article"
           href="/articles"
           linkLabel="View all articles"
-          className="lg:col-span-2"
+          className="lg:col-span-4"
         >
           {latestArticle ? (
             <>
@@ -212,9 +213,9 @@ export default function Home({ snapshot }: { snapshot: HomeSnapshot }) {
                     <li key={article.id}>
                       <Link
                         href={`/articles/${article.slug}`}
-                        className={`flex items-baseline justify-between gap-4 py-2.5 text-sm ${focusRingClasses} hover:text-primary-500 dark:hover:text-primary-400`}
+                        className={`group -mx-2 flex items-baseline justify-between gap-4 rounded px-2 py-2.5 text-sm transition-colors duration-150 ease-out-expo hover:bg-gray-50 ${focusRingClasses} dark:hover:bg-gray-800/60`}
                       >
-                        <span className="truncate font-medium text-ink dark:text-gray-100">
+                        <span className="truncate font-medium text-ink transition-colors duration-150 ease-out-expo group-hover:text-primary-500 dark:text-gray-100 dark:group-hover:text-primary-400">
                           {article.title}
                         </span>
                         {article.published_at && (
@@ -240,6 +241,7 @@ export default function Home({ snapshot }: { snapshot: HomeSnapshot }) {
           title="Press Conference"
           href="/conferences"
           linkLabel="View all press conferences"
+          className="lg:col-span-2"
         >
           {latestConference ? (
             <Link href="/conferences" className={`group block rounded ${focusRingClasses}`}>
@@ -269,7 +271,7 @@ export default function Home({ snapshot }: { snapshot: HomeSnapshot }) {
           title={week ? `Week ${week} Matchups` : 'Matchups'}
           href="/schedule"
           linkLabel="View full schedule"
-          className="lg:col-span-2"
+          className="lg:col-span-4"
         >
           {matchups.length > 0 ? (
             <ul className="grid grid-cols-1 gap-x-8 divide-y divide-gray-100 dark:divide-gray-800 md:grid-cols-2 md:divide-y-0 md:gap-y-4">
@@ -288,7 +290,12 @@ export default function Home({ snapshot }: { snapshot: HomeSnapshot }) {
           )}
         </Section>
 
-        <Section title="Latest Transactions" href="/transactions" linkLabel="View all transactions">
+        <Section
+          title="Latest Transactions"
+          href="/transactions"
+          linkLabel="View all transactions"
+          className="lg:col-span-2"
+        >
           {latestTransactions.length > 0 ? (
             <ul className="divide-y divide-gray-100 dark:divide-gray-800">
               {latestTransactions.map((txn) => (
@@ -312,7 +319,7 @@ export default function Home({ snapshot }: { snapshot: HomeSnapshot }) {
         </Section>
 
         {/* Standings has no page of its own, so no "View all" link; it sits beside the poll. */}
-        <Section title="Standings">
+        <Section title="Standings" className="lg:col-span-3">
           {standings.length > 0 ? (
             <StandingsList rows={standings} />
           ) : (
@@ -328,13 +335,14 @@ export default function Home({ snapshot }: { snapshot: HomeSnapshot }) {
           }
           href="/poll"
           linkLabel="View the commissioner's poll"
-          className="lg:col-span-2"
+          className="lg:col-span-3"
         >
           {latestPoll && latestPoll.rows.length > 0 ? (
-            <ol className="grid grid-cols-1 gap-x-8 gap-y-1 sm:grid-cols-2">
+            // Same row metrics as the standings list beside it, so the two cards line up.
+            <ol className="divide-y divide-gray-100 dark:divide-gray-800">
               {latestPoll.rows.map((row) => (
-                <li key={row.team_id} className="flex items-baseline gap-3 py-1 text-sm">
-                  <span className="text-2xl font-extrabold tabular-nums text-primary-500">
+                <li key={row.team_id} className="flex items-center gap-3 py-1.5 text-sm">
+                  <span className="w-5 text-right font-bold tabular-nums text-primary-500">
                     {row.final_rank}
                   </span>
                   <span className="min-w-0 flex-1 truncate font-medium text-ink dark:text-gray-100">
