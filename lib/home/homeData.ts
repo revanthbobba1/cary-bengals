@@ -130,7 +130,8 @@ async function loadLatestPoll(): Promise<LatestPoll | null> {
     // Stored as '↑3' / '↓2' / '-' (see the recalculate function in migration 041).
     trend: parseTrend(r.trend),
   }))
-  const rows: PollRow[] = all.slice(0, 5)
+  // The whole poll, not just a top 5: it sits beside the standings card, which lists every team.
+  const rows: PollRow[] = all
   const risers = all.filter((r) => r.trend > 0).sort((a, b) => b.trend - a.trend)
   const fallers = all.filter((r) => r.trend < 0).sort((a, b) => a.trend - b.trend)
   // Ties for biggest move all show: "who moved most" is a fact, not a pick of one of them.
@@ -295,7 +296,13 @@ const TRANSACTION_LIMIT = 5
 async function loadLatestTransactions(season: number): Promise<SnapshotTransaction[]> {
   if (!hasSupabase()) return []
   const supabase = createPublicClient()
-  const [teamsResult, txnResult] = await Promise.all([
+  const columns =
+    'id, kind, espn_team_id, bid_amount, week_number, processed_at, proposed_at, items'
+  // Free-agent pickups have no processed_at (only waivers and trades do), so neither column
+  // orders every kind on its own. /transactions sorts by `processed_at ?? proposed_at`; to match
+  // that, take the newest few of each group and merge. A sort on one column would hide the newest
+  // free-agent moves behind older waivers.
+  const [teamsResult, processedResult, unprocessedResult] = await Promise.all([
     supabase
       .from('teams')
       .select('espn_team_id, name, owner_name, espn_logo_url')
@@ -303,14 +310,32 @@ async function loadLatestTransactions(season: number): Promise<SnapshotTransacti
       .not('espn_team_id', 'is', null),
     supabase
       .from('transactions')
-      .select('id, kind, espn_team_id, bid_amount, week_number, processed_at, proposed_at, items')
+      .select(columns)
       .eq('season_year', season)
       .eq('status', 'EXECUTED')
-      .order('processed_at', { ascending: false, nullsFirst: false })
+      .not('processed_at', 'is', null)
+      .order('processed_at', { ascending: false })
+      .limit(TRANSACTION_LIMIT),
+    supabase
+      .from('transactions')
+      .select(columns)
+      .eq('season_year', season)
+      .eq('status', 'EXECUTED')
+      .is('processed_at', null)
+      .order('proposed_at', { ascending: false })
       .limit(TRANSACTION_LIMIT),
   ])
   if (teamsResult.error) throw teamsResult.error
-  if (txnResult.error) throw txnResult.error
+  if (processedResult.error) throw processedResult.error
+  if (unprocessedResult.error) throw unprocessedResult.error
+
+  const happenedAt = (txn: { processed_at: string | null; proposed_at: string }) =>
+    Date.parse(txn.processed_at ?? txn.proposed_at)
+  const txnResult = {
+    data: [...(processedResult.data ?? []), ...(unprocessedResult.data ?? [])]
+      .sort((a, b) => happenedAt(b) - happenedAt(a))
+      .slice(0, TRANSACTION_LIMIT),
+  }
 
   const teamById = new Map(
     (teamsResult.data ?? []).map((t) => [
