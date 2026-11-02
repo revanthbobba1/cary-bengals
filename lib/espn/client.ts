@@ -130,7 +130,9 @@ export async function fetchEspnSchedule(season: number): Promise<EspnLeagueSched
 }
 
 export interface EspnTransactionItem {
-  action: 'ADD' | 'DROP'
+  // TRADE is a player moving between teams in a trade; FAAB is budget moving (ESPN gives the
+  // direction but no dollar amount).
+  action: 'ADD' | 'DROP' | 'TRADE' | 'FAAB'
   player_name: string
   position: string
   pro_team: string

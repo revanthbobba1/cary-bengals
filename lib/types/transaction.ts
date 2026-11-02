@@ -5,7 +5,7 @@ export function teamKey(seasonYear: number, espnTeamId: number): string {
 }
 
 export interface TransactionItem {
-  action: 'ADD' | 'DROP'
+  action: 'ADD' | 'DROP' | 'TRADE' | 'FAAB'
   player_name: string
   position: string
   pro_team: string

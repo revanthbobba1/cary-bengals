@@ -3,8 +3,15 @@
 The transaction payload carries only numeric player ids, so a second `kona_player_info` fetch,
 filtered to just the ids that appear, resolves names/positions/NFL teams -- negative ids are team
 D/STs and resolve through the same call (confirmed against the real league). Lineup moves
-(ROSTER, FUTURE_ROSTER) are dropped; a trade is currently surfaced as the ADD/DROP items on the
-accepted-trade entry itself, with no attempt yet to pair its two sides.
+(ROSTER, FUTURE_ROSTER) are dropped.
+
+A completed trade is one TRADE_ACCEPT entry whose items carry both sides (TRADE items, each with
+a from/to team), sometimes plus ACQUISITION_BUDGET_TRADE items (FAAB moved -- ESPN gives the
+direction but no dollar amount) and DROP items. ESPN also emits a companion TRADE_ACCEPT for the
+other team at the same instant, holding only that team's forced DROP or nothing at all; those are
+folded into the trade they belong to, matched on the shared `proposedDate`, and are not returned
+on their own. A companion DROP with no trade to fold into (seen once in the real league) is
+skipped.
 """
 
 import asyncio
@@ -20,6 +27,7 @@ from app.schemas.espn_raw import (
     RawLeagueTransactionsResponse,
     RawPlayerInfoResponse,
     RawRosterPlayer,
+    RawTransaction,
 )
 
 _KINDS: dict[str, Literal["WAIVER", "FREEAGENT", "TRADE"]] = {
@@ -29,7 +37,10 @@ _KINDS: dict[str, Literal["WAIVER", "FREEAGENT", "TRADE"]] = {
 }
 
 
-_UNPROCESSED_STATUSES = {"PENDING", "CANCELED"}
+# An empty status is a trade entry ESPN sent without one (never a processed claim).
+_UNPROCESSED_STATUSES = {"PENDING", "CANCELED", ""}
+_FAAB_ITEM = "ACQUISITION_BUDGET_TRADE"
+_PLAYER_ITEM_TYPES = ("ADD", "DROP", "TRADE")
 # Player ids per kona_player_info request. Each id is ~8 bytes of the X-Fantasy-Filter header,
 # which tops out around 8KB, so this keeps a request well clear of it as the season grows.
 _PLAYER_CHUNK_SIZE = 200
@@ -83,17 +94,55 @@ async def _fetch_all_weeks(espn: EspnClient, season: int) -> RawLeagueTransactio
     return first.model_copy(update={"transactions": list(by_id.values())})
 
 
+def _fold_trades(transactions: list[RawTransaction]) -> list[RawTransaction]:
+    """Merge each trade's companion entries into it and drop them as standalone transactions."""
+    trades: dict[int, RawTransaction] = {
+        t.proposedDate: t
+        for t in transactions
+        if t.type == "TRADE_ACCEPT" and any(i.type in ("TRADE", _FAAB_ITEM) for i in t.items)
+    }
+
+    folded: dict[int, RawTransaction] = {}
+    for date, trade in trades.items():
+        seen = {(i.type, i.playerId, i.fromTeamId, i.toTeamId) for i in trade.items}
+        items = list(trade.items)
+        for companion in transactions:
+            if companion is trade or companion.type != "TRADE_ACCEPT":
+                continue
+            if companion.proposedDate != date:
+                continue
+            for item in companion.items:
+                key = (item.type, item.playerId, item.fromTeamId, item.toTeamId)
+                if item.type == "DROP" and key not in seen:
+                    seen.add(key)
+                    items.append(item)
+        folded[date] = trade.model_copy(update={"items": items})
+
+    result: list[RawTransaction] = []
+    for t in transactions:
+        if t.type != "TRADE_ACCEPT":
+            result.append(t)
+        elif t.proposedDate in trades and t is trades[t.proposedDate]:
+            result.append(folded[t.proposedDate])
+        # Anything else is a companion (folded above) or an orphan DROP -- not its own row.
+    return result
+
+
 async def get_league_transactions(espn: EspnClient, season: int) -> LeagueTransactionsResponse:
     parsed = await _fetch_all_weeks(espn, season)
 
     # PENDING claims are bids that haven't run yet and CANCELED ones were withdrawn before they
     # did; exposing pending ones would reveal every team's offer before the waiver run, and a
     # pending claim is replaced by an EXECUTED/FAILED_* entry once processed.
-    relevant = [
-        t for t in parsed.transactions if t.type in _KINDS and t.status not in _UNPROCESSED_STATUSES
-    ]
+    relevant = _fold_trades(
+        [
+            t
+            for t in parsed.transactions
+            if t.type in _KINDS and t.status not in _UNPROCESSED_STATUSES
+        ]
+    )
     player_ids = sorted(
-        {i.playerId for t in relevant for i in t.items if i.type in ("ADD", "DROP")}
+        {i.playerId for t in relevant for i in t.items if i.type in _PLAYER_ITEM_TYPES}
     )
     players = await _fetch_players(espn, season, player_ids)
 
@@ -103,7 +152,19 @@ async def get_league_transactions(espn: EspnClient, season: int) -> LeagueTransa
     for txn in sorted(relevant, key=lambda t: t.proposedDate, reverse=True):
         items: list[TransactionItemOut] = []
         for item in txn.items:
-            if item.type not in ("ADD", "DROP"):
+            if item.type == _FAAB_ITEM:
+                items.append(
+                    TransactionItemOut(
+                        action="FAAB",
+                        player_name="FAAB budget",
+                        position="",
+                        pro_team="",
+                        from_espn_team_id=item.fromTeamId,
+                        to_espn_team_id=item.toTeamId,
+                    )
+                )
+                continue
+            if item.type not in _PLAYER_ITEM_TYPES:
                 continue
             player = players.get(item.playerId)
             name = sanitize_name(player.fullName) if player else ""
@@ -112,7 +173,7 @@ async def get_league_transactions(espn: EspnClient, season: int) -> LeagueTransa
                 name = "Unknown player"
             items.append(
                 TransactionItemOut(
-                    action=cast(Literal["ADD", "DROP"], item.type),
+                    action=cast(Literal["ADD", "DROP", "TRADE"], item.type),
                     player_name=name,
                     position=POSITIONS.get(player.defaultPositionId, "?") if player else "?",
                     pro_team=PRO_TEAMS.get(player.proTeamId, "FA") if player else "FA",
@@ -121,9 +182,6 @@ async def get_league_transactions(espn: EspnClient, season: int) -> LeagueTransa
                 )
             )
 
-        # A trade's players travel as TRADE items, not ADD/DROP, so a trade with nothing else to
-        # show has no usable items yet (companion entries for the other team are also empty).
-        # Skipped until trades are mapped properly -- see issue #177.
         if not items:
             continue
 

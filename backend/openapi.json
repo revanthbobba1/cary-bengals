@@ -616,7 +616,8 @@
       "TransactionItemOut": {
         "properties": {
           "action": {
-            "enum": ["ADD", "DROP"],
+            "description": "ADD/DROP for claims, pickups and forced drops. TRADE is a player moving between teams in a trade. FAAB is budget moving between teams in a trade: ESPN reports the direction but not the dollar amount.",
+            "enum": ["ADD", "DROP", "TRADE", "FAAB"],
             "title": "Action",
             "type": "string"
           },
