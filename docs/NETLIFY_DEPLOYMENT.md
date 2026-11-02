@@ -12,13 +12,6 @@ Set these environment variables in your Netlify dashboard under Site Settings > 
 
 - `NEXT_UMAMI_ID`: Your Umami website ID for analytics
 
-### Optional (Comments - Giscus)
-
-- `NEXT_PUBLIC_GISCUS_REPO`: Your GitHub repository (e.g., `username/repo`)
-- `NEXT_PUBLIC_GISCUS_REPOSITORY_ID`: Your repository ID
-- `NEXT_PUBLIC_GISCUS_CATEGORY`: Category name (e.g., `General`)
-- `NEXT_PUBLIC_GISCUS_CATEGORY_ID`: Your category ID
-
 ### Build Configuration
 
 - `ANALYZE`: Set to `false` for production builds
@@ -60,7 +53,7 @@ The build process includes:
 
 Your app uses:
 
-- **API Routes** (`/app/api/newsletter`) - requires server runtime
+- **API Routes** (`/app/api/espn/*`, `/app/api/search-index`) - requires server runtime
 - **Image Optimization** - Next.js Image component needs server runtime
 - **Next.js Features** - Better support for SSR, ISR, and other Next.js features
 

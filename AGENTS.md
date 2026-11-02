@@ -14,7 +14,6 @@ public pages must never call ESPN directly or expose ESPN credentials.
 ```bash
 yarn dev
 yarn build
-yarn build:netlify
 yarn serve
 yarn lint
 ```
@@ -29,7 +28,7 @@ rankings and team metadata are stored in Supabase; legacy `data/pollData.ts` is 
 source of truth.
 
 Required/optional environment variables include `NEXT_PUBLIC_SUPABASE_URL`,
-`NEXT_PUBLIC_SUPABASE_ANON_KEY`, optional analytics/comments/newsletter values, and server-only
+`NEXT_PUBLIC_SUPABASE_ANON_KEY`, optional analytics values, and server-only
 `ESPN_SERVICE_URL`/`ESPN_SERVICE_TOKEN`. Never commit secrets, local environment files, ESPN
 cookies, or service tokens.
 
@@ -44,10 +43,10 @@ League members are a typed array in `data/members.ts` (exported `Member` type an
 `layouts/` contains page-level templates, while
 `components/` contains reusable UI pieces. Client components use the `'use client'` directive.
 
-Pliny provides analytics wrappers, comments, newsletter components, command-palette search (fed by `/api/search-index`, which reads published
+Pliny provides analytics wrappers, command-palette search (fed by `/api/search-index`, which reads published
 articles from Supabase), and content utilities. The main configuration files are:
 
-- `data/siteMetadata.js` — site title, URLs, analytics, comments, search, and newsletter settings
+- `data/siteMetadata.js` — site title, URLs, analytics and search settings
 - `data/headerNavLinks.ts` — navigation items
 - `data/members.ts` — league member profiles (slug is the stable ID articles reference)
 - `css/tailwind.css` and `tailwind.config.js` — application styling
@@ -98,7 +97,7 @@ Login failures should remain generic to avoid user enumeration.
   for cases where local hooks are bypassed entirely.
 - There is no JavaScript test framework; run targeted TypeScript/ESLint checks and backend tests
   when relevant.
-- Update CSP rules when adding external scripts, images, comments, analytics, or API domains.
+- Update CSP rules when adding external scripts, images, analytics, or API domains.
 - Create feature branches from `develop`.
 - Open pull requests against `develop`, not `main`.
 - Close an issue as soon as its PR merges into `develop`; don't wait for the release to `main`.

@@ -1,5 +1,5 @@
 // Called by netlify/functions/espn-matchup-sync.mts every ~10 minutes during live NFL game
-// windows (and manually via .github/workflows/espn-matchup-sync.yml) -- see
+// windows -- see
 // docs/ESPN_INTEGRATION_PLAN.md's Phase 8c-cron notes for the schedule and cold-start handling.
 // This handler assumes a warm backend and is bound by Netlify's sync-function timeout.
 //

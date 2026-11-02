@@ -93,6 +93,6 @@ the championship week, check `/history`:
 - `/articles` and the poll's own history already have season filtering built
   into their UI (season pills) — old seasons remain browsable without any
   rollover action.
-- Netlify/GitHub secrets (`ESPN_SYNC_CRON_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`,
+- Netlify secrets (`ESPN_SYNC_CRON_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`,
   the deployed Route Handler URLs) are season-independent — nothing to
   rotate here specifically for a rollover.

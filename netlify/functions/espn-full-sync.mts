@@ -1,6 +1,5 @@
-// Netlify-scheduled replacement for the cron in .github/workflows/espn-full-sync.yml -- the
-// waiver-driven daily refresh. GitHub's scheduler started that run ~4.5 hours late, so it moved
-// here with the matchup sync. See netlify/lib/espnCron.ts.
+// Netlify-scheduled waiver-driven daily refresh. It used to run as a GitHub Actions cron, but
+// GitHub's scheduler started it ~4.5 hours late. See netlify/lib/espnCron.ts.
 
 import { callSyncRoute, easternTime } from '../lib/espnCron'
 

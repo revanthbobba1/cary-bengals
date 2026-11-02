@@ -1,6 +1,5 @@
 import Link from '@/components/Link'
 import siteMetadata from '@/data/siteMetadata'
-import NewsletterForm from 'pliny/ui/NewsletterForm'
 import { focusRingClasses } from '@/lib/focusRing'
 import ArticleCard from '@/components/articles/ArticleCard'
 import type { PublishedArticleSummary } from '@/lib/supabase/articles'
@@ -55,11 +54,6 @@ export default function Home({ posts }: { posts: PublishedArticleSummary[] }) {
           <ArrowLink href="/articles" ariaLabel="All posts">
             All Posts
           </ArrowLink>
-        </div>
-      )}
-      {siteMetadata.newsletter?.provider && (
-        <div className="flex items-center justify-center pt-4">
-          <NewsletterForm />
         </div>
       )}
     </>

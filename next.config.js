@@ -5,13 +5,12 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 // You might need to insert additional domains in script-src if you are using external services
 const ContentSecurityPolicy = `
   default-src 'self';
-  script-src 'self' 'unsafe-eval' 'unsafe-inline' giscus.app analytics.umami.is;
+  script-src 'self' 'unsafe-eval' 'unsafe-inline' analytics.umami.is;
   style-src 'self' 'unsafe-inline';
   img-src * blob: data:;
   media-src *.s3.amazonaws.com;
   connect-src *;
-  font-src 'self';
-  frame-src giscus.app
+  font-src 'self'
 `
 
 const securityHeaders = [
@@ -59,7 +58,7 @@ module.exports = () => {
   const plugins = [withBundleAnalyzer]
   return plugins.reduce((acc, next) => next(acc), {
     reactStrictMode: true,
-    pageExtensions: ['ts', 'tsx', 'js', 'jsx', 'md', 'mdx'],
+    pageExtensions: ['ts', 'tsx', 'js', 'jsx'],
     // Server Actions (app/admin/articles/[id]/edit/actions.ts) are stable from Next.js 14 on but
     // still experimental in 13.5 -- this app's admin publish/unpublish flow is the first thing in
     // the codebase that needs revalidatePath(), which only a Server Action or Route Handler can

@@ -1,4 +1,4 @@
-// Netlify-scheduled replacement for the cron in .github/workflows/espn-matchup-sync.yml. GitHub's
+// Netlify-scheduled live-game matchup sync. It used to run as a GitHub Actions cron, but GitHub's
 // `schedule` trigger is best-effort and was observed running ~2 times in a window that should
 // have had ~36 runs; Netlify's scheduler fires on time. See netlify/lib/espnCron.ts.
 

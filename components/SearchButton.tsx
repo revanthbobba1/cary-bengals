@@ -1,18 +1,11 @@
-import { AlgoliaButton } from 'pliny/search/AlgoliaButton'
 import { KBarButton } from 'pliny/search/KBarButton'
 import siteMetadata from '@/data/siteMetadata'
 import { focusRingClasses } from '@/lib/focusRing'
 
 const SearchButton = () => {
-  if (
-    siteMetadata.search &&
-    (siteMetadata.search.provider === 'algolia' || siteMetadata.search.provider === 'kbar')
-  ) {
-    const SearchButtonWrapper =
-      siteMetadata.search.provider === 'algolia' ? AlgoliaButton : KBarButton
-
+  if (siteMetadata.search && siteMetadata.search.provider === 'kbar') {
     return (
-      <SearchButtonWrapper
+      <KBarButton
         aria-label="Search"
         className={`flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 transition-all duration-150 ease-out-expo hover:bg-black/5 hover:text-ink ${focusRingClasses} active:scale-90 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-gray-100`}
       >
@@ -30,7 +23,7 @@ const SearchButton = () => {
             d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
           />
         </svg>
-      </SearchButtonWrapper>
+      </KBarButton>
     )
   }
 }
