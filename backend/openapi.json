@@ -287,7 +287,7 @@
             "type": "integer"
           },
           "transactions": {
-            "description": "Waiver claims (including failed and pending bids from every team), free-agent pickups and accepted trades, newest first. Lineup moves are excluded.",
+            "description": "Processed waiver claims (including failed bids from every team), free-agent pickups and accepted trades, newest first. Lineup moves and still-pending claims are excluded.",
             "items": {
               "$ref": "#/components/schemas/TransactionOut"
             },
@@ -701,7 +701,7 @@
                 "type": "null"
               }
             ],
-            "description": "When ESPN processed it (UTC, ISO 8601). Null while PENDING.",
+            "description": "When ESPN processed it (UTC, ISO 8601). Null if ESPN doesn't report one.",
             "title": "Processed At"
           },
           "proposed_at": {
@@ -710,7 +710,7 @@
             "type": "string"
           },
           "status": {
-            "description": "EXECUTED, PENDING, or a FAILED_* reason (FAILED_ROSTERLIMIT: roster was full; FAILED_INVALIDPLAYERSOURCE: the player was already claimed or gone). Passed through from ESPN, so an unexpected value is possible.",
+            "description": "EXECUTED, or a FAILED_* reason (FAILED_ROSTERLIMIT: roster was full; FAILED_INVALIDPLAYERSOURCE: the player was already claimed or gone). Passed through from ESPN, so an unexpected value is possible.",
             "examples": ["EXECUTED"],
             "title": "Status",
             "type": "string"
@@ -1117,7 +1117,7 @@
     },
     "/v1/league/{season}/transactions": {
       "get": {
-        "description": "Every waiver claim (executed, pending and failed, from all teams, with FAAB bid amounts), free-agent pickup and accepted trade this season, newest first. Lineup moves are excluded. Player names are resolved with a second ESPN call.\n\n**Not cached** -- the sync wants the real current state each time.",
+        "description": "Every processed waiver claim (executed or failed, from all teams, with FAAB bid amounts), free-agent pickup and accepted trade this season, newest first. Lineup moves are excluded, as are claims still pending -- those are bids that haven't run yet. Player names are resolved with a second ESPN call.\n\n**Not cached** -- the sync wants the real current state each time.",
         "operationId": "get_transactions_v1_league__season__transactions_get",
         "parameters": [
           {

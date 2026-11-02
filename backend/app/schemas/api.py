@@ -221,7 +221,7 @@ class TransactionOut(BaseModel):
     )
     status: str = Field(
         description=(
-            "EXECUTED, PENDING, or a FAILED_* reason (FAILED_ROSTERLIMIT: roster was full; "
+            "EXECUTED, or a FAILED_* reason (FAILED_ROSTERLIMIT: roster was full; "
             "FAILED_INVALIDPLAYERSOURCE: the player was already claimed or gone). Passed "
             "through from ESPN, so an unexpected value is possible."
         ),
@@ -234,7 +234,8 @@ class TransactionOut(BaseModel):
     week: int = Field(description="Scoring period (week) the transaction was placed in.")
     proposed_at: str = Field(description="When it was placed (UTC, ISO 8601).")
     processed_at: str | None = Field(
-        default=None, description="When ESPN processed it (UTC, ISO 8601). Null while PENDING."
+        default=None,
+        description="When ESPN processed it (UTC, ISO 8601). Null if ESPN doesn't report one.",
     )
     items: list[TransactionItemOut]
 
@@ -245,8 +246,9 @@ class LeagueTransactionsResponse(BaseModel):
     fetched_at: str = _FETCHED_AT
     transactions: list[TransactionOut] = Field(
         description=(
-            "Waiver claims (including failed and pending bids from every team), free-agent "
-            "pickups and accepted trades, newest first. Lineup moves are excluded."
+            "Processed waiver claims (including failed bids from every team), free-agent "
+            "pickups and accepted trades, newest first. Lineup moves and still-pending "
+            "claims are excluded."
         )
     )
     warnings: list[str] = _WARNINGS

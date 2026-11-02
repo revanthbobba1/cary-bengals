@@ -43,7 +43,7 @@ def test_transactions_return_mapped_payload(client: TestClient) -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["season"] == 2026
-    assert len(body["transactions"]) == 40
+    assert len(body["transactions"]) == 37
     assert body["warnings"] == []
 
 

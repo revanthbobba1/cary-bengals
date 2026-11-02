@@ -48,7 +48,9 @@ async def get_league_transactions(espn: EspnClient, season: int) -> LeagueTransa
     raw = await espn.fetch_league(season, views=["mTransactions2"])
     parsed = RawLeagueTransactionsResponse.model_validate(raw)
 
-    relevant = [t for t in parsed.transactions if t.type in _KINDS]
+    # PENDING claims are bids that haven't run yet; exposing them would reveal every team's offer
+    # before the waiver run, and they're replaced by an EXECUTED/FAILED_* entry once processed.
+    relevant = [t for t in parsed.transactions if t.type in _KINDS and t.status != "PENDING"]
     player_ids = sorted(
         {i.playerId for t in relevant for i in t.items if i.type in ("ADD", "DROP")}
     )

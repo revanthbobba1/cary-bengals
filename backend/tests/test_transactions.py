@@ -50,8 +50,9 @@ async def test_against_real_fixture(transactions_payload: dict, players_payload:
         _StubEspnClient(transactions_payload, players_payload), season=2026
     )
 
-    # 24 waiver + 15 free agent + 1 trade; the 49 ROSTER and 2 FUTURE_ROSTER lineup moves drop.
-    assert len(result.transactions) == 40
+    # 24 waiver + 15 free agent + 1 trade, minus 3 pending claims; the 49 ROSTER and 2
+    # FUTURE_ROSTER lineup moves drop.
+    assert len(result.transactions) == 37
     assert result.warnings == []
     assert {t.kind for t in result.transactions} == {"WAIVER", "FREEAGENT", "TRADE"}
 
@@ -59,7 +60,7 @@ async def test_against_real_fixture(transactions_payload: dict, players_payload:
     assert proposed == sorted(proposed, reverse=True)
 
 
-async def test_failed_and_pending_bids_are_kept(
+async def test_failed_bids_are_kept_and_pending_claims_dropped(
     transactions_payload: dict, players_payload: dict
 ) -> None:
     result = await get_league_transactions(
@@ -67,10 +68,8 @@ async def test_failed_and_pending_bids_are_kept(
     )
 
     statuses = {t.status for t in result.transactions}
-    assert {"EXECUTED", "PENDING", "FAILED_ROSTERLIMIT", "FAILED_INVALIDPLAYERSOURCE"} <= statuses
-
-    pending = [t for t in result.transactions if t.status == "PENDING"]
-    assert pending and all(t.processed_at is None for t in pending)
+    assert {"EXECUTED", "FAILED_ROSTERLIMIT", "FAILED_INVALIDPLAYERSOURCE"} <= statuses
+    assert "PENDING" not in statuses
     assert any(t.bid_amount > 0 for t in result.transactions if t.status.startswith("FAILED"))
 
 
@@ -102,7 +101,7 @@ async def test_missing_player_lookup_falls_back_with_warning(transactions_payloa
         _StubEspnClient(transactions_payload, {"players": []}), season=2026
     )
 
-    assert len(result.transactions) == 40
+    assert len(result.transactions) == 37
     assert result.warnings
     assert all(i.player_name == "Unknown player" for t in result.transactions for i in t.items)
 

@@ -16,9 +16,10 @@ router = APIRouter(
     response_model=LeagueTransactionsResponse,
     summary="List waiver claims, pickups and trades",
     description=(
-        "Every waiver claim (executed, pending and failed, from all teams, with FAAB bid "
+        "Every processed waiver claim (executed or failed, from all teams, with FAAB bid "
         "amounts), free-agent pickup and accepted trade this season, newest first. Lineup moves "
-        "are excluded. Player names are resolved with a second ESPN call.\n\n"
+        "are excluded, as are claims still pending -- those are bids that haven't run yet. "
+        "Player names are resolved with a second ESPN call.\n\n"
         "**Not cached** -- the sync wants the real current state each time."
     ),
     responses=V1_RESPONSES,
