@@ -5,6 +5,7 @@ import { createPublicClient } from '@/lib/supabase/public'
 import siteMetadata from '@/data/siteMetadata'
 import type { RosterPlayer } from '@/lib/types/roster'
 import { normalizeName } from '@/lib/memberAvatar'
+import { loadHistoryBase, summarizeOwners } from '@/lib/history/historyData'
 
 export const metadata = genPageMetadata({ title: 'League Members' })
 
@@ -14,6 +15,8 @@ export const metadata = genPageMetadata({ title: 'League Members' })
 export const dynamic = 'force-dynamic'
 
 export default async function Page() {
+  // Started up front so it runs alongside the team and roster queries below.
+  const historyPromise = loadHistoryBase()
   const teamByOwner = new Map<string, { id: string; name: string; logo: string | null }>()
   const rosterByTeamId = new Map<string, RosterPlayer[]>()
   const currentSeason = siteMetadata.currentSeason
@@ -61,6 +64,13 @@ export default async function Page() {
     }
   }
 
+  // Finals results come from the same inferred brackets as /history; a load failure just leaves
+  // the cards without a trophy line.
+  const history = await historyPromise
+  const trophiesBySlug = new Map(
+    (history ? summarizeOwners(history) : []).map((owner) => [owner.slug, owner])
+  )
+
   return (
     <>
       <div className="space-y-2 pb-8 pt-6 md:space-y-5">
@@ -79,6 +89,8 @@ export default async function Page() {
                 team={teamInfo?.name}
                 teamLogo={teamInfo?.logo}
                 roster={teamInfo ? rosterByTeamId.get(teamInfo.id) : undefined}
+                titles={trophiesBySlug.get(member.slug)?.titles}
+                runnerUps={trophiesBySlug.get(member.slug)?.runnerUps}
               />
             </div>
           )
