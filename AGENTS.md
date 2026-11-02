@@ -9,6 +9,14 @@ Supabase, and Netlify. League members live in `data/members.ts`; public articles
 poll data are Supabase-backed. The ESPN service in `backend/` securely fetches team metadata;
 public pages must never call ESPN directly or expose ESPN credentials.
 
+## Cost constraint
+
+Everything in this project must be free, now and in the future. Do not introduce any service,
+library, or infrastructure that requires payment today or is likely to later (paid tiers, usage
+billing, purchased domains, credit-card-gated trials). Prefer options whose free tier is a
+long-standing, stable offering; before proposing a new dependency, state what it costs and what
+would trigger a charge. Current stack (Netlify, Supabase, Render, GitHub Actions) is all on free tiers.
+
 ## Commands
 
 ```bash
