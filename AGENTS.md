@@ -104,6 +104,13 @@ Login failures should remain generic to avoid user enumeration.
   GitHub's `Closes #N` keyword only auto-closes on merges to the default branch (`main`), so after
   merging into `develop`, close the issue by hand with `gh issue close <N> --comment "Merged in #<PR>"`.
   Still put `Closes #N` in the PR body so the issue is linked.
+- Netlify Deploy Previews: every PR into `develop` (or `main`) gets a preview. `develop` is a
+  Netlify branch-deploy branch only to enable that; `netlify.toml`'s `[context.branch-deploy]`
+  `ignore = "exit 0"` skips the push-to-`develop` build, so only `main` publishes production.
+  Netlify never removes previews on its own, so once a PR is merged or closed, delete its preview
+  (Netlify UI → Deploys → Options → Delete deploy, or
+  `npx netlify-cli api deleteDeploy --data '{"deploy_id":"<id>"}'`). Don't leave previews for
+  finished features up, and never delete the production deploy or a preview for a still-open PR.
 - Do not commit directly to `develop`.
 - Keep changes focused and use separate pull requests for unrelated work.
 - Run the relevant checks before opening a pull request.
