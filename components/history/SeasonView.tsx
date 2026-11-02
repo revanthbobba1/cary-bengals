@@ -69,22 +69,38 @@ export default function SeasonView({ base, season }: { base: HistoryBase; season
               className="hover:underline"
             >
               {champion.owner_name}
-            </Link>{' '}
-            · runner-up {runnerUp.name} ({runnerUp.owner_name})
+            </Link>
+          </p>
+          <p className="pt-3 text-sm text-gray-500">
+            Runner-up: {runnerUp.name} ({runnerUp.owner_name})
           </p>
         </section>
       ) : (
         <p className="text-gray-600 dark:text-gray-400">
-          The playoff bracket for {season} could not be determined, so only standings are shown.
+          The playoff bracket for {season} could not be determined, so only the standings are shown.
         </p>
       )}
 
       <section>
         <h2 className="pb-3 text-xl font-bold text-ink dark:text-gray-100">Final standings</h2>
         <p className="pb-3 text-sm text-gray-500">
-          Regular season. Points are summed from weekly matchups. All-play is the record had the
-          team played every other team every week; a large gap from the real record is luck.
+          Regular season only. PF and PA are points for and against.
         </p>
+        <div className="mb-4 rounded border border-gray-200 p-3 text-sm text-gray-600 dark:border-gray-700 dark:text-gray-400">
+          <p className="font-semibold text-ink dark:text-gray-100">
+            About the &quot;Vs. everyone&quot; column
+          </p>
+          <p className="pt-1">
+            Each week a team plays only one opponent, so a single favorable or unfavorable matchup
+            can affect its record. This column shows the record a team would have had if it had
+            played every other team each week. A team&apos;s score counts as a win against every
+            team that scored less that week, regardless of who it actually faced.
+          </p>
+          <p className="pt-1">
+            A &quot;Vs. everyone&quot; record much better than the actual record suggests an
+            unfavorable schedule. A much worse one suggests a favorable schedule.
+          </p>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead className="text-xs uppercase text-gray-500">
@@ -95,7 +111,12 @@ export default function SeasonView({ base, season }: { base: HistoryBase; season
                 <th className="py-2 pr-2 text-right">PF</th>
                 <th className="py-2 pr-2 text-right">PA</th>
                 <th className="py-2 pr-2 text-right">PF rank</th>
-                <th className="py-2 text-right">All-play</th>
+                <th
+                  className="py-2 text-right"
+                  title="Record if the team had played every other team each week"
+                >
+                  Vs. everyone
+                </th>
               </tr>
             </thead>
             <tbody>

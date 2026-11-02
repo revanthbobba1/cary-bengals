@@ -5,8 +5,8 @@ export default function TransactionStatsView({ stats }: { stats: TransactionStat
   return (
     <div className="space-y-10">
       <p className="rounded border border-yellow-500/40 bg-yellow-500/10 p-3 text-sm text-gray-700 dark:text-gray-300">
-        Trade counts are a floor, not a total: ESPN returns most past-season trades empty, so only a
-        handful of them were recoverable. Waiver and free-agent numbers are complete.
+        Trade totals are incomplete for past seasons. ESPN does not return most trades from earlier
+        years, so only a few are included. Waiver and free agent totals are complete.
       </p>
       <section>
         <h2 className="pb-3 text-xl font-bold text-ink dark:text-gray-100">Owners by activity</h2>
