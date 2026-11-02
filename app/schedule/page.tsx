@@ -2,6 +2,7 @@ import { genPageMetadata } from 'app/seo'
 import siteMetadata from '@/data/siteMetadata'
 import { loadScheduleData, loadScheduleSeasons } from '@/lib/espn/scheduleData'
 import ScheduleWeekBrowser from '@/components/ScheduleWeekBrowser'
+import PageHeader from '@/components/PageHeader'
 
 export const metadata = genPageMetadata({ title: 'Schedule' })
 
@@ -41,12 +42,8 @@ export default async function Page({
   const initialWeek = Number.isFinite(parsedWeek) ? parsedWeek : null
 
   return (
-    <div className="container py-12">
-      <div className="space-y-2 pb-8 md:space-y-5">
-        <h1 className="text-3xl font-extrabold leading-9 tracking-tight text-ink dark:text-gray-100 sm:text-4xl sm:leading-10 md:text-6xl md:leading-14">
-          Schedule
-        </h1>
-      </div>
+    <div className="container pb-12">
+      <PageHeader title="Schedule" subtitle="Weekly matchups and box scores" />
       <ScheduleWeekBrowser
         matchups={matchups}
         teamNameById={teamNameById}

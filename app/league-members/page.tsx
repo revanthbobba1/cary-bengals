@@ -1,3 +1,4 @@
+import PageHeader from '@/components/PageHeader'
 import { members } from '@/data/members'
 import MemberLayout from '@/layouts/MemberLayout'
 import { genPageMetadata } from 'app/seo'
@@ -73,12 +74,7 @@ export default async function Page() {
 
   return (
     <>
-      <div className="space-y-2 pb-8 pt-6 md:space-y-5">
-        <h1 className="text-3xl font-extrabold leading-9 tracking-tight text-ink dark:text-gray-100 sm:text-4xl sm:leading-10 md:text-6xl md:leading-14">
-          League Members
-        </h1>
-      </div>
-      <hr className="border-gray-200 dark:border-gray-700 mb-6" />
+      <PageHeader title="League Members" subtitle="Meet the owners" />
       <div className="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
         {members.map((member) => {
           const teamInfo = teamByOwner.get(normalizeName(member.name.split(' ')[0]))
