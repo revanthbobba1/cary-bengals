@@ -1,6 +1,6 @@
 import { genPageMetadata } from 'app/seo'
 import siteMetadata from '@/data/siteMetadata'
-import { loadScheduleData } from '@/lib/espn/scheduleData'
+import { loadScheduleData, loadScheduleSeasons } from '@/lib/espn/scheduleData'
 import ScheduleWeekBrowser from '@/components/ScheduleWeekBrowser'
 
 export const metadata = genPageMetadata({ title: 'Schedule' })
@@ -19,11 +19,20 @@ export default async function Page({
   // isn't identical -- /articles always falls back to the newest season present; /schedule
   // prefers the current week specifically, only falling further back if that week turns out to
   // have no synced matchups (see ScheduleWeekBrowser's own comment).
-  searchParams: { week?: string | string[] }
+  searchParams: { week?: string | string[]; season?: string | string[] }
 }) {
-  const { currentWeek, teamNameById, teamLogoById, matchups } = await loadScheduleData(
-    siteMetadata.currentSeason
-  )
+  const currentSeason = siteMetadata.currentSeason
+  // The current season is always an option, even before its first matchup sync (a rollover), so
+  // the dropdown matches the season the page falls back to.
+  const syncedSeasons = await loadScheduleSeasons(currentSeason)
+  const seasons = syncedSeasons.includes(currentSeason)
+    ? syncedSeasons
+    : [currentSeason, ...syncedSeasons]
+  const rawSeason =
+    typeof searchParams.season === 'string' ? Number(searchParams.season) : Number.NaN
+  const season = seasons.includes(rawSeason) ? rawSeason : currentSeason
+
+  const { currentWeek, teamNameById, teamLogoById, matchups } = await loadScheduleData(season)
 
   // An explicit empty value (`?week=`) must not silently become week 0 -- `Number('')` is `0`,
   // not `NaN`, so it would otherwise pass straight through as if week 0 had been requested.
@@ -42,8 +51,12 @@ export default async function Page({
         matchups={matchups}
         teamNameById={teamNameById}
         teamLogoById={teamLogoById}
-        currentWeek={currentWeek}
+        // A past season has no live week: no highlight, no polling, lands on its final week.
+        currentWeek={season === currentSeason ? currentWeek : null}
         initialWeek={initialWeek}
+        seasons={seasons}
+        season={season}
+        currentSeason={currentSeason}
       />
     </div>
   )

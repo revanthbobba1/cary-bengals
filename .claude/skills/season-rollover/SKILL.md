@@ -63,7 +63,25 @@ actually wired up as the deploy source, see `.claude/CLAUDE.md`'s note on
 this. Don't assume this needs doing every year until it's actually been
 observed to recur that way.
 
+## 5. After the season ends: confirm it shows up on /history (verify, no code change)
+
+`/history` adds a season by itself once it is complete: the `league_games` view (migration `052`)
+counts a season that has playoff matchups and no undecided non-bye game, so there is nothing to
+bump. Nothing appears until the final week's scores have synced and every game has a winner. After
+the championship week, check `/history`:
+
+- The new season is in the picker, and its standings W-L-T match the `teams` records.
+- The champion and bracket render. The bracket is inferred from the playoff layout in
+  `lib/history/bracket.ts` (6 teams, 2 first-week byes, 3 playoff weeks), because `matchups` has no
+  winners-bracket flag. If the league changes its playoff format, or a playoff game ends in a tie,
+  the page shows "bracket could not be determined" and standings only; update `inferBracket` then.
+- If the season is missing, look for a non-bye matchup still `UNDECIDED` (a sync that never
+  finished the final week).
+
 ## Explicitly NOT needed (so this list doesn't look incomplete by omission)
+
+- `FIRST_BACKFILLED_SEASON` (`lib/espn/firstSeason.ts`) is the earliest backfilled season, not a
+  moving "current" value; it never changes at rollover.
 
 - The Netlify scheduled functions (`netlify/functions/espn-matchup-sync.mts`,
   `espn-full-sync.mts`) are based on NFL day-of-week/time windows, not tied

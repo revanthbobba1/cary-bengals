@@ -10,6 +10,7 @@
 import { createPublicClient } from '@/lib/supabase/public'
 import { teamKey, type Transaction } from '@/lib/types/transaction'
 import { teamLogoOrAvatar } from '@/lib/memberAvatar'
+import { FIRST_BACKFILLED_SEASON } from '@/lib/espn/firstSeason'
 
 // PostgREST's default max rows per response. Hitting it exactly means rows were probably cut off.
 const MAX_ROWS = 1000
@@ -117,18 +118,34 @@ export async function loadTransactionData(
     teamLogoByKey[key] = teamLogoOrAvatar(team.espn_logo_url, team.owner_name)
   }
 
-  const seasons = [...new Set((teamsResult.data ?? []).map((team) => team.season_year))].sort(
-    (a, b) => b - a
+  // Past seasons are backfilled (issue #190) without pairing their teams, so a season also counts
+  // if it has any transactions. One-row probes, since selecting every season_year would hit the
+  // row cap once the table grows.
+  const probes = await Promise.all(
+    Array.from({ length: currentSeason - FIRST_BACKFILLED_SEASON + 1 }, async (_, i) => {
+      const year = currentSeason - i
+      const { data } = await supabase
+        .from('transactions')
+        .select('season_year')
+        .eq('season_year', year)
+        .limit(1)
+      return data?.length ? year : null
+    })
   )
+  const seasons = [
+    ...new Set([
+      ...(teamsResult.data ?? []).map((team) => team.season_year),
+      ...probes.filter((year): year is number => year !== null),
+    ]),
+  ].sort((a, b) => b - a)
   const defaultSeason = seasons.includes(currentSeason) ? currentSeason : (seasons[0] ?? null)
   const season =
     requestedSeason !== null && seasons.includes(requestedSeason) ? requestedSeason : defaultSeason
   if (season === null) return empty
 
-  const teams = (teamsResult.data ?? [])
+  const pairedTeams = (teamsResult.data ?? [])
     .filter((team) => team.season_year === season)
     .map((team) => ({ espnTeamId: team.espn_team_id as number, name: team.name }))
-    .sort((a, b) => a.name.localeCompare(b.name))
 
   const transactionsResult = await supabase
     .from('transactions')
@@ -155,6 +172,19 @@ export async function loadTransactionData(
     // NUMERIC arrives from PostgREST as a number for numeric(6,2), but guard against a string.
     bid_amount: Number(row.bid_amount),
   })) as Omit<Transaction, 'winner_espn_team_id' | 'winner_transaction_id'>[]
+
+  // A team with transactions but no paired row (a backfilled season) is listed as "Team N", the
+  // same fallback the browser uses for names.
+  const teamsById = new Map(pairedTeams.map((team) => [team.espnTeamId, team]))
+  for (const row of rows) {
+    if (!teamsById.has(row.espn_team_id)) {
+      teamsById.set(row.espn_team_id, {
+        espnTeamId: row.espn_team_id,
+        name: `Team ${row.espn_team_id}`,
+      })
+    }
+  }
+  const teams = [...teamsById.values()].sort((a, b) => a.name.localeCompare(b.name))
 
   return {
     seasons,

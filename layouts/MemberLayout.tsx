@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import type { Member } from '@/data/members'
 import SocialIcon from '@/components/social-icons'
 import Image from '@/components/Image'
@@ -13,9 +14,19 @@ interface Props {
   // no team match at all, same as `team` itself.
   teamLogo?: string | null
   roster?: RosterPlayer[]
+  // Seasons won / lost in the final, from the league history; omitted when unknown.
+  titles?: number[]
+  runnerUps?: number[]
 }
 
-export default function MemberLayout({ content, team, teamLogo, roster }: Props) {
+export default function MemberLayout({
+  content,
+  team,
+  teamLogo,
+  roster,
+  titles = [],
+  runnerUps = [],
+}: Props) {
   const { name, avatar, email, twitter, linkedin, github } = content
 
   return (
@@ -37,6 +48,19 @@ export default function MemberLayout({ content, team, teamLogo, roster }: Props)
         <TeamLogo src={teamLogo ?? null} />
         {team ?? `Team ${name.split(' ')[0]}`}
       </div>
+      {(titles.length > 0 || runnerUps.length > 0) && (
+        <Link
+          href={`/history/owner/${content.slug}`}
+          className="pt-2 text-center text-sm text-gray-600 hover:underline dark:text-gray-400"
+        >
+          {[
+            titles.length > 0 && `🏆 ${titles.join(', ')}`,
+            runnerUps.length > 0 && `🥈 ${runnerUps.join(', ')}`,
+          ]
+            .filter(Boolean)
+            .join(' · ')}
+        </Link>
+      )}
       {roster && roster.length > 0 && (
         <RosterModal teamName={team ?? `Team ${name.split(' ')[0]}`} players={roster} />
       )}
