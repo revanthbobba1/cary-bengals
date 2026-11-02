@@ -9,7 +9,12 @@
 //   week 2: 2 semifinals (bye team vs. a quarterfinal winner)
 //   week 3: final (semifinal winners) and third-place game (semifinal losers)
 //
-// Anything that does not fit that shape (a tie, a different layout) returns null instead of a
+// 2019 and 2020 had a smaller league (10 teams) and only two playoff weeks, each a two-week
+// matchup: four teams, semifinals then a final and third-place game, no byes. The other games in
+// those weeks are consolation games between the remaining teams, so the winners' bracket is the
+// only pair of first-week games whose winners and losers meet again in week two.
+//
+// Anything that does not fit either shape (a tie, a different layout) returns null instead of a
 // guess; the page then shows standings without a bracket.
 
 export interface PlayoffRow {
@@ -32,6 +37,7 @@ export interface BracketGame {
 }
 
 export interface Bracket {
+  // Empty in the two-round (4-team) shape used in 2019-2020.
   byeTeamIds: string[]
   quarterfinals: BracketGame[]
   semifinals: BracketGame[]
@@ -64,9 +70,46 @@ function involves(game: BracketGame, teamId: string): boolean {
   return game.homeTeamId === teamId || game.awayTeamId === teamId
 }
 
+function inferTwoRoundBracket(rows: PlayoffRow[], weeks: number[]): Bracket | null {
+  if (rows.some((row) => row.is_bye)) return null
+  const gamesByWeek = weeks.map((week) =>
+    rows.filter((row) => row.week_number === week).map(toGame)
+  )
+  if (gamesByWeek.some((games) => games.some((game) => game === null))) return null
+  const [week1, week2] = gamesByWeek as BracketGame[][]
+
+  // Candidate semifinal pairs: two first-week games whose winners meet in week two and whose
+  // losers meet in week two. Exactly one pair must qualify, or the bracket is ambiguous.
+  const meet = (a: string, b: string) =>
+    week2.find((game) => involves(game, a) && involves(game, b))
+  const candidates: { semis: BracketGame[]; final: BracketGame; thirdPlace: BracketGame }[] = []
+  for (let i = 0; i < week1.length; i++) {
+    for (let j = i + 1; j < week1.length; j++) {
+      const semis = [week1[i], week1[j]]
+      const final = meet(semis[0].winnerTeamId, semis[1].winnerTeamId)
+      const thirdPlace = meet(loserOf(semis[0]), loserOf(semis[1]))
+      if (final && thirdPlace) candidates.push({ semis, final, thirdPlace })
+    }
+  }
+  if (candidates.length !== 1) return null
+  const { semis, final, thirdPlace } = candidates[0]
+
+  return {
+    byeTeamIds: [],
+    quarterfinals: [],
+    semifinals: semis,
+    final,
+    thirdPlace,
+    championId: final.winnerTeamId,
+    runnerUpId: loserOf(final),
+    playoffTeamIds: semis.flatMap((game) => [game.homeTeamId, game.awayTeamId]),
+  }
+}
+
 // One season's playoff rows in, its bracket out (null if the season doesn't fit the shape).
 export function inferBracket(rows: PlayoffRow[]): Bracket | null {
   const weeks = [...new Set(rows.map((row) => row.week_number))].sort((a, b) => a - b)
+  if (weeks.length === 2) return inferTwoRoundBracket(rows, weeks)
   if (weeks.length !== 3) return null
 
   const byeTeamIds = rows.filter((row) => row.is_bye).map((row) => row.home_team_id)

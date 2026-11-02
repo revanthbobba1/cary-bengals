@@ -150,16 +150,20 @@ export default function SeasonView({ base, season }: { base: HistoryBase; season
       {bracket && (
         <section>
           <h2 className="pb-3 text-xl font-bold text-ink dark:text-gray-100">Playoff bracket</h2>
-          <div className="grid gap-6 md:grid-cols-3">
-            <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-gray-500">Quarterfinals</h3>
-              {bracket.quarterfinals.map((game) => (
-                <GameRow key={game.homeTeamId} game={game} teams={base.teamsById} />
-              ))}
-              <p className="text-xs text-gray-500">
-                Byes: {bracket.byeTeamIds.map((id) => base.teamsById[id]?.name).join(', ')}
-              </p>
-            </div>
+          <div
+            className={`grid gap-6 ${bracket.quarterfinals.length > 0 ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}
+          >
+            {bracket.quarterfinals.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-gray-500">Quarterfinals</h3>
+                {bracket.quarterfinals.map((game) => (
+                  <GameRow key={game.homeTeamId} game={game} teams={base.teamsById} />
+                ))}
+                <p className="text-xs text-gray-500">
+                  Byes: {bracket.byeTeamIds.map((id) => base.teamsById[id]?.name).join(', ')}
+                </p>
+              </div>
+            )}
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-gray-500">Semifinals</h3>
               {bracket.semifinals.map((game) => (

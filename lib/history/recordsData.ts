@@ -6,6 +6,12 @@ import { num } from '@/lib/history/historyData'
 
 const LIST_SIZE = 10
 
+// In 2019 and 2020 each playoff round was a two-week matchup, so those scores are two-week totals.
+// They count toward win/loss records but not toward single-game scoring records. Keep this year in
+// step with the 2021 cutoff in supabase/migrations/053_history_completed_seasons_2019_2020.sql.
+const SINGLE_WEEK_PLAYOFFS_FROM = 2021
+const SINGLE_WEEK_SCORES = `is_playoffs.eq.false,season_year.gte.${SINGLE_WEEK_PLAYOFFS_FROM}`
+
 export interface GameRecord {
   season_year: number
   week_number: number
@@ -65,7 +71,6 @@ export interface RecordsData {
   lossStreaks: Streak[]
   playerGames: PlayerGame[]
   benchWeeks: BenchWeek[]
-  headToHead: HeadToHead[]
 }
 
 function toGameRecord(row: Record<string, unknown>): GameRecord {
@@ -98,7 +103,7 @@ function toStreak(row: Record<string, unknown>): Streak {
 
 export async function loadRecords(): Promise<RecordsData | null> {
   const supabase = createPublicClient()
-  const games = () => supabase.from('league_games').select('*')
+  const games = () => supabase.from('league_games').select('*').or(SINGLE_WEEK_SCORES)
 
   const results = await Promise.all([
     games()
@@ -151,16 +156,13 @@ export async function loadRecords(): Promise<RecordsData | null> {
       .order('season_year')
       .order('week_number')
       .limit(LIST_SIZE),
-    supabase
-      .from('league_h2h')
-      .select('owner_id, opp_owner_id, owner_name, opp_owner_name, wins, losses, ties'),
   ])
   const failed = results.find((result) => result.error)
   if (failed) {
     console.error('Failed to load league records:', failed.error)
     return null
   }
-  const [high, low, blowouts, closest, winStreaks, lossStreaks, players, bench, h2h] = results.map(
+  const [high, low, blowouts, closest, winStreaks, lossStreaks, players, bench] = results.map(
     (result) => (result.data ?? []) as Record<string, unknown>[]
   )
 
@@ -187,16 +189,28 @@ export async function loadRecords(): Promise<RecordsData | null> {
       team_name: row.team_name as string,
       bench_points: num(row.bench_points),
     })),
-    headToHead: h2h.map((row) => ({
-      owner_id: row.owner_id as string,
-      opp_owner_id: row.opp_owner_id as string,
-      owner_name: row.owner_name as string,
-      opp_owner_name: row.opp_owner_name as string,
-      wins: num(row.wins),
-      losses: num(row.losses),
-      ties: num(row.ties),
-    })),
   }
+}
+
+// Owner-vs-owner records for the All-time tab. Its own query (not part of loadRecords) so that tab
+// doesn't run the nine record queries it never shows.
+export async function loadHeadToHead(): Promise<HeadToHead[] | null> {
+  const { data, error } = await createPublicClient()
+    .from('league_h2h')
+    .select('owner_id, opp_owner_id, owner_name, opp_owner_name, wins, losses, ties')
+  if (error) {
+    console.error('Failed to load head-to-head records:', error)
+    return null
+  }
+  return (data as Record<string, unknown>[]).map((row) => ({
+    owner_id: row.owner_id as string,
+    opp_owner_id: row.opp_owner_id as string,
+    owner_name: row.owner_name as string,
+    opp_owner_name: row.opp_owner_name as string,
+    wins: num(row.wins),
+    losses: num(row.losses),
+    ties: num(row.ties),
+  }))
 }
 
 export interface OwnerTransactions {
