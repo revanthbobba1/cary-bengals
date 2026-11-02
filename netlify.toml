@@ -7,6 +7,12 @@
     NODE_VERSION = "18"
     YARN_VERSION = "3.6.1"
 
+# `develop` is a branch-deploy branch only so PRs into it get Deploy Previews. Skip the
+# branch-deploy build itself (exit 0 = cancel) so pushes to `develop` don't publish a site;
+# only `main` builds production. Deploy Previews use a different context and still build.
+[context.branch-deploy]
+  ignore = "exit 0"
+
 # Netlify Next.js plugin (required for Next.js runtime support)
 [[plugins]]
   package = "@netlify/plugin-nextjs"
