@@ -6,7 +6,7 @@ nothing at all here, and a genuinely missing required field raises a clean
 ValidationError rather than a silent bad write.
 """
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class RawMember(BaseModel):
@@ -334,3 +334,36 @@ class RawPlayerInfoResponse(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     players: list[RawPlayerInfoEntry] = []
+
+
+# --- activity feed (kona_league_communication) --------------------------------------
+# The feed carries each processed trade as a topic of messages. It is only a fallback source for
+# trades mTransactions2 doesn't return (see services/transactions.py), so only what's needed to
+# rebuild a trade is modeled.
+
+
+class RawFeedMessage(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    # 244: a player moved between teams in a processed trade; 245: a player dropped to the
+    # free-agent pool as part of one.
+    messageTypeId: int
+    # `from`/`to` are team ids (0 is the free-agent pool); `targetId` is the player id.
+    from_: int = Field(alias="from")
+    to: int
+    targetId: int
+
+
+class RawFeedTopic(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: str
+    # Epoch milliseconds of when the trade was processed.
+    date: int
+    messages: list[RawFeedMessage] = []
+
+
+class RawActivityFeedResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    topics: list[RawFeedTopic] = []

@@ -12,7 +12,8 @@ from app.clients.espn import ESPN_BASE_URL
 FIXTURES = Path(__file__).parent / "fixtures"
 
 _LEAGUE_URL_PATTERN = re.compile(
-    re.escape(f"{ESPN_BASE_URL}/seasons/2026/segments/0/leagues/19467081") + r"(\?.*)?$"
+    re.escape(f"{ESPN_BASE_URL}/seasons/2026/segments/0/leagues/19467081")
+    + r"(/communication/)?(\?.*)?$"
 )
 
 
@@ -21,10 +22,11 @@ def _mock_espn() -> respx.Route:
     players = json.loads((FIXTURES / "kona_player_info_2026.json").read_text())
 
     def respond(request) -> Response:
-        # Distinguish the two ESPN calls by the requested view.
-        return Response(
-            200, json=players if "kona_player_info" in str(request.url) else transactions
-        )
+        # Distinguish the ESPN calls by the requested view / path.
+        url = str(request.url)
+        if "/communication/" in url:
+            return Response(200, json={"topics": []})
+        return Response(200, json=players if "kona_player_info" in url else transactions)
 
     return respx.get(url__regex=_LEAGUE_URL_PATTERN).mock(side_effect=respond)
 
@@ -55,9 +57,9 @@ def test_transactions_do_not_cache_across_requests(client: TestClient) -> None:
     client.get("/v1/league/2026/transactions", headers=headers)
     client.get("/v1/league/2026/transactions", headers=headers)
 
-    # Nine ESPN calls per request: the unfiltered transactions call, periods 1-7 (the fixture's
-    # current period is 8), then one player-name lookup.
-    assert route.call_count == 18
+    # Ten ESPN calls per request: the unfiltered transactions call, periods 1-7 (the fixture's
+    # current period is 8), the activity feed, then one player-name lookup.
+    assert route.call_count == 20
 
 
 @respx.mock
