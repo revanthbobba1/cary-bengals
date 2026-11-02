@@ -117,6 +117,10 @@ export default function RecordsView({ data }: { data: RecordsData }) {
           />
         </Section>
       </div>
+      <p className="text-xs text-gray-500">
+        Playoff games from 2019 and 2020 are left out of the score lists: those rounds were two-week
+        matchups, so their totals aren&apos;t comparable to a single week.
+      </p>
     </div>
   )
 }
