@@ -1,13 +1,28 @@
-// Read path for /transactions: every synced transaction across seasons plus team names/logos keyed
-// by (season, ESPN team id) -- transactions store ESPN team ids, not team row ids (migration 051).
-// Small enough (tens of rows per season) to hand to the client whole for instant filtering, same
-// reasoning as /schedule's week selector.
+// Read path for /transactions: one season's synced transactions plus team names/logos keyed by
+// (season, ESPN team id) -- transactions store ESPN team ids, not team row ids (migration 051).
+//
+// One season at a time, not every season at once: Supabase's API returns at most 1000 rows per
+// request and silently drops the rest, and a season is a few hundred transactions (~300 by week 8
+// of 2026), so loading every season would start losing the oldest rows around the second season.
+// A single season stays well under the cap, and a week or team filter is still instant on the
+// client because the whole season is handed over at once.
 
 import { createPublicClient } from '@/lib/supabase/public'
 import { teamKey, type Transaction } from '@/lib/types/transaction'
 import { teamLogoOrAvatar } from '@/lib/memberAvatar'
 
+// PostgREST's default max rows per response. Hitting it exactly means rows were probably cut off.
+const MAX_ROWS = 1000
+
 export interface TransactionData {
+  // Seasons that have ESPN data (a season with paired teams), newest first. A season with no
+  // transactions yet is still listed and just shows an empty wire.
+  seasons: number[]
+  // The season `transactions` belongs to: the requested one if it has data, else the default.
+  season: number | null
+  defaultSeason: number | null
+  // The selected season's teams, by name, for the team filter.
+  teams: { espnTeamId: number; name: string }[]
   transactions: Transaction[]
   // Keyed `${season_year}:${espn_team_id}`. Plain objects, not Maps, so they survive the
   // Server-to-Client Component boundary.
@@ -61,35 +76,37 @@ function attachWinners(
   })
 }
 
-export async function loadTransactionData(): Promise<TransactionData> {
+export async function loadTransactionData(
+  requestedSeason: number | null,
+  currentSeason: number
+): Promise<TransactionData> {
+  const empty: TransactionData = {
+    seasons: [],
+    season: null,
+    defaultSeason: null,
+    teams: [],
+    transactions: [],
+    teamNameByKey: {},
+    teamLogoByKey: {},
+  }
   if (
     !process.env.NEXT_PUBLIC_SUPABASE_URL ||
     process.env.NEXT_PUBLIC_SUPABASE_URL.includes('your-project-ref')
   ) {
-    return { transactions: [], teamNameByKey: {}, teamLogoByKey: {} }
+    return empty
   }
 
   const supabase = createPublicClient()
 
-  const [transactionsResult, teamsResult] = await Promise.all([
-    supabase
-      .from('transactions')
-      .select(
-        'id, season_year, espn_transaction_id, kind, status, espn_team_id, bid_amount, week_number, proposed_at, processed_at, items'
-      )
-      .order('season_year', { ascending: false })
-      .order('week_number', { ascending: false }),
-    supabase
-      .from('teams')
-      .select('season_year, espn_team_id, name, owner_name, espn_logo_url')
-      .not('espn_team_id', 'is', null),
-  ])
-
-  if (transactionsResult.error) {
-    console.error('Failed to load transactions:', transactionsResult.error)
-  }
+  // Teams first (a handful of rows per season): they say which seasons exist, so the season to
+  // load is known before the transactions query runs.
+  const teamsResult = await supabase
+    .from('teams')
+    .select('season_year, espn_team_id, name, owner_name, espn_logo_url')
+    .not('espn_team_id', 'is', null)
   if (teamsResult.error) {
     console.error('Failed to load teams for transactions:', teamsResult.error)
+    return empty
   }
 
   const teamNameByKey: Record<string, string> = {}
@@ -100,11 +117,52 @@ export async function loadTransactionData(): Promise<TransactionData> {
     teamLogoByKey[key] = teamLogoOrAvatar(team.espn_logo_url, team.owner_name)
   }
 
-  const rows = (transactionsResult.data ?? []).map((row) => ({
+  const seasons = [...new Set((teamsResult.data ?? []).map((team) => team.season_year))].sort(
+    (a, b) => b - a
+  )
+  const defaultSeason = seasons.includes(currentSeason) ? currentSeason : (seasons[0] ?? null)
+  const season =
+    requestedSeason !== null && seasons.includes(requestedSeason) ? requestedSeason : defaultSeason
+  if (season === null) return empty
+
+  const teams = (teamsResult.data ?? [])
+    .filter((team) => team.season_year === season)
+    .map((team) => ({ espnTeamId: team.espn_team_id as number, name: team.name }))
+    .sort((a, b) => a.name.localeCompare(b.name))
+
+  const transactionsResult = await supabase
+    .from('transactions')
+    .select(
+      'id, season_year, espn_transaction_id, kind, status, espn_team_id, bid_amount, week_number, proposed_at, processed_at, items'
+    )
+    .eq('season_year', season)
+    .order('week_number', { ascending: false })
+
+  if (transactionsResult.error) {
+    console.error('Failed to load transactions:', transactionsResult.error)
+  }
+  const data = transactionsResult.data ?? []
+  if (data.length >= MAX_ROWS) {
+    // Silent data loss otherwise: the oldest weeks of the season would just not appear. The fix is
+    // to page the query (or stop fetching the whole season at once) -- see the comment up top.
+    console.error(
+      `Transactions for ${season} returned ${data.length} rows, the API row limit; older rows are being cut off.`
+    )
+  }
+
+  const rows = data.map((row) => ({
     ...row,
     // NUMERIC arrives from PostgREST as a number for numeric(6,2), but guard against a string.
     bid_amount: Number(row.bid_amount),
   })) as Omit<Transaction, 'winner_espn_team_id' | 'winner_transaction_id'>[]
 
-  return { transactions: attachWinners(rows), teamNameByKey, teamLogoByKey }
+  return {
+    seasons,
+    season,
+    defaultSeason,
+    teams,
+    transactions: attachWinners(rows),
+    teamNameByKey,
+    teamLogoByKey,
+  }
 }
