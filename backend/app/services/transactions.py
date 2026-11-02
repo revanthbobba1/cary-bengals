@@ -28,7 +28,7 @@ from typing import Literal, cast
 
 from pydantic import ValidationError
 
-from app.clients.espn import EspnClient, EspnRequestError
+from app.clients.espn import EspnClient, EspnNotFoundError, EspnRequestError
 from app.espn_labels import POSITIONS, PRO_TEAMS
 from app.sanitize import sanitize_name
 from app.schemas.api import LeagueTransactionsResponse, TransactionItemOut, TransactionOut
@@ -152,7 +152,9 @@ async def _trades_missing_from(
     entries so they flow through the same mapping as every other trade."""
     try:
         feed = RawActivityFeedResponse.model_validate(await espn.fetch_trade_activity(season))
-    except (EspnRequestError, ValidationError) as exc:
+    # EspnNotFoundError: the feed 404s for every past season (checked 2022-2025), so a backfill
+    # has no fallback and relies on the transaction data alone.
+    except (EspnRequestError, EspnNotFoundError, ValidationError) as exc:
         return [], [
             "Activity feed unavailable, so a trade ESPN left out of its transaction data may be "
             f"missing ({type(exc).__name__})"
