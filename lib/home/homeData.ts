@@ -10,6 +10,8 @@ import siteMetadata from '@/data/siteMetadata'
 import type { PressConference } from '@/lib/types/pressConference'
 import type { TransactionItem } from '@/lib/types/transaction'
 
+const MIN_STREAK = 3
+
 export interface StandingsRow {
   id: string
   name: string
@@ -17,7 +19,7 @@ export interface StandingsRow {
   wins: number
   losses: number
   ties: number
-  // Current run of consecutive wins or losses; absent if the last game was a tie or none played.
+  // Current run of at least MIN_STREAK consecutive wins or losses; absent otherwise.
   streak?: { kind: 'W' | 'L'; length: number }
 }
 
@@ -126,16 +128,16 @@ async function loadLatestPoll(): Promise<LatestPoll | null> {
     team_name: (r.team as unknown as { name: string } | null)?.name ?? 'Unknown Team',
     final_rank: r.final_rank,
     // Stored as '↑3' / '↓2' / '-' (see the recalculate function in migration 041).
-    delta: parseTrend(r.trend),
+    trend: parseTrend(r.trend),
   }))
-  const rows: PollRow[] = all.slice(0, 5).map(({ delta, ...row }) => ({ ...row, trend: delta }))
-  const risers = all.filter((r) => r.delta > 0).sort((a, b) => b.delta - a.delta)
-  const fallers = all.filter((r) => r.delta < 0).sort((a, b) => a.delta - b.delta)
+  const rows: PollRow[] = all.slice(0, 5)
+  const risers = all.filter((r) => r.trend > 0).sort((a, b) => b.trend - a.trend)
+  const fallers = all.filter((r) => r.trend < 0).sort((a, b) => a.trend - b.trend)
   // Ties for biggest move all show: "who moved most" is a fact, not a pick of one of them.
   const movers = [
-    ...risers.filter((r) => r.delta === risers[0].delta),
-    ...fallers.filter((r) => r.delta === fallers[0].delta),
-  ].map((r) => ({ team_name: r.team_name, delta: r.delta }))
+    ...risers.filter((r) => r.trend === risers[0].trend),
+    ...fallers.filter((r) => r.trend === fallers[0].trend),
+  ].map((r) => ({ team_name: r.team_name, delta: r.trend }))
   return { seasonYear: latest.season_year, weekNumber: latest.week_number, rows, movers }
 }
 
@@ -222,9 +224,13 @@ async function loadStandingsAndMatchups(season: number): Promise<{
   // A failure here shouldn't take the matchups down with it; just skip the cards that need it.
   if (pastResult.error) console.error('Failed to load completed matchups:', pastResult.error)
 
+  // A 0-0 row is a game that was never scored/synced, not a real tie, so it must neither end a
+  // streak nor show up as a "0 low score".
   const past = (pastResult.data ?? []).filter(
     (m): m is typeof m & { away_team_id: string; away_score: number } =>
-      m.away_team_id !== null && m.away_score !== null
+      m.away_team_id !== null &&
+      m.away_score !== null &&
+      !(m.home_score === 0 && m.away_score === 0)
   )
 
   // High/low across every team's score last week. The high always belongs to a winner and the low
@@ -263,7 +269,8 @@ async function loadStandingsAndMatchups(season: number): Promise<{
     if (!last || last === 'T') return team
     let length = 0
     for (let i = results.length - 1; i >= 0 && results[i] === last; i--) length++
-    return { ...team, streak: { kind: last, length } }
+    // Shorter runs are noise on a snapshot, so they're not surfaced at all.
+    return length >= MIN_STREAK ? { ...team, streak: { kind: last, length } } : team
   })
 
   const matchups = (matchupRows ?? []).map((m) => ({
@@ -354,7 +361,11 @@ async function loadLatestTransactions(season: number): Promise<SnapshotTransacti
 export async function loadHomeSnapshot(): Promise<HomeSnapshot> {
   const [articles, conferences, latestPoll, league, latestTransactions] = await Promise.all([
     settle('articles', getPublishedArticles(), [] as PublishedArticleSummary[]),
-    settle('press conferences', getPressConferences(), [] as PressConference[]),
+    settle(
+      'press conferences',
+      hasSupabase() ? getPressConferences() : Promise.resolve([] as PressConference[]),
+      [] as PressConference[]
+    ),
     settle('poll', loadLatestPoll(), null),
     settle('standings and matchups', loadStandingsAndMatchups(siteMetadata.currentSeason), {
       standings: [] as StandingsRow[],

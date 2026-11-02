@@ -127,8 +127,7 @@ function StandingsList({ rows }: { rows: StandingsRow[] }) {
           <span className="min-w-0 flex-1 truncate font-medium text-ink dark:text-gray-100">
             {team.name}
           </span>
-          {/* 3+ in a row is worth a callout; shorter runs are just noise. */}
-          {team.streak && team.streak.length >= 3 && (
+          {team.streak && (
             <span
               className={`text-xs font-semibold tabular-nums ${
                 team.streak.kind === 'W'
