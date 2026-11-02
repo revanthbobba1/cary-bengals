@@ -4,6 +4,7 @@ import { genPageMetadata } from 'app/seo'
 import { createPublicClient } from '@/lib/supabase/public'
 import siteMetadata from '@/data/siteMetadata'
 import type { RosterPlayer } from '@/lib/types/roster'
+import { normalizeName } from '@/lib/memberAvatar'
 
 export const metadata = genPageMetadata({ title: 'League Members' })
 
@@ -11,10 +12,6 @@ export const metadata = genPageMetadata({ title: 'League Members' })
 // the commissioner runs an ESPN refresh, and a prerendered copy stayed stale on Netlify even after
 // revalidatePath() ran. The two small Supabase queries per visit are cheap at this league's size.
 export const dynamic = 'force-dynamic'
-
-function normalizeName(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9]/g, '')
-}
 
 export default async function Page() {
   const teamByOwner = new Map<string, { id: string; name: string; logo: string | null }>()

@@ -23,9 +23,9 @@ const Header = () => {
     // dozen px. Putting everything on <header> makes its real DOM parent <body>, which also
     // holds the rest of the page, so it's always tall enough. The outer gutter is done with
     // responsive margin (not padding) so it survives being on the same element as max-width —
-    // fixed side margins below `xl`, switching to auto-centering once max-w-6xl actually binds.
+    // fixed side margins below `xl`, switching to auto-centering once max-w-7xl actually binds.
     <header
-      className={`sticky top-6 z-40 mx-4 mb-6 mt-6 flex max-w-6xl items-center justify-between rounded-[20px] bg-white/75 px-4 py-3 backdrop-blur-md transition-shadow duration-300 ease-out-expo dark:bg-gray-950/75 sm:mx-6 sm:px-6 xl:mx-auto ${
+      className={`sticky top-6 z-40 mx-4 mb-6 mt-6 flex max-w-7xl items-center justify-between gap-6 rounded-[20px] bg-white/75 px-4 py-3 backdrop-blur-md transition-shadow duration-300 ease-out-expo dark:bg-gray-950/75 sm:mx-6 sm:px-6 xl:mx-auto ${
         scrolled
           ? 'shadow-nav-scrolled dark:shadow-nav-scrolled-dark'
           : 'shadow-nav dark:shadow-nav-dark'
@@ -40,7 +40,10 @@ const Header = () => {
           <Logo />
         </span>
         {typeof siteMetadata.headerTitle === 'string' ? (
-          <span className="hidden whitespace-nowrap text-base font-bold tracking-tight text-ink dark:text-gray-100 xl:block">
+          // Only from 1440px up: the name, the nav links and (when signed in) the Admin/Logout
+          // buttons together need more room than a 1280px-wide header has, and with no gap the
+          // name ran straight into the first link.
+          <span className="hidden whitespace-nowrap text-base font-bold tracking-tight text-ink dark:text-gray-100 min-[1440px]:block">
             {siteMetadata.headerTitle}
           </span>
         ) : (
@@ -48,7 +51,7 @@ const Header = () => {
         )}
       </Link>
 
-      <div className="flex items-center gap-5">
+      <div className="flex items-center gap-4">
         {headerNavLinks
           .filter((link) => link.href !== '/')
           .map((link) => {

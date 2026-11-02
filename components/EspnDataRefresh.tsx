@@ -92,11 +92,12 @@ export default function EspnDataRefresh({ seasonYear }: Props) {
             </span>
           </h3>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Updates team names, rosters, win-loss records, head-to-head matchup scores, and
-            per-player box scores together for every team already paired with ESPN (see Pair New
-            Teams above for first-time linking). No manual review needed — run this any time a
-            manager renames their team, makes a roster move, or a game result changes something you
-            want reflected on the public League Members or Schedule pages, or the poll.
+            Updates team names, rosters, win-loss records, head-to-head matchup scores, per-player
+            box scores, and waiver claims, pickups and trades together for every team already paired
+            with ESPN (see Pair New Teams above for first-time linking). No manual review needed —
+            run this any time a manager renames their team, makes a roster move, or a game result
+            changes something you want reflected on the public League Members, Schedule or
+            Transactions pages, or the poll.
           </p>
         </div>
         <button

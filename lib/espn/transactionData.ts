@@ -5,6 +5,7 @@
 
 import { createPublicClient } from '@/lib/supabase/public'
 import { teamKey, type Transaction } from '@/lib/types/transaction'
+import { teamLogoOrAvatar } from '@/lib/memberAvatar'
 
 export interface TransactionData {
   transactions: Transaction[]
@@ -22,8 +23,10 @@ const SAME_RUN_WINDOW_MS = 10 * 60 * 1000
 // ESPN marks a lost bid FAILED_INVALIDPLAYERSOURCE ("the player was already claimed") without
 // naming who claimed them. The winner is the team whose EXECUTED waiver claim added the same
 // player in the same run, so match on that.
-function attachWinners(rows: Omit<Transaction, 'winner_espn_team_id'>[]): Transaction[] {
-  const executedAddsByPlayer = new Map<string, { teamId: number; at: number }[]>()
+function attachWinners(
+  rows: Omit<Transaction, 'winner_espn_team_id' | 'winner_transaction_id'>[]
+): Transaction[] {
+  const executedAddsByPlayer = new Map<string, { teamId: number; at: number; id: string }[]>()
   for (const txn of rows) {
     if (txn.kind !== 'WAIVER' || txn.status !== 'EXECUTED') continue
     const at = Date.parse(txn.processed_at ?? txn.proposed_at)
@@ -31,27 +34,30 @@ function attachWinners(rows: Omit<Transaction, 'winner_espn_team_id'>[]): Transa
       if (item.action !== 'ADD') continue
       const key = `${txn.season_year}:${item.player_name}`
       const group = executedAddsByPlayer.get(key) ?? []
-      group.push({ teamId: txn.espn_team_id, at })
+      group.push({ teamId: txn.espn_team_id, at, id: txn.id })
       executedAddsByPlayer.set(key, group)
     }
   }
 
   return rows.map((txn) => {
-    let winner: number | null = null
+    let winner: { teamId: number; id: string } | null = null
     if (txn.kind === 'WAIVER' && txn.status === 'FAILED_INVALIDPLAYERSOURCE') {
       const at = Date.parse(txn.processed_at ?? txn.proposed_at)
       const added = txn.items.find((item) => item.action === 'ADD')
       const candidates = added
         ? (executedAddsByPlayer.get(`${txn.season_year}:${added.player_name}`) ?? [])
         : []
-      winner =
-        candidates.find(
-          (candidate) =>
-            candidate.teamId !== txn.espn_team_id &&
-            Math.abs(candidate.at - at) <= SAME_RUN_WINDOW_MS
-        )?.teamId ?? null
+      const match = candidates.find(
+        (candidate) =>
+          candidate.teamId !== txn.espn_team_id && Math.abs(candidate.at - at) <= SAME_RUN_WINDOW_MS
+      )
+      winner = match ? { teamId: match.teamId, id: match.id } : null
     }
-    return { ...txn, winner_espn_team_id: winner }
+    return {
+      ...txn,
+      winner_espn_team_id: winner?.teamId ?? null,
+      winner_transaction_id: winner?.id ?? null,
+    }
   })
 }
 
@@ -75,7 +81,7 @@ export async function loadTransactionData(): Promise<TransactionData> {
       .order('week_number', { ascending: false }),
     supabase
       .from('teams')
-      .select('season_year, espn_team_id, name, espn_logo_url')
+      .select('season_year, espn_team_id, name, owner_name, espn_logo_url')
       .not('espn_team_id', 'is', null),
   ])
 
@@ -91,14 +97,14 @@ export async function loadTransactionData(): Promise<TransactionData> {
   for (const team of teamsResult.data ?? []) {
     const key = teamKey(team.season_year, team.espn_team_id as number)
     teamNameByKey[key] = team.name
-    teamLogoByKey[key] = team.espn_logo_url
+    teamLogoByKey[key] = teamLogoOrAvatar(team.espn_logo_url, team.owner_name)
   }
 
   const rows = (transactionsResult.data ?? []).map((row) => ({
     ...row,
     // NUMERIC arrives from PostgREST as a number for numeric(6,2), but guard against a string.
     bid_amount: Number(row.bid_amount),
-  })) as Omit<Transaction, 'winner_espn_team_id'>[]
+  })) as Omit<Transaction, 'winner_espn_team_id' | 'winner_transaction_id'>[]
 
   return { transactions: attachWinners(rows), teamNameByKey, teamLogoByKey }
 }

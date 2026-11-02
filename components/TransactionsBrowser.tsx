@@ -41,6 +41,33 @@ const FAILURE_REASONS: Record<string, string> = {
   FAILED_AUCTIONBUDGETEXCEEDED: 'over budget',
 }
 
+// Lists each failed bid directly under the claim that beat it, highest bid first, so every offer
+// on a player reads together. A failed bid whose winner isn't in this group (or can't be
+// identified, e.g. a full roster) keeps its place in time order.
+function nestLostBids(rows: Transaction[]): { txn: Transaction; nested: boolean }[] {
+  const ids = new Set(rows.map((txn) => txn.id))
+  const isNested = (txn: Transaction) =>
+    txn.winner_transaction_id !== null && ids.has(txn.winner_transaction_id)
+
+  const lostBy = new Map<string, Transaction[]>()
+  for (const txn of rows) {
+    if (!isNested(txn)) continue
+    const group = lostBy.get(txn.winner_transaction_id as string) ?? []
+    group.push(txn)
+    lostBy.set(txn.winner_transaction_id as string, group)
+  }
+
+  const ordered: { txn: Transaction; nested: boolean }[] = []
+  for (const txn of rows) {
+    if (isNested(txn)) continue
+    ordered.push({ txn, nested: false })
+    for (const lost of (lostBy.get(txn.id) ?? []).sort((a, b) => b.bid_amount - a.bid_amount)) {
+      ordered.push({ txn: lost, nested: true })
+    }
+  }
+  return ordered
+}
+
 export default function TransactionsBrowser({
   transactions,
   teamNameByKey,
@@ -109,7 +136,7 @@ export default function TransactionsBrowser({
       if (last && last.key === key) last.rows.push(txn)
       else groups.push({ key, label: DAY_FORMAT.format(date), rows: [txn] })
     }
-    return groups
+    return groups.map((group) => ({ ...group, rows: nestLostBids(group.rows) }))
   }, [seasonTransactions, week])
 
   if (seasons.length === 0 || season === null) {
@@ -118,6 +145,14 @@ export default function TransactionsBrowser({
         No transactions synced yet — a commissioner needs to run an ESPN refresh first.
       </p>
     )
+  }
+
+  // Equal bids are settled by waiver priority, not by price, so "outbid" would be wrong there.
+  const winnerPhrase = (lost: Transaction) => {
+    const winner = seasonTransactions.find((txn) => txn.id === lost.winner_transaction_id)
+    if (winner && winner.bid_amount === lost.bid_amount)
+      return 'lost the waiver-priority tiebreak to'
+    return 'outbid by'
   }
 
   const teamName = (seasonYear: number, espnTeamId: number) =>
@@ -171,7 +206,7 @@ export default function TransactionsBrowser({
     }
     const reason =
       txn.winner_espn_team_id !== null
-        ? `outbid by ${teamName(txn.season_year, txn.winner_espn_team_id)}`
+        ? `${winnerPhrase(txn)} ${teamName(txn.season_year, txn.winner_espn_team_id)}`
         : (FAILURE_REASONS[txn.status] ??
           (txn.status === 'FAILED_INVALIDPLAYERSOURCE'
             ? 'player already claimed'
@@ -231,10 +266,15 @@ export default function TransactionsBrowser({
                 {day.label}
               </h2>
               <ul className="divide-y divide-gray-200 rounded-card border border-gray-200 bg-white dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900">
-                {day.rows.map((txn) => {
+                {day.rows.map(({ txn, nested }) => {
                   const failed = txn.status !== 'EXECUTED'
                   return (
-                    <li key={txn.id} className="flex items-start gap-3 px-4 py-3">
+                    <li
+                      key={txn.id}
+                      className={`flex items-start gap-3 py-3 pr-4 ${
+                        nested ? 'bg-gray-50 pl-12 dark:bg-gray-800/40' : 'pl-4'
+                      }`}
+                    >
                       <div className="flex shrink-0 -space-x-1 pt-0.5">
                         {rowTeams(txn).map((teamId) => (
                           <TeamLogo
