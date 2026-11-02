@@ -1,11 +1,9 @@
 'use client'
 
-import siteMetadata from '@/data/siteMetadata'
 import { useEffect, useState } from 'react'
-import { focusRingClasses } from '@/lib/focusRing'
 import { scrollBehavior } from '@/lib/motion'
 
-const ScrollTopAndComment = () => {
+const ScrollToTop = () => {
   const [show, setShow] = useState(false)
 
   useEffect(() => {
@@ -21,28 +19,10 @@ const ScrollTopAndComment = () => {
   const handleScrollTop = () => {
     window.scrollTo({ top: 0, behavior: scrollBehavior() })
   }
-  const handleScrollToComment = () => {
-    document.getElementById('comment')?.scrollIntoView({ behavior: scrollBehavior() })
-  }
   return (
     <div
       className={`fixed bottom-8 right-8 hidden flex-col gap-3 ${show ? 'md:flex' : 'md:hidden'}`}
     >
-      {siteMetadata.comments?.provider && (
-        <button
-          aria-label="Scroll To Comment"
-          onClick={handleScrollToComment}
-          className={`rounded-full border border-gray-200 bg-white p-2.5 text-gray-500 shadow-card transition-all duration-150 ease-out-expo hover:-translate-y-0.5 hover:text-ink hover:shadow-raised ${focusRingClasses} active:scale-90 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:shadow-card-dark dark:hover:text-gray-100 dark:hover:shadow-raised-dark`}
-        >
-          <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-            <path
-              fillRule="evenodd"
-              d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"
-              clipRule="evenodd"
-            />
-          </svg>
-        </button>
-      )}
       <button
         aria-label="Scroll To Top"
         onClick={handleScrollTop}
@@ -60,4 +40,4 @@ const ScrollTopAndComment = () => {
   )
 }
 
-export default ScrollTopAndComment
+export default ScrollToTop

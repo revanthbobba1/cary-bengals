@@ -61,12 +61,3 @@ export interface SubmissionStatus {
   has_submitted: boolean
   submitted_at: string | null
 }
-
-// Form data types
-export interface PollSubmissionForm {
-  poll_week_id: string
-  rankings: Array<{
-    team_id: string
-    rank: number
-  }>
-}

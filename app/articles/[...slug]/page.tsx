@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import PageTitle from '@/components/PageTitle'
 import SectionContainer from '@/components/SectionContainer'
 import Link from '@/components/Link'
-import ScrollTopAndComment from '@/components/ScrollTopAndComment'
+import ScrollToTop from '@/components/ScrollToTop'
 import ArticleView from '@/components/articles/ArticleView'
 import { getArticleBySlug, getPublishedArticles, getSiblingArticle } from '@/lib/supabase/articles'
 import { getPollTopFive } from '@/lib/supabase/polls'
@@ -130,7 +130,7 @@ export default async function ArticlePage({ params }: { params: { slug: string[]
 
   return (
     <SectionContainer>
-      <ScrollTopAndComment />
+      <ScrollToTop />
       <article>
         <ArticleView
           article={article}

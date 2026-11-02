@@ -92,12 +92,7 @@ export default async function PreviewArticlePage({ params }: { params: { id: str
           </Link>
         </div>
 
-        <ArticleView
-          article={articleWithMatchups}
-          author={author}
-          pollTopFive={pollTopFive}
-          showComments={false}
-        />
+        <ArticleView article={articleWithMatchups} author={author} pollTopFive={pollTopFive} />
       </article>
     </SectionContainer>
   )

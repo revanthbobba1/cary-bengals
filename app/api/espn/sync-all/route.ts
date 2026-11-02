@@ -1,5 +1,4 @@
-// Called by netlify/functions/espn-full-sync.mts at 8am ET every day (and manually via
-// .github/workflows/espn-full-sync.yml) -- this league processes waiver claims most days, and until
+// Called by netlify/functions/espn-full-sync.mts at 8am ET every day -- this league processes waiver claims most days, and until
 // now that was only ever caught by a commissioner remembering to click "Refresh ESPN Data." See
 // docs/ESPN_INTEGRATION_PLAN.md's Phase 8c-cron notes for the schedule and cold-start handling.
 //

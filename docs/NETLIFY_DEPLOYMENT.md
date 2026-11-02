@@ -60,7 +60,7 @@ The build process includes:
 
 Your app uses:
 
-- **API Routes** (`/app/api/newsletter`) - requires server runtime
+- **API Routes** (`/app/api/espn/*`, `/app/api/search-index`) - requires server runtime
 - **Image Optimization** - Next.js Image component needs server runtime
 - **Next.js Features** - Better support for SSR, ISR, and other Next.js features
 

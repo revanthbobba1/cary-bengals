@@ -2,9 +2,8 @@
 
 Living document for the Supabase-backed commissioner poll feature. Supersedes the original
 planning doc (`~/.claude/plans/woolly-knitting-curry.md`, local-only, not in the repo) as the
-source of truth for where this feature stands. See `POLL_MIGRATION_GUIDE.md` for step-by-step
-deployment instructions and `supabase/migrations/README.md` for an index of what each migration
-file does — this doc is about scope, status, and roadmap.
+source of truth for where this feature stands. See `supabase/migrations/README.md` for an index
+of what each migration file does — this doc is about scope, status, and roadmap.
 
 Last reviewed: 2026-09-02
 

@@ -1,7 +1,6 @@
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import PageTitle from '@/components/PageTitle'
-import Comments from '@/components/Comments'
 import Link from '@/components/Link'
 import MatchupSection from '@/components/articles/MatchupSection'
 import ScoreboardStrip from '@/components/articles/ScoreboardStrip'
@@ -34,8 +33,6 @@ interface Props {
   author: AuthorInfo | null
   pollTopFive: PollTopFiveRow[]
   siblingArticle?: SiblingArticle | null
-  /** Off for an unpublished draft preview -- there's no real Giscus thread for it yet. */
-  showComments?: boolean
 }
 
 /**
@@ -48,7 +45,6 @@ export default function ArticleView({
   author,
   pollTopFive,
   siblingArticle = null,
-  showComments = true,
 }: Props) {
   const sidebarHasContent = Boolean(author) || article.matchups.length > 0 || pollTopFive.length > 0
 
@@ -108,11 +104,6 @@ export default function ArticleView({
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{article.outro_markdown}</ReactMarkdown>
             )}
           </div>
-          {showComments && siteMetadata.comments && (
-            <div className="pb-6 pt-6 text-center text-gray-700 dark:text-gray-300" id="comment">
-              <Comments slug={article.slug} />
-            </div>
-          )}
         </div>
 
         {sidebarHasContent && (

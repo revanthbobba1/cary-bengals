@@ -1,13 +1,11 @@
-import { Mail, Github, Facebook, Youtube, Linkedin, Twitter, Mastodon } from './icons'
+import { Mail, Github, Youtube, Linkedin, Twitter } from './icons'
 
 const components = {
   mail: Mail,
   github: Github,
-  facebook: Facebook,
   youtube: Youtube,
   linkedin: Linkedin,
   twitter: Twitter,
-  mastodon: Mastodon,
 }
 
 // Tailwind's JIT scanner needs full class-name literals, not interpolated `h-${size}` strings.
