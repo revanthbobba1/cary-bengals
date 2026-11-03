@@ -19,16 +19,22 @@ export function easternTime(now: Date): { weekday: string; hour: number } {
 // Scheduled functions are cut off at 30s, so unlike the GitHub workflows this can't wait out a
 // Render cold start (up to ~60s). The /healthz ping still wakes the backend even though it gives up
 // after 8s, so a run that hits a cold backend may fail and the next one lands warm.
-export async function callSyncRoute(path: string): Promise<void> {
+//
+// Also used by netlify/functions/poll-reminders.mts (the project's one cron secret has the ESPN
+// name); that caller passes warmEspnService: false since the reminder route never touches ESPN.
+export async function callSyncRoute(
+  path: string,
+  { warmEspnService = true }: { warmEspnService?: boolean } = {}
+): Promise<void> {
   const siteUrl = process.env.URL
   const cronSecret = process.env.ESPN_SYNC_CRON_SECRET
   if (!siteUrl || !cronSecret) {
-    console.error('ESPN sync not run: URL or ESPN_SYNC_CRON_SECRET is not set.')
+    console.error(`${path} not run: URL or ESPN_SYNC_CRON_SECRET is not set.`)
     return
   }
 
   const serviceUrl = process.env.ESPN_SERVICE_URL
-  if (serviceUrl) {
+  if (warmEspnService && serviceUrl) {
     await fetch(`${serviceUrl}/healthz`, { signal: AbortSignal.timeout(8000) }).catch(() => {})
   }
 
