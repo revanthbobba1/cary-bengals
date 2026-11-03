@@ -5,7 +5,7 @@ deadline. See `POLL_SYSTEM_PLAN.md` for the poll feature this builds on and
 `ESPN_INTEGRATION_PLAN.md` for the Netlify-cron pattern it reuses.
 
 Last reviewed: 2026-11-02
-Status: **Phases 1-3 built on `feature/poll-reminders` (dry-run email); Phase 4 scheduler, Phase 5 UI, and the Gmail account are outstanding**
+Status: **Phases 1-4 built on the `feature/poll-reminders-integration` branch (dry-run email); Phase 5 UI, the Gmail account, and applying migration 054 are outstanding**
 
 ## 1. Goal
 
@@ -85,10 +85,18 @@ Phase N+1 does not start until phase N's PR is merged and its migration applied.
 
 ### Phase 4: scheduler — `netlify/functions/poll-reminders.mts`
 
-- `export const config = { schedule: '*/15 * * * *' }`.
+- `export const config = { schedule: '0 * * * *' }` (hourly). Originally `*/15`; changed to
+  hourly because the reminder only needs to land within an hour of the lead time and hourly does a
+  quarter of the work. Keep the interval well under the shortest `reminder_hours_before` in use.
 - No time-window gating; reminders can be due at any hour and the claim flag makes frequent runs cheap.
 - Reuse `callSyncRoute` from `netlify/lib/espnCron.ts`, making its ESPN `/healthz` warm-up
   optional, or rename the helper to something neutral.
+- **Built:** reused it with a new `warmEspnService` option (default true, so the ESPN functions
+  are unchanged) and kept the ESPN-named file.
+- **Release gate:** Netlify scheduled functions only run on the production (`main`) deploy. While
+  the Gmail credentials are unset, a due week is claimed and its reminder is only logged, so that
+  week's real reminder is consumed. Do not release this to `main` until `GMAIL_USER` and
+  `GMAIL_APP_PASSWORD` are set in Netlify and migration 054 is applied.
 
 ### Phase 5: commissioner control (optional, separate PR)
 
