@@ -8,6 +8,7 @@ import { formatDeadline } from '@/lib/formatDeadline'
 import { useToast } from '@/lib/hooks/useToast'
 import { easeOut } from '@/lib/motion'
 import { focusRingClasses } from '@/lib/focusRing'
+import PollWeekReminderStatus from '@/components/PollWeekReminderStatus'
 import type { PollWeek } from '@/lib/types/poll'
 
 interface Props {
@@ -68,12 +69,13 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
   const [reopeningWeekId, setReopeningWeekId] = useState<string | null>(null)
   const [reopenDeadline, setReopenDeadline] = useState('')
   const [reopenError, setReopenError] = useState<string | null>(null)
-  // New weeks inherit the newest existing week's reminder setting (existingWeeks is newest-first),
+  // The create form's reminder checkbox is an override on top of a derived default: with no
+  // explicit choice it follows the newest existing week's setting (existingWeeks is newest-first),
   // so turning reminders off for the upcoming weeks carries forward to weeks created afterward
-  // without needing a separate settings table.
-  const [remindersEnabled, setRemindersEnabled] = useState(
-    existingWeeks[0]?.reminders_enabled ?? true
-  )
+  // without a separate settings table. Derived on each render, not copied into state, so it can't
+  // go stale after a per-week toggle or router.refresh(). Cleared after a successful create.
+  const [remindersOverride, setRemindersOverride] = useState<boolean | null>(null)
+  const remindersEnabled = remindersOverride ?? existingWeeks[0]?.reminders_enabled ?? true
   const [editingReminderWeekId, setEditingReminderWeekId] = useState<string | null>(null)
   const [reminderHoursDraft, setReminderHoursDraft] = useState('')
 
@@ -117,6 +119,7 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
       if (insertError) throw insertError
 
       router.refresh()
+      setRemindersOverride(null)
       setSelectedYear(seasonYear)
       setWeekNumber((prev) => prev + 1)
       setDeadline('')
@@ -235,6 +238,7 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
       router.refresh()
       toast.success(message)
     } catch (err) {
+      console.error('Failed to update reminder settings:', err)
       toast.error('Failed to update reminder settings.')
     }
   }
@@ -259,12 +263,16 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
         .select('id')
 
       if (error) throw error
-      setRemindersEnabled(enabled)
+      if (!data || data.length === 0) {
+        toast.error('No upcoming weeks were changed — try refreshing the page.')
+        return
+      }
       router.refresh()
       toast.success(
-        `Reminders turned ${enabled ? 'on' : 'off'} for ${data?.length ?? 0} upcoming week${data?.length === 1 ? '' : 's'}.`
+        `Reminders turned ${enabled ? 'on' : 'off'} for ${data.length} upcoming week${data.length === 1 ? '' : 's'}.`
       )
     } catch (err) {
+      console.error('Failed to update reminder settings:', err)
       toast.error('Failed to update reminder settings.')
     }
   }
@@ -342,7 +350,7 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
           <input
             type="checkbox"
             checked={remindersEnabled}
-            onChange={(e) => setRemindersEnabled(e.target.checked)}
+            onChange={(e) => setRemindersOverride(e.target.checked)}
             className={`h-4 w-4 rounded border-gray-300 text-primary-500 ${focusRingClasses}`}
           />
           Email reminders to members who haven't voted
@@ -475,73 +483,28 @@ export default function PollWeekManager({ existingWeeks, now: nowIso }: Props) {
                       {/* Always-visible subtext rather than a per-row expander: one line per
                           week saying whether (and when) the reminder email goes out. */}
                       <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                        {week.reminder_sent_at ? (
-                          <>Reminder sent {formatDeadline(week.reminder_sent_at)}</>
-                        ) : isOpen(week, now) && editingReminderWeekId === week.id ? (
-                          <span className="flex flex-wrap items-center gap-2">
-                            Remind
-                            <input
-                              type="number"
-                              min={1}
-                              max={168}
-                              step={1}
-                              value={reminderHoursDraft}
-                              onChange={(e) => setReminderHoursDraft(e.target.value)}
-                              aria-label={`Hours before the deadline to remind members, Week ${week.week_number}`}
-                              className="w-16 rounded-control border border-gray-200 bg-white p-1 text-gray-900 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                            />
-                            hours before
-                            <button
-                              type="button"
-                              onClick={() => handleSaveReminderHours(week.id)}
-                              className={`text-primary-600 hover:underline ${focusRingClasses}`}
-                            >
-                              Save
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setEditingReminderWeekId(null)}
-                              className={`hover:underline ${focusRingClasses}`}
-                            >
-                              Cancel
-                            </button>
-                          </span>
-                        ) : isOpen(week, now) ? (
-                          <span className="flex flex-wrap items-center gap-2">
-                            {week.reminders_enabled
-                              ? `Reminder: ${week.reminder_hours_before}h before deadline`
-                              : 'Reminder: off'}
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleUpdateReminder(
-                                  week.id,
-                                  { reminders_enabled: !week.reminders_enabled },
-                                  week.reminders_enabled
-                                    ? 'Reminder turned off.'
-                                    : 'Reminder turned on.'
-                                )
-                              }
-                              className={`text-primary-600 hover:underline ${focusRingClasses}`}
-                            >
-                              {week.reminders_enabled ? 'Turn off' : 'Turn on'}
-                            </button>
-                            {week.reminders_enabled && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setEditingReminderWeekId(week.id)
-                                  setReminderHoursDraft(String(week.reminder_hours_before))
-                                }}
-                                className={`text-primary-600 hover:underline ${focusRingClasses}`}
-                              >
-                                Change time
-                              </button>
-                            )}
-                          </span>
-                        ) : week.reminders_enabled ? null : (
-                          <>Reminder: off</>
-                        )}
+                        <PollWeekReminderStatus
+                          week={week}
+                          isOpen={isOpen(week, now)}
+                          editing={editingReminderWeekId === week.id}
+                          hoursDraft={reminderHoursDraft}
+                          onHoursDraftChange={setReminderHoursDraft}
+                          onToggle={() =>
+                            handleUpdateReminder(
+                              week.id,
+                              { reminders_enabled: !week.reminders_enabled },
+                              week.reminders_enabled
+                                ? 'Reminder turned off.'
+                                : 'Reminder turned on.'
+                            )
+                          }
+                          onStartEditing={() => {
+                            setEditingReminderWeekId(week.id)
+                            setReminderHoursDraft(String(week.reminder_hours_before))
+                          }}
+                          onSaveHours={() => handleSaveReminderHours(week.id)}
+                          onCancelEditing={() => setEditingReminderWeekId(null)}
+                        />
                       </div>
                     </td>
                     <td className="p-2">
