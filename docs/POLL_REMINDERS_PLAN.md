@@ -96,12 +96,23 @@ Phase N+1 does not start until phase N's PR is merged and its migration applied.
 - **Release gate:** Netlify scheduled functions only run on the production (`main`) deploy. While
   the Gmail credentials are unset, a due week is claimed and its reminder is only logged, so that
   week's real reminder is consumed. Do not release this to `main` until `GMAIL_USER` and
-  `GMAIL_APP_PASSWORD` are set in Netlify and migration 054 is applied.
+  `GMAIL_APP_PASSWORD` are set in Netlify and migrations **054 and 055** are both applied. The
+  route selects `reminders_enabled` (added by 055), so deploying it before 055 makes the whole
+  hourly job fail with "column does not exist".
 
-### Phase 5: commissioner control (optional, separate PR)
+### Phase 5: commissioner control
 
-- In `/admin/commissioner`'s poll-week form: editable "Remind N hours before" and a read-only
-  "Reminder sent at ..." line. Phase 1's default of 4 means this only adds editing.
+- In `/admin/commissioner`'s poll-week table (`components/PollWeekManager.tsx`): an always-visible
+  subtext line under each week's status. Open weeks show "Reminder: Nh before deadline" or
+  "Reminder: off" with Turn on/off and Change time (1-168 hours); sent weeks show "Reminder sent …".
+- **On/off toggle, scoped per week** (migration `055`: `poll_weeks.reminders_enabled`, default
+  true), chosen over a league-wide settings table to avoid a new table. To cover "suppress all
+  future weeks":
+  - a bulk "Turn off/on reminders for all upcoming weeks" action (unlocked, future-deadline weeks);
+  - the create-week form has a "send reminders" checkbox that defaults to the **latest week's**
+    setting, so off carries forward to weeks created later.
+- The route skips disabled weeks and re-checks the flag when claiming, so a toggle made between
+  its two queries is honored.
 
 ## 5. Setup outside the code
 
@@ -167,3 +178,16 @@ No JS test framework, so Phase 3 is verified manually against a dev Supabase pro
   - `verify_054.sql` doesn't assert which voters are returned (needs fixture auth users); check that
     by hand when applying the migration.
   - A partial send failure keeps the week claimed (decision 3.6).
+- 2026-11-03: medium code review of PR #216 (Phase 5 UI). Fixed: the create form's reminder
+  checkbox is now an override on a default derived from the latest week (it went stale after a
+  per-week toggle); the bulk action no longer sets form state and reports when it changed nothing;
+  both reminder handlers `console.error` the real error; "Reminder: off" no longer shows on closed
+  weeks; the nested ternary became `components/PollWeekReminderStatus.tsx`; the release gate now
+  names migration 055. Reviewed and deliberately left as is:
+  - Sent weeks hide the on/off and time controls. Changing the lead time after the email went out
+    does nothing; moving the deadline re-arms the reminder.
+  - Turning reminders off while a batch is mid-send doesn't stop that batch (the window is
+    seconds, and the claim has already happened).
+  - The lead-time field can stay open on a week that closes in another tab; saving it updates a
+    week the job will never remind.
+  - The bulk action filters on the page's server-render time, like the rest of this page.
