@@ -66,6 +66,11 @@ BEGIN
   END IF;
 
   SELECT pw.season_year INTO v_season_year FROM public.poll_weeks pw WHERE pw.id = p_poll_week_id;
+  -- Without this, an unknown week id leaves v_team_count at 0 and every admin user would count as
+  -- unsubmitted. Fail loudly instead of returning a list that would email the whole league.
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Poll week % not found', p_poll_week_id;
+  END IF;
   SELECT count(*) INTO v_team_count FROM public.teams WHERE season_year = v_season_year;
 
   RETURN QUERY

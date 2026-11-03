@@ -145,3 +145,17 @@ No JS test framework, so Phase 3 is verified manually against a dev Supabase pro
     logic has not run against a database. Do both before relying on it.
   - Nothing calls the route yet. Phase 4 (the Netlify scheduled function) is still to do.
   - Before applying 054, check the live `poll_weeks` triggers (query in the migration header).
+- 2026-11-02: medium code review of PR #214. Fixed: one pooled `nodemailer` transport reused per
+  process (a fresh TLS login per email risked the function time limit mid-batch, after the week was
+  already claimed); the route now checks and logs a failed un-claim and reports "claim stuck"
+  instead of a retry that can't happen; a null voter result is treated as empty;
+  `get_unsubmitted_voters` raises on an unknown week id instead of returning every admin user.
+  Reviewed and deliberately left as is:
+  - The voter population is "admin role", copied from `018` so the reminder list matches the
+    commissioner's "who hasn't voted" view. A non-voting admin would be nagged; if that shows up,
+    fix it in both functions together.
+  - Dry-run mode logs full recipient addresses. Only applies before Gmail is configured, in a small
+    league.
+  - `verify_054.sql` doesn't assert which voters are returned (needs fixture auth users); check that
+    by hand when applying the migration.
+  - A partial send failure keeps the week claimed (decision 3.6).

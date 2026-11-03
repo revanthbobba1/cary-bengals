@@ -94,6 +94,18 @@ BEGIN
   EXECUTE 'SET LOCAL ROLE service_role';
   PERFORM * FROM public.get_unsubmitted_voters(v_id);
   RAISE NOTICE 'PASS: service_role allowed';
+
+  -- An unknown week id must raise, not return every admin user as "unsubmitted".
+  BEGIN
+    PERFORM * FROM public.get_unsubmitted_voters('00000000-0000-0000-0000-000000000000');
+    RAISE EXCEPTION 'FAIL: unknown week id did not raise';
+  EXCEPTION WHEN raise_exception THEN
+    -- The FAIL above is also a raise_exception, so anything but the expected message re-raises.
+    IF SQLERRM NOT LIKE 'Poll week % not found' THEN
+      RAISE;
+    END IF;
+    RAISE NOTICE 'PASS: unknown week id raises';
+  END;
   EXECUTE 'RESET ROLE';
 END;
 $access$;
