@@ -98,10 +98,19 @@ Phase N+1 does not start until phase N's PR is merged and its migration applied.
   week's real reminder is consumed. Do not release this to `main` until `GMAIL_USER` and
   `GMAIL_APP_PASSWORD` are set in Netlify and migration 054 is applied.
 
-### Phase 5: commissioner control (optional, separate PR)
+### Phase 5: commissioner control
 
-- In `/admin/commissioner`'s poll-week form: editable "Remind N hours before" and a read-only
-  "Reminder sent at ..." line. Phase 1's default of 4 means this only adds editing.
+- In `/admin/commissioner`'s poll-week table (`components/PollWeekManager.tsx`): an always-visible
+  subtext line under each week's status. Open weeks show "Reminder: Nh before deadline" or
+  "Reminder: off" with Turn on/off and Change time (1-168 hours); sent weeks show "Reminder sent …".
+- **On/off toggle, scoped per week** (migration `055`: `poll_weeks.reminders_enabled`, default
+  true), chosen over a league-wide settings table to avoid a new table. To cover "suppress all
+  future weeks":
+  - a bulk "Turn off/on reminders for all upcoming weeks" action (unlocked, future-deadline weeks);
+  - the create-week form has a "send reminders" checkbox that defaults to the **latest week's**
+    setting, so off carries forward to weeks created later.
+- The route skips disabled weeks and re-checks the flag when claiming, so a toggle made between
+  its two queries is honored.
 
 ## 5. Setup outside the code
 

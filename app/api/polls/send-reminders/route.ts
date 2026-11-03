@@ -39,6 +39,7 @@ export async function POST(request: Request) {
       .from('poll_weeks')
       .select('id, week_number, deadline, reminder_hours_before')
       .eq('is_locked', false)
+      .eq('reminders_enabled', true)
       .is('reminder_sent_at', null)
       .gt('deadline', new Date(now).toISOString())
     if (candidatesError) throw new Error(candidatesError.message)
@@ -65,11 +66,12 @@ export async function POST(request: Request) {
         .from('poll_weeks')
         .update({ reminder_sent_at: new Date().toISOString() })
         .eq('id', week.id)
+        .eq('reminders_enabled', true) // re-checked: the commissioner may have just switched it off
         .is('reminder_sent_at', null)
         .select('id')
       if (claimError) throw new Error(claimError.message)
       if (!claimed || claimed.length === 0) {
-        result.skipped = 'already claimed'
+        result.skipped = 'already claimed or reminders just turned off'
         weeks.push(result)
         continue
       }
