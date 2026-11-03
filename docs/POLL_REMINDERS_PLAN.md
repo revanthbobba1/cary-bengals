@@ -191,3 +191,16 @@ No JS test framework, so Phase 3 is verified manually against a dev Supabase pro
   - The lead-time field can stay open on a week that closes in another tab; saving it updates a
     week the job will never remind.
   - The bulk action filters on the page's server-render time, like the rest of this page.
+- 2026-11-03: migrations applied to the live project with `supabase db query --linked --file`
+  (not `db push`: `migration list` shows 052/053 without a remote history row, so the history table
+  isn't a reliable record here). Live `poll_weeks` had no triggers, so 054 had nothing to collide
+  with. Applied 054, 055, and a new 056, then ran `verify_054.sql` (rolled back, no leftover rows).
+  - **Finding:** `verify_054.sql` first failed because `REVOKE … FROM PUBLIC` in 054 did not remove
+    Supabase's default direct grants to `anon`/`authenticated`, so they could still execute
+    `get_unsubmitted_voters`. The in-function `auth.role()` check had refused them (nothing was
+    exposed). 056 revokes the grants; the script now passes. Any future service_role-only function
+    needs an explicit `REVOKE … FROM anon, authenticated`.
+  - Voter list checked by count against an independent query (week 8: 12 admin voters with email,
+    3 fully submitted, function returned 9). No addresses were read.
+  - Still outstanding before release to `main`: Gmail credentials, and a real run of
+    `/api/polls/send-reminders` (needs the cron secret and the deployed site).
