@@ -74,20 +74,35 @@ export async function POST(request: Request) {
         continue
       }
 
-      const release = () =>
-        supabase.from('poll_weeks').update({ reminder_sent_at: null }).eq('id', week.id)
+      // Un-claims the week so the next run retries it. Returns false (and logs) if the un-claim
+      // itself fails, so the result never claims a retry that can't happen.
+      const release = async (): Promise<boolean> => {
+        const { error } = await supabase
+          .from('poll_weeks')
+          .update({ reminder_sent_at: null })
+          .eq('id', week.id)
+        if (error) {
+          console.error(`Week ${week.week_number}: could not release claim: ${error.message}`)
+        }
+        return !error
+      }
 
-      const { data: voters, error: votersError } = await supabase.rpc('get_unsubmitted_voters', {
-        p_poll_week_id: week.id,
-      })
+      const { data: votersData, error: votersError } = await supabase.rpc(
+        'get_unsubmitted_voters',
+        { p_poll_week_id: week.id }
+      )
       if (votersError) {
-        await release() // nothing was sent; let the next run retry
+        // Nothing was sent; let the next run retry.
+        const released = await release()
         console.error(`Week ${week.week_number}: voter lookup failed: ${votersError.message}`)
-        result.skipped = 'voter lookup failed'
+        result.skipped = released
+          ? 'voter lookup failed; will retry'
+          : 'voter lookup failed; claim stuck'
         weeks.push(result)
         continue
       }
 
+      const voters = votersData ?? []
       result.recipients = voters.length
       for (const voter of voters) {
         try {
@@ -109,8 +124,9 @@ export async function POST(request: Request) {
       // briefly invalid). A partial failure stays claimed: re-sending would double-email the
       // recipients that already succeeded, and failures are logged above.
       if (result.recipients > 0 && result.sent === 0) {
-        await release()
-        result.skipped = 'all sends failed; will retry'
+        result.skipped = (await release())
+          ? 'all sends failed; will retry'
+          : 'all sends failed; claim stuck'
       }
       weeks.push(result)
     }

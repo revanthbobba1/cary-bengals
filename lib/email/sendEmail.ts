@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer'
+import nodemailer, { type Transporter } from 'nodemailer'
 
 // Server-only. Sends through the league Gmail account over SMTP (free; see AGENTS.md "Cost
 // constraint" and docs/POLL_REMINDERS_PLAN.md decision 3.1). Gmail rewrites any From address other
@@ -15,6 +15,28 @@ export type EmailMessage = {
 
 export type SendResult = { dryRun: boolean }
 
+// One pooled transport reused across sends, so a batch of reminders shares a single TLS connection
+// and SMTP login instead of paying for a new handshake per email (which risks the function's time
+// limit mid-batch). Cached per credential pair so a changed env value is picked up.
+let cached: { key: string; transporter: Transporter } | null = null
+
+function getTransporter(user: string, pass: string): Transporter {
+  const key = `${user}:${pass}`
+  if (cached?.key !== key) {
+    cached = {
+      key,
+      transporter: nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
+        pool: true,
+        auth: { user, pass },
+      }),
+    }
+  }
+  return cached.transporter
+}
+
 export async function sendEmail(message: EmailMessage): Promise<SendResult> {
   const user = process.env.GMAIL_USER
   const pass = process.env.GMAIL_APP_PASSWORD
@@ -26,13 +48,7 @@ export async function sendEmail(message: EmailMessage): Promise<SendResult> {
     return { dryRun: true }
   }
 
-  const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
-    auth: { user, pass },
-  })
-  await transporter.sendMail({
+  await getTransporter(user, pass).sendMail({
     from: `Cary Bengals <${user}>`,
     to: message.to,
     subject: message.subject,
