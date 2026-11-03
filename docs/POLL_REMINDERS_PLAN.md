@@ -5,7 +5,7 @@ deadline. See `POLL_SYSTEM_PLAN.md` for the poll feature this builds on and
 `ESPN_INTEGRATION_PLAN.md` for the Netlify-cron pattern it reuses.
 
 Last reviewed: 2026-11-02
-Status: **planned, not started**
+Status: **Phases 1-4 built on the `feature/poll-reminders-integration` branch (dry-run email); Phase 5 UI, the Gmail account, and applying migration 054 are outstanding**
 
 ## 1. Goal
 
@@ -85,15 +85,34 @@ Phase N+1 does not start until phase N's PR is merged and its migration applied.
 
 ### Phase 4: scheduler — `netlify/functions/poll-reminders.mts`
 
-- `export const config = { schedule: '*/15 * * * *' }`.
+- `export const config = { schedule: '0 * * * *' }` (hourly). Originally `*/15`; changed to
+  hourly because the reminder only needs to land within an hour of the lead time and hourly does a
+  quarter of the work. Keep the interval well under the shortest `reminder_hours_before` in use.
 - No time-window gating; reminders can be due at any hour and the claim flag makes frequent runs cheap.
 - Reuse `callSyncRoute` from `netlify/lib/espnCron.ts`, making its ESPN `/healthz` warm-up
   optional, or rename the helper to something neutral.
+- **Built:** reused it with a new `warmEspnService` option (default true, so the ESPN functions
+  are unchanged) and kept the ESPN-named file.
+- **Release gate:** Netlify scheduled functions only run on the production (`main`) deploy. While
+  the Gmail credentials are unset, a due week is claimed and its reminder is only logged, so that
+  week's real reminder is consumed. Do not release this to `main` until `GMAIL_USER` and
+  `GMAIL_APP_PASSWORD` are set in Netlify and migrations **054 and 055** are both applied. The
+  route selects `reminders_enabled` (added by 055), so deploying it before 055 makes the whole
+  hourly job fail with "column does not exist".
 
-### Phase 5: commissioner control (optional, separate PR)
+### Phase 5: commissioner control
 
-- In `/admin/commissioner`'s poll-week form: editable "Remind N hours before" and a read-only
-  "Reminder sent at ..." line. Phase 1's default of 4 means this only adds editing.
+- In `/admin/commissioner`'s poll-week table (`components/PollWeekManager.tsx`): an always-visible
+  subtext line under each week's status. Open weeks show "Reminder: Nh before deadline" or
+  "Reminder: off" with Turn on/off and Change time (1-168 hours); sent weeks show "Reminder sent …".
+- **On/off toggle, scoped per week** (migration `055`: `poll_weeks.reminders_enabled`, default
+  true), chosen over a league-wide settings table to avoid a new table. To cover "suppress all
+  future weeks":
+  - a bulk "Turn off/on reminders for all upcoming weeks" action (unlocked, future-deadline weeks);
+  - the create-week form has a "send reminders" checkbox that defaults to the **latest week's**
+    setting, so off carries forward to weeks created later.
+- The route skips disabled weeks and re-checks the flag when claiming, so a toggle made between
+  its two queries is honored.
 
 ## 5. Setup outside the code
 
@@ -131,3 +150,57 @@ No JS test framework, so Phase 3 is verified manually against a dev Supabase pro
 
 - 2026-11-02: plan drafted from issue #131 and a read of the poll schema, 018 status function,
   and Netlify cron helpers. Nothing implemented.
+- 2026-11-02: Phases 1-3 built on `feature/poll-reminders`, with email in dry-run mode (logged,
+  not sent) because the Gmail credentials don't exist yet. Deviations from the plan above:
+  - The claim is done in the route with a PostgREST `update ... is('reminder_sent_at', null)
+.select()`, not a SQL function; `get_unsubmitted_voters` is the only new function in
+    `054_poll_reminders.sql`. The "within N hours" test runs in JS because it compares against a
+    per-row column.
+  - `reminder_hours_before` has a CHECK of 1-168.
+  - The email code is split into `lib/email/sendEmail.ts` (transport + dry-run fallback when
+    `GMAIL_USER`/`GMAIL_APP_PASSWORD` are unset) and `lib/email/pollReminder.ts` (template).
+  - Verified: `yarn lint`, `yarn build`, and the route's 401 gate. **Not verified:** migration 054
+    has not been applied or run through `supabase/tests/verify_054.sql`, and the route's sending
+    logic has not run against a database. Do both before relying on it.
+  - Nothing calls the route yet. Phase 4 (the Netlify scheduled function) is still to do.
+  - Before applying 054, check the live `poll_weeks` triggers (query in the migration header).
+- 2026-11-02: medium code review of PR #214. Fixed: one pooled `nodemailer` transport reused per
+  process (a fresh TLS login per email risked the function time limit mid-batch, after the week was
+  already claimed); the route now checks and logs a failed un-claim and reports "claim stuck"
+  instead of a retry that can't happen; a null voter result is treated as empty;
+  `get_unsubmitted_voters` raises on an unknown week id instead of returning every admin user.
+  Reviewed and deliberately left as is:
+  - The voter population is "admin role", copied from `018` so the reminder list matches the
+    commissioner's "who hasn't voted" view. A non-voting admin would be nagged; if that shows up,
+    fix it in both functions together.
+  - Dry-run mode logs full recipient addresses. Only applies before Gmail is configured, in a small
+    league.
+  - `verify_054.sql` doesn't assert which voters are returned (needs fixture auth users); check that
+    by hand when applying the migration.
+  - A partial send failure keeps the week claimed (decision 3.6).
+- 2026-11-03: medium code review of PR #216 (Phase 5 UI). Fixed: the create form's reminder
+  checkbox is now an override on a default derived from the latest week (it went stale after a
+  per-week toggle); the bulk action no longer sets form state and reports when it changed nothing;
+  both reminder handlers `console.error` the real error; "Reminder: off" no longer shows on closed
+  weeks; the nested ternary became `components/PollWeekReminderStatus.tsx`; the release gate now
+  names migration 055. Reviewed and deliberately left as is:
+  - Sent weeks hide the on/off and time controls. Changing the lead time after the email went out
+    does nothing; moving the deadline re-arms the reminder.
+  - Turning reminders off while a batch is mid-send doesn't stop that batch (the window is
+    seconds, and the claim has already happened).
+  - The lead-time field can stay open on a week that closes in another tab; saving it updates a
+    week the job will never remind.
+  - The bulk action filters on the page's server-render time, like the rest of this page.
+- 2026-11-03: migrations applied to the live project with `supabase db query --linked --file`
+  (not `db push`: `migration list` shows 052/053 without a remote history row, so the history table
+  isn't a reliable record here). Live `poll_weeks` had no triggers, so 054 had nothing to collide
+  with. Applied 054, 055, and a new 056, then ran `verify_054.sql` (rolled back, no leftover rows).
+  - **Finding:** `verify_054.sql` first failed because `REVOKE … FROM PUBLIC` in 054 did not remove
+    Supabase's default direct grants to `anon`/`authenticated`, so they could still execute
+    `get_unsubmitted_voters`. The in-function `auth.role()` check had refused them (nothing was
+    exposed). 056 revokes the grants; the script now passes. Any future service_role-only function
+    needs an explicit `REVOKE … FROM anon, authenticated`.
+  - Voter list checked by count against an independent query (week 8: 12 admin voters with email,
+    3 fully submitted, function returned 9). No addresses were read.
+  - Still outstanding before release to `main`: Gmail credentials, and a real run of
+    `/api/polls/send-reminders` (needs the cron secret and the deployed site).
