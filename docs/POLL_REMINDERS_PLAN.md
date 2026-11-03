@@ -5,7 +5,7 @@ deadline. See `POLL_SYSTEM_PLAN.md` for the poll feature this builds on and
 `ESPN_INTEGRATION_PLAN.md` for the Netlify-cron pattern it reuses.
 
 Last reviewed: 2026-11-02
-Status: **planned, not started**
+Status: **Phases 1-3 built on `feature/poll-reminders` (dry-run email); Phase 4 scheduler, Phase 5 UI, and the Gmail account are outstanding**
 
 ## 1. Goal
 
@@ -131,3 +131,17 @@ No JS test framework, so Phase 3 is verified manually against a dev Supabase pro
 
 - 2026-11-02: plan drafted from issue #131 and a read of the poll schema, 018 status function,
   and Netlify cron helpers. Nothing implemented.
+- 2026-11-02: Phases 1-3 built on `feature/poll-reminders`, with email in dry-run mode (logged,
+  not sent) because the Gmail credentials don't exist yet. Deviations from the plan above:
+  - The claim is done in the route with a PostgREST `update ... is('reminder_sent_at', null)
+.select()`, not a SQL function; `get_unsubmitted_voters` is the only new function in
+    `054_poll_reminders.sql`. The "within N hours" test runs in JS because it compares against a
+    per-row column.
+  - `reminder_hours_before` has a CHECK of 1-168.
+  - The email code is split into `lib/email/sendEmail.ts` (transport + dry-run fallback when
+    `GMAIL_USER`/`GMAIL_APP_PASSWORD` are unset) and `lib/email/pollReminder.ts` (template).
+  - Verified: `yarn lint`, `yarn build`, and the route's 401 gate. **Not verified:** migration 054
+    has not been applied or run through `supabase/tests/verify_054.sql`, and the route's sending
+    logic has not run against a database. Do both before relying on it.
+  - Nothing calls the route yet. Phase 4 (the Netlify scheduled function) is still to do.
+  - Before applying 054, check the live `poll_weeks` triggers (query in the migration header).
