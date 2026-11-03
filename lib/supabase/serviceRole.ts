@@ -2,7 +2,8 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 
 /**
  * The ONLY file in this app allowed to read SUPABASE_SERVICE_ROLE_KEY. Never import this outside
- * app/api/espn/sync-matchups/route.ts and app/api/espn/sync-all/route.ts, and never pass its
+ * app/api/espn/sync-matchups/route.ts, app/api/espn/sync-all/route.ts and
+ * app/api/polls/send-reminders/route.ts, and never pass its
  * client anywhere a request body or user input could reach — it bypasses Row Level Security on
  * every table in the project, not just what jwt_has_role('commissioner') covers.
  *
