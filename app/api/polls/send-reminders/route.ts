@@ -1,7 +1,7 @@
 // Emails voters who haven't submitted a ballot when a poll week is within its reminder window
 // (poll_weeks.reminder_hours_before of the deadline). See docs/POLL_REMINDERS_PLAN.md.
 //
-// Meant to be called every ~15 minutes by a scheduled job (Phase 4, not built yet). Safe to call
+// Meant to be called hourly by netlify/functions/poll-reminders.mts (Phase 4). Safe to call
 // as often as you like: each week is claimed atomically via reminder_sent_at, so a week is
 // emailed at most once per deadline value (migration 054 clears the flag if the deadline moves).
 //
