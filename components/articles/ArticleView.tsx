@@ -107,7 +107,11 @@ export default function ArticleView({
         </div>
 
         {sidebarHasContent && (
-          <ArticleSidebar matchups={article.matchups} author={author} pollTopFive={pollTopFive} />
+          // Below xl the grid is a single column: order-first lifts the sidebar (author, "On This
+          // Page", poll) above the matchups instead of leaving it stranded after the article.
+          <div className="order-first pt-8 xl:sticky xl:top-28 xl:order-none xl:self-start xl:pt-10">
+            <ArticleSidebar matchups={article.matchups} author={author} pollTopFive={pollTopFive} />
+          </div>
         )}
       </div>
     </>

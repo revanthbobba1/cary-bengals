@@ -23,7 +23,7 @@ function matchupLabel(m: ArticleMatchup): string {
 
 export default function ArticleSidebar({ matchups, author, pollTopFive }: Props) {
   return (
-    <aside className="sticky top-28 flex flex-col gap-5">
+    <aside className="flex flex-col gap-5">
       {author && (
         <div className="flex items-center gap-2">
           {author.avatar && (
