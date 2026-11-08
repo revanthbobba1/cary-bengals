@@ -4,7 +4,8 @@ import TeamLogo from '@/components/TeamLogo'
 import siteMetadata from '@/data/siteMetadata'
 import { focusRingClasses } from '@/lib/focusRing'
 import { getYoutubeThumbnailUrl, getYoutubeVideoId } from '@/lib/youtube'
-import type { HomeSnapshot, SnapshotMatchup, StandingsRow, TopScore } from '@/lib/home/homeData'
+import WeeklyAwards from '@/components/WeeklyAwards'
+import type { HomeSnapshot, SnapshotMatchup, StandingsRow } from '@/lib/home/homeData'
 
 const cardClasses =
   'rounded-card border border-gray-200 bg-white p-5 shadow-card dark:border-gray-800 dark:bg-gray-900 dark:shadow-card-dark'
@@ -98,23 +99,6 @@ function MatchupRow({ matchup }: { matchup: SnapshotMatchup }) {
   )
 }
 
-function ScoreLine({ emoji, label, line }: { emoji: string; label: string; line: TopScore }) {
-  return (
-    <p className="flex flex-wrap items-center gap-x-2 text-sm text-gray-500 dark:text-gray-400">
-      <span aria-hidden="true">{emoji}</span>
-      <span>
-        Week {line.weekNumber} {label}:
-      </span>
-      <TeamLogo src={line.teamLogo} />
-      <span className="font-medium text-ink dark:text-gray-100">{line.teamName}</span>
-      <span className="font-semibold tabular-nums text-ink dark:text-gray-100">{line.score}</span>
-      <span>
-        ({line.won ? 'beat' : 'lost to'} {line.opponentName} {line.opponentScore})
-      </span>
-    </p>
-  )
-}
-
 // Fixed height so the standings rows (two lines of text) and the poll rows beside them (one line)
 // stay level with each other.
 const listRowClasses = 'flex h-11 items-center'
@@ -204,8 +188,7 @@ export default function Home({ snapshot }: { snapshot: HomeSnapshot }) {
     standings,
     week,
     matchups,
-    topScore,
-    lowScore,
+    awards,
   } = snapshot
   const videoId = getYoutubeVideoId(latestConference?.youtube_url)
   const conferenceImage =
@@ -326,10 +309,12 @@ export default function Home({ snapshot }: { snapshot: HomeSnapshot }) {
           ) : (
             <Empty>No matchups synced for this week yet.</Empty>
           )}
-          {(topScore || lowScore) && (
-            <div className="mt-4 space-y-1.5 border-t border-gray-100 pt-3 dark:border-gray-800">
-              {topScore && <ScoreLine emoji="🔥" label="high score" line={topScore} />}
-              {lowScore && <ScoreLine emoji="🚽" label="low score" line={lowScore} />}
+          {awards && (
+            <div className="mt-4 border-t border-gray-100 pt-3 dark:border-gray-800">
+              <h3 className="mb-3 text-sm font-semibold text-ink dark:text-gray-100">
+                Week {awards.weekNumber} Awards
+              </h3>
+              <WeeklyAwards awards={awards.awards} teamLogoById={awards.teamLogoById} />
             </div>
           )}
         </Section>

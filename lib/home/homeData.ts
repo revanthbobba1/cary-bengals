@@ -7,6 +7,8 @@ import { getPublishedArticles, type PublishedArticleSummary } from '@/lib/supaba
 import { getPressConferences } from '@/lib/supabase/pressConferences'
 import { teamLogoOrAvatar } from '@/lib/memberAvatar'
 import siteMetadata from '@/data/siteMetadata'
+import { computeWeeklyAwards, type Award } from '@/lib/awards/weeklyAwards'
+import type { MatchupPlayerScore } from '@/lib/types/matchup'
 import type { PressConference } from '@/lib/types/pressConference'
 import type { TransactionItem } from '@/lib/types/transaction'
 import { computePlayoffOdds, type OddsGame, type TeamOdds } from '@/lib/playoffs/odds'
@@ -55,14 +57,10 @@ export interface LatestPoll {
   movers: { team_name: string; delta: number }[]
 }
 
-export interface TopScore {
+export interface WeekAwards {
   weekNumber: number
-  teamName: string
-  teamLogo: string | null
-  score: number
-  opponentName: string
-  opponentScore: number
-  won: boolean
+  awards: Award[]
+  teamLogoById: Record<string, string | null>
 }
 
 export interface SnapshotTransaction {
@@ -83,9 +81,8 @@ export interface HomeSnapshot {
   standings: StandingsRow[]
   week: number | null
   matchups: SnapshotMatchup[]
-  // Highest score of the last completed week (current week - 1); null early in the season.
-  topScore: TopScore | null
-  lowScore: TopScore | null
+  // Awards for the last completed week (current week - 1); null early in the season.
+  awards: WeekAwards | null
 }
 
 function hasSupabase() {
@@ -152,15 +149,67 @@ function parseTrend(trend: string | null): number {
   return (match[1] === '↑' ? 1 : -1) * Number(match[2])
 }
 
+// Awards for one finished week. Needs the week's box scores for the bench/player awards, so it
+// does its own two small reads (~6 matchups, ~190 player rows) rather than widening the
+// every-completed-week query the streaks use.
+async function loadLastWeekAwards(
+  supabase: ReturnType<typeof createPublicClient>,
+  season: number,
+  weekNumber: number,
+  nameById: Map<string, string>,
+  logoById: Map<string, string | null>
+): Promise<WeekAwards | null> {
+  if (weekNumber < 1) return null
+  const { data: rows, error } = await supabase
+    .from('matchups')
+    .select('id, is_bye, home_team_id, away_team_id, home_score, away_score')
+    .eq('season_year', season)
+    .eq('week_number', weekNumber)
+  if (error) throw error
+  if (!rows?.length) return null
+
+  // A failure here only costs the box-score awards; the score-based ones still render.
+  const { data: playerRows, error: playersError } = await supabase
+    .from('matchup_player_scores')
+    .select(
+      'id, matchup_id, team_side, player_name, position, pro_team, lineup_slot, is_starter, points, sort_order'
+    )
+    .in(
+      'matchup_id',
+      rows.map((m) => m.id)
+    )
+    .order('sort_order')
+  if (playersError) console.error('Failed to load player scores for awards:', playersError)
+
+  const playersBySide = new Map<string, MatchupPlayerScore[]>()
+  for (const row of playersError ? [] : (playerRows ?? [])) {
+    const key = `${row.matchup_id}:${row.team_side}`
+    const group = playersBySide.get(key) ?? []
+    // Awards only read these fields; the stat breakdown/availability aren't needed here.
+    group.push({ ...row, stat_breakdown: {}, availability: null } as MatchupPlayerScore)
+    playersBySide.set(key, group)
+  }
+
+  const awards = computeWeeklyAwards(
+    rows.map((m) => ({
+      ...m,
+      home_player_scores: playersBySide.get(`${m.id}:home`) ?? null,
+      away_player_scores: playersBySide.get(`${m.id}:away`) ?? null,
+    })),
+    Object.fromEntries(nameById)
+  )
+  if (awards.length === 0) return null
+  return { weekNumber, awards, teamLogoById: Object.fromEntries(logoById) }
+}
+
 async function loadStandingsAndMatchups(season: number): Promise<{
   standings: StandingsRow[]
   week: number | null
   matchups: SnapshotMatchup[]
-  topScore: TopScore | null
-  lowScore: TopScore | null
+  awards: WeekAwards | null
 }> {
   if (!hasSupabase()) {
-    return { standings: [], week: null, matchups: [], topScore: null, lowScore: null }
+    return { standings: [], week: null, matchups: [], awards: null }
   }
   const supabase = createPublicClient()
 
@@ -246,7 +295,7 @@ async function loadStandingsAndMatchups(season: number): Promise<{
     )
 
   const week = stateResult.data?.current_week ?? null
-  if (week === null) return { standings, week, matchups: [], topScore: null, lowScore: null }
+  if (week === null) return { standings, week, matchups: [], awards: null }
 
   const [matchupResult, pastResult] = await Promise.all([
     supabase
@@ -283,26 +332,12 @@ async function loadStandingsAndMatchups(season: number): Promise<{
       !(m.home_score === 0 && m.away_score === 0)
   )
 
-  // High/low across every team's score last week. The high always belongs to a winner and the low
-  // to a loser (barring ties), so `won` on each line is just a display convenience.
-  const lastWeekSides = past
-    .filter((m) => m.week_number === week - 1)
-    .flatMap((m) => [
-      { id: m.home_team_id, score: m.home_score, oppId: m.away_team_id, oppScore: m.away_score },
-      { id: m.away_team_id, score: m.away_score, oppId: m.home_team_id, oppScore: m.home_score },
-    ])
-  const toScoreLine = (side: (typeof lastWeekSides)[number]): TopScore => ({
-    weekNumber: week - 1,
-    teamName: nameById.get(side.id) ?? 'Unknown Team',
-    teamLogo: logoById.get(side.id) ?? null,
-    score: side.score,
-    opponentName: nameById.get(side.oppId) ?? 'Unknown Team',
-    opponentScore: side.oppScore,
-    won: side.score > side.oppScore,
-  })
-  const byScore = [...lastWeekSides].sort((a, b) => b.score - a.score)
-  const topScore = byScore.length ? toScoreLine(byScore[0]) : null
-  const lowScore = byScore.length ? toScoreLine(byScore[byScore.length - 1]) : null
+  const awards = await loadLastWeekAwards(supabase, season, week - 1, nameById, logoById).catch(
+    (error) => {
+      console.error('Failed to load weekly awards for the home page:', error)
+      return null
+    }
+  )
 
   // Current streak per team: walk its games newest-first until the result changes. A tie ends
   // the streak (and isn't one itself).
@@ -335,7 +370,7 @@ async function loadStandingsAndMatchups(season: number): Promise<{
     awayProjected: m.away_projected_score,
     isBye: m.is_bye,
   }))
-  return { standings: standingsWithStreaks, week, matchups, topScore, lowScore }
+  return { standings: standingsWithStreaks, week, matchups, awards }
 }
 
 const TRANSACTION_LIMIT = 5
@@ -445,8 +480,7 @@ export async function loadHomeSnapshot(): Promise<HomeSnapshot> {
       standings: [] as StandingsRow[],
       week: null,
       matchups: [] as SnapshotMatchup[],
-      topScore: null as TopScore | null,
-      lowScore: null as TopScore | null,
+      awards: null as WeekAwards | null,
     }),
     settle(
       'transactions',
