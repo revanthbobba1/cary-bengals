@@ -115,6 +115,10 @@ function ScoreLine({ emoji, label, line }: { emoji: string; label: string; line:
   )
 }
 
+// Fixed height so the standings rows (two lines of text) and the poll rows beside them (one line)
+// stay level with each other.
+const listRowClasses = 'flex h-11 items-center'
+
 const badgeLabels = {
   'clinched-bye': { text: 'Bye', title: 'Clinched a first-round bye' },
   clinched: { text: 'In', title: 'Clinched a playoff spot' },
@@ -151,7 +155,7 @@ function StandingsList({ rows }: { rows: StandingsRow[] }) {
   return (
     <ol className="divide-y divide-gray-100 dark:divide-gray-800">
       {rows.map((team, index) => (
-        <li key={team.id} className="flex items-center gap-3 py-1.5 text-sm">
+        <li key={team.id} className={`${listRowClasses} gap-3 text-sm`}>
           <span className="w-5 text-right tabular-nums text-gray-400 dark:text-gray-500">
             {index + 1}
           </span>
@@ -381,7 +385,7 @@ export default function Home({ snapshot }: { snapshot: HomeSnapshot }) {
             // Same row metrics as the standings list beside it, so the two cards line up.
             <ol className="divide-y divide-gray-100 dark:divide-gray-800">
               {latestPoll.rows.map((row) => (
-                <li key={row.team_id} className="flex items-center gap-3 py-1.5 text-sm">
+                <li key={row.team_id} className={`${listRowClasses} gap-3 text-sm`}>
                   <span className="w-5 text-right font-bold tabular-nums text-primary-500">
                     {row.final_rank}
                   </span>
