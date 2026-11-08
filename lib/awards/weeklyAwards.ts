@@ -140,8 +140,11 @@ export function computeWeeklyAwards(
     })
   }
 
+  // Hard Luck / Lucky Win only count when the result actually crossed over: the best loser outscored
+  // some winner, or the worst winner scored below some loser. If the winners were exactly the top
+  // scorers, nobody was unlucky and the award is skipped.
   const hardLuck = [...losers].sort((a, b) => b.score - a.score)[0]
-  if (hardLuck) {
+  if (hardLuck && winners.some((w) => w.score < hardLuck.score)) {
     awards.push({
       id: 'hard-luck',
       emoji: '💔',
@@ -153,7 +156,7 @@ export function computeWeeklyAwards(
   }
 
   const lucky = [...winners].sort((a, b) => a.score - b.score)[0]
-  if (lucky) {
+  if (lucky && losers.some((l) => l.score > lucky.score)) {
     awards.push({
       id: 'lucky-win',
       emoji: '🍀',
