@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState, useTransition } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import MatchupList from './MatchupList'
+import WeeklyAwards from './WeeklyAwards'
+import { computeWeeklyAwards } from '@/lib/awards/weeklyAwards'
 import { focusRingClasses } from '@/lib/focusRing'
 import type { Matchup } from '@/lib/types/matchup'
 
@@ -133,6 +135,14 @@ export default function ScheduleWeekBrowser({
     }
   }, [selectedWeek, currentWeek, router])
 
+  const awards = useMemo(
+    () =>
+      selectedWeek === null
+        ? []
+        : computeWeeklyAwards(matchupsByWeek.get(selectedWeek) ?? [], teamNameById),
+    [selectedWeek, matchupsByWeek, teamNameById]
+  )
+
   if (weeks.length === 0 || selectedWeek === null) {
     return (
       <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -180,6 +190,15 @@ export default function ScheduleWeekBrowser({
           allowExpand
         />
       </section>
+      {/* Only a finished week: the live week's "awards" would shift with every score update. */}
+      {selectedWeek !== currentWeek && awards.length > 0 && (
+        <section className="mt-10">
+          <h2 className="mb-3 text-xl font-semibold text-ink dark:text-gray-100">
+            Week {selectedWeek} Awards
+          </h2>
+          <WeeklyAwards awards={awards} teamLogoById={teamLogoById} />
+        </section>
+      )}
     </>
   )
 }
