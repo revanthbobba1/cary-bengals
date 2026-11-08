@@ -178,6 +178,7 @@ async function loadLastWeekAwards(
       'matchup_id',
       rows.map((m) => m.id)
     )
+    .order('sort_order')
   if (playersError) console.error('Failed to load player scores for awards:', playersError)
 
   const playersBySide = new Map<string, MatchupPlayerScore[]>()
