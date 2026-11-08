@@ -9,6 +9,7 @@ import { teamLogoOrAvatar } from '@/lib/memberAvatar'
 import siteMetadata from '@/data/siteMetadata'
 import type { PressConference } from '@/lib/types/pressConference'
 import type { TransactionItem } from '@/lib/types/transaction'
+import { computePlayoffOdds, type OddsGame, type TeamOdds } from '@/lib/playoffs/odds'
 
 const MIN_STREAK = 3
 
@@ -21,6 +22,8 @@ export interface StandingsRow {
   ties: number
   // Current run of at least MIN_STREAK consecutive wins or losses; absent otherwise.
   streak?: { kind: 'W' | 'L'; length: number }
+  // Playoff picture from the remaining regular-season schedule; absent before the schedule syncs.
+  odds?: Omit<TeamOdds, 'teamId'>
 }
 
 export interface SnapshotMatchup {
@@ -161,7 +164,7 @@ async function loadStandingsAndMatchups(season: number): Promise<{
   }
   const supabase = createPublicClient()
 
-  const [teamsResult, stateResult] = await Promise.all([
+  const [teamsResult, stateResult, scheduleResult] = await Promise.all([
     supabase
       .from('teams')
       .select('id, name, owner_name, espn_logo_url, wins, losses, ties')
@@ -171,9 +174,20 @@ async function loadStandingsAndMatchups(season: number): Promise<{
       .select('current_week')
       .eq('season_year', season)
       .maybeSingle(),
+    // The whole regular season (~84 rows): finished games give points for, the rest are what the
+    // playoff odds simulate.
+    supabase
+      .from('matchups')
+      .select('home_team_id, away_team_id, home_score, away_score, winner')
+      .eq('season_year', season)
+      .eq('is_playoffs', false)
+      .eq('is_bye', false),
   ])
   if (teamsResult.error) throw teamsResult.error
   if (stateResult.error) throw stateResult.error
+  // Odds are an extra: if this read fails the standings still render without them.
+  if (scheduleResult.error)
+    console.error('Failed to load the season schedule:', scheduleResult.error)
 
   const teams = teamsResult.data ?? []
   const logoById = new Map(
@@ -185,7 +199,36 @@ async function loadStandingsAndMatchups(season: number): Promise<{
     const games = t.wins + t.losses + t.ties
     return games === 0 ? 0 : (t.wins + t.ties / 2) / games
   }
-  const standings = teams
+  // A 0-0 row is a game that was never scored/synced, so it stays unplayed.
+  const games: OddsGame[] = (scheduleResult.data ?? []).flatMap((m) =>
+    m.away_team_id === null || m.away_score === null
+      ? []
+      : [
+          {
+            homeTeamId: m.home_team_id,
+            awayTeamId: m.away_team_id,
+            isFinal: m.winner !== 'UNDECIDED' && !(m.home_score === 0 && m.away_score === 0),
+            homeScore: Number(m.home_score),
+            awayScore: Number(m.away_score),
+          },
+        ]
+  )
+  const pointsFor = new Map<string, number>()
+  for (const g of games) {
+    if (!g.isFinal) continue
+    pointsFor.set(g.homeTeamId, (pointsFor.get(g.homeTeamId) ?? 0) + g.homeScore)
+    pointsFor.set(g.awayTeamId, (pointsFor.get(g.awayTeamId) ?? 0) + g.awayScore)
+  }
+  const oddsById = new Map(
+    games.length
+      ? computePlayoffOdds(
+          teams.map((t) => t.id),
+          games
+        ).map(({ teamId, ...odds }) => [teamId, odds])
+      : []
+  )
+  // Win % then points for, the same order as the League History standings.
+  const standings: StandingsRow[] = teams
     .map((t) => ({
       id: t.id,
       name: t.name,
@@ -193,8 +236,14 @@ async function loadStandingsAndMatchups(season: number): Promise<{
       wins: t.wins,
       losses: t.losses,
       ties: t.ties,
+      odds: oddsById.get(t.id),
     }))
-    .sort((a, b) => winPct(b) - winPct(a) || b.wins - a.wins || a.name.localeCompare(b.name))
+    .sort(
+      (a, b) =>
+        winPct(b) - winPct(a) ||
+        (pointsFor.get(b.id) ?? 0) - (pointsFor.get(a.id) ?? 0) ||
+        a.name.localeCompare(b.name)
+    )
 
   const week = stateResult.data?.current_week ?? null
   if (week === null) return { standings, week, matchups: [], topScore: null, lowScore: null }

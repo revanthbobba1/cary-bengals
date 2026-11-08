@@ -115,6 +115,38 @@ function ScoreLine({ emoji, label, line }: { emoji: string; label: string; line:
   )
 }
 
+const badgeLabels = {
+  'clinched-bye': { text: 'Bye', title: 'Clinched a first-round bye' },
+  clinched: { text: 'In', title: 'Clinched a playoff spot' },
+  eliminated: { text: 'Out', title: 'Eliminated from playoff contention' },
+} as const
+
+function PlayoffBadge({ status }: { status: NonNullable<StandingsRow['odds']>['status'] }) {
+  if (status === 'alive') return null
+  const { text, title } = badgeLabels[status]
+  const color =
+    status === 'eliminated'
+      ? 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
+      : 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
+  return (
+    <span
+      className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${color}`}
+      title={title}
+    >
+      {text}
+    </span>
+  )
+}
+
+// "Playoffs 72% · Bye 18% · Last 0%"; a decided status drops the figures it already answers.
+function oddsSubtext(odds: NonNullable<StandingsRow['odds']>) {
+  const parts: string[] = []
+  if (odds.status === 'alive') parts.push(`Playoffs ${odds.playoffPct}%`)
+  if (odds.status === 'alive' || odds.status === 'clinched') parts.push(`Bye ${odds.byePct}%`)
+  if (odds.status === 'alive' || odds.status === 'eliminated') parts.push(`Last ${odds.lastPct}%`)
+  return parts.join(' · ')
+}
+
 function StandingsList({ rows }: { rows: StandingsRow[] }) {
   return (
     <ol className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -124,9 +156,17 @@ function StandingsList({ rows }: { rows: StandingsRow[] }) {
             {index + 1}
           </span>
           <TeamLogo src={team.logo} />
-          <span className="min-w-0 flex-1 truncate font-medium text-ink dark:text-gray-100">
-            {team.name}
+          <span className="min-w-0 flex-1">
+            <span className="block truncate font-medium text-ink dark:text-gray-100">
+              {team.name}
+            </span>
+            {team.odds && oddsSubtext(team.odds) && (
+              <span className="block truncate text-xs text-gray-500 dark:text-gray-400">
+                {oddsSubtext(team.odds)}
+              </span>
+            )}
           </span>
+          {team.odds && <PlayoffBadge status={team.odds.status} />}
           {team.streak && (
             <span
               className={`text-xs font-semibold tabular-nums ${
