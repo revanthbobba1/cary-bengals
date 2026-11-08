@@ -20,10 +20,6 @@ export interface PollWeek {
   week_number: number
   deadline: string
   is_locked: boolean
-  // Poll reminder emails (migrations 054/055, docs/POLL_REMINDERS_PLAN.md).
-  reminders_enabled: boolean
-  reminder_hours_before: number
-  reminder_sent_at: string | null
   created_at: string
   updated_at: string
 }

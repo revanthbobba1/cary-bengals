@@ -3915,30 +3915,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:*":
-  version: 26.6.6
-  resolution: "@types/node@npm:26.6.6"
-  dependencies:
-    undici-types: ~8.9.0
-  checksum: e937cc3f4181fb2147241e3bacbd81f57c5e20c47eaa2f79b937908f45170ef8e751dfa62f5ebaff75953eca5f9158ed43363d7360ab5034d7985e5f8c4b6d1f
-  languageName: node
-  linkType: hard
-
 "@types/node@npm:>=13.7.0":
   version: 22.5.5
   resolution: "@types/node@npm:22.5.5"
   dependencies:
     undici-types: ~6.19.2
   checksum: 1f788966ff7df07add0af3481fb68c7fe5091cc72a265c671432abb443788ddacca4ca6378af64fe100c20f857c4d80170d358e66c070171fcea0d4adb1b45b1
-  languageName: node
-  linkType: hard
-
-"@types/nodemailer@npm:^8.0.2":
-  version: 8.0.2
-  resolution: "@types/nodemailer@npm:8.0.2"
-  dependencies:
-    "@types/node": "*"
-  checksum: d28bf98bdf730aa01e8f3ae6a2204ab8d8fa42c0bae05d8f2076b3d1057a7eb2d28c16e9238f8310d8d3e40a53308401bf58fb0079a9a8b2448a882d18030876
   languageName: node
   linkType: hard
 
@@ -4831,7 +4813,6 @@ __metadata:
     "@svgr/webpack": ^8.0.1
     "@tailwindcss/forms": ^0.5.4
     "@tailwindcss/typography": ^0.5.9
-    "@types/nodemailer": ^8.0.2
     "@types/react": ^18.2.14
     "@types/swagger-ui-react": ^5.18.0
     "@typescript-eslint/eslint-plugin": ^6.1.0
@@ -4847,7 +4828,6 @@ __metadata:
     lint-staged: ^13.0.0
     next: 13.5.3
     next-themes: ^0.2.1
-    nodemailer: ^10.3.1
     pliny: 0.1.4
     postcss: ^8.4.24
     prettier: ^3.0.0
@@ -9617,13 +9597,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nodemailer@npm:^10.3.1":
-  version: 10.3.1
-  resolution: "nodemailer@npm:10.3.1"
-  checksum: 13b4c4c3e12909bd9aca5546dbe04280d95276c58f2586d5f9660e59a2772f16c4aff025fef36b79c5f82f61d2d5aed000719c2d94e4a3a8b4ea607ac1d217ab
-  languageName: node
-  linkType: hard
-
 "noms@npm:0.0.0":
   version: 0.0.0
   resolution: "noms@npm:0.0.0"
@@ -12148,13 +12121,6 @@ __metadata:
   version: 6.19.8
   resolution: "undici-types@npm:6.19.8"
   checksum: de51f1b447d22571cf155dfe14ff6d12c5bdaec237c765085b439c38ca8518fc360e88c70f99469162bf2e14188a7b0bcb06e1ed2dc031042b984b0bb9544017
-  languageName: node
-  linkType: hard
-
-"undici-types@npm:~8.9.0":
-  version: 8.9.0
-  resolution: "undici-types@npm:8.9.0"
-  checksum: 78c081bf592406e4bb8bbcbd6baa5c395b5998b9a6a22786e6df4bb5bc90a86aaaaa43a447b455d90589c8b5f36a5827942c20d5c7248efb66675feec1a7bb02
   languageName: node
   linkType: hard
 
