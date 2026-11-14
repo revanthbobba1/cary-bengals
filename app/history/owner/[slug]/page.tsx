@@ -5,6 +5,8 @@ import TeamLogo from '@/components/TeamLogo'
 import { formatRecord } from '@/components/history/OwnersTable'
 import { members } from '@/data/members'
 import { loadHistoryBase, summarizeOwners } from '@/lib/history/historyData'
+import { loadOwnerAwardCounts } from '@/lib/awards/ownerAwards'
+import { AWARD_META } from '@/lib/awards/weeklyAwards'
 
 export const metadata = genPageMetadata({ title: 'League History' })
 export const dynamic = 'force-dynamic'
@@ -15,6 +17,7 @@ export default async function Page({ params }: { params: { slug: string } }) {
   const owner = summarizeOwners(base).find((o) => o.slug === params.slug)
   if (!owner) notFound()
 
+  const awardCounts = await loadOwnerAwardCounts(owner.ownerId)
   const member = members.find((m) => m.slug === owner.slug)
   const seasons = base.teamSeasons
     .filter((row) => row.owner_id === owner.ownerId)
@@ -55,6 +58,20 @@ export default async function Page({ params }: { params: { slug: string } }) {
             ))}
             {owner.runnerUps.map((year) => (
               <li key={`r${year}`}>🥈 {year} runner-up</li>
+            ))}
+          </ul>
+        )}
+        {awardCounts.length > 0 && (
+          <ul className="mt-4 flex flex-wrap gap-2" aria-label="Weekly award wins">
+            {awardCounts.map(({ id, wins }) => (
+              <li
+                key={id}
+                className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-sm text-ink dark:bg-gray-800 dark:text-gray-100"
+              >
+                <span aria-hidden="true">{AWARD_META[id].emoji}</span>
+                {AWARD_META[id].title}
+                <span className="font-semibold tabular-nums">×{wins}</span>
+              </li>
             ))}
           </ul>
         )}

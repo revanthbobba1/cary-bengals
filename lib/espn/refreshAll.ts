@@ -14,6 +14,7 @@ import { syncTeamRecords } from '@/lib/espn/teamRecordSync'
 import { syncMatchups } from '@/lib/espn/matchupSync'
 import { syncMatchupPlayerScores } from '@/lib/espn/boxScoreSync'
 import { syncTransactions } from '@/lib/espn/transactionSync'
+import { syncAwardResults } from '@/lib/awards/awardSync'
 
 type SupabaseServerClient = ReturnType<typeof createClient>
 
@@ -76,6 +77,17 @@ export async function refreshAllEspnData(
         )
       : { status: 'rejected', reason: new Error('Skipped: matchup sync failed') }
 
+  // Weekly awards are derived from the matchups and box scores just written, so they run last and
+  // only after a successful matchup sync. A failure (or migration 058 not yet applied) is only a
+  // warning -- it must never mask the real sync results above.
+  const awardSettled: PromiseSettledResult<Awaited<ReturnType<typeof syncAwardResults>>> =
+    matchupSettled.status === 'fulfilled'
+      ? await syncAwardResults(supabase, seasonYear).then(
+          (value) => ({ status: 'fulfilled', value }) as const,
+          (reason) => ({ status: 'rejected', reason }) as const
+        )
+      : { status: 'rejected', reason: new Error('Skipped: matchup sync failed') }
+
   const warnings: string[] = []
   let namesUpdated = 0
   let teamCount = 0
@@ -119,6 +131,10 @@ export async function refreshAllEspnData(
     warnings.push(...boxScoreSettled.value.warnings)
   } else {
     warnings.push(`Box score refresh failed: ${errorMessage(boxScoreSettled.reason)}`)
+  }
+
+  if (awardSettled.status === 'rejected' && matchupSettled.status === 'fulfilled') {
+    warnings.push(`Weekly awards refresh failed: ${errorMessage(awardSettled.reason)}`)
   }
 
   if (transactionSettled.status === 'fulfilled') {

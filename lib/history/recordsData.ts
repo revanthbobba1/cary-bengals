@@ -9,7 +9,7 @@ const LIST_SIZE = 10
 // In 2019 and 2020 each playoff round was a two-week matchup, so those scores are two-week totals.
 // They count toward win/loss records but not toward single-game scoring records. Keep this year in
 // step with the 2021 cutoff in supabase/migrations/053_history_completed_seasons_2019_2020.sql.
-const SINGLE_WEEK_PLAYOFFS_FROM = 2021
+export const SINGLE_WEEK_PLAYOFFS_FROM = 2021
 const SINGLE_WEEK_SCORES = `is_playoffs.eq.false,season_year.gte.${SINGLE_WEEK_PLAYOFFS_FROM}`
 
 export interface GameRecord {
