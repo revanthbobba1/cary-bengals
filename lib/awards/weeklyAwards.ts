@@ -1,8 +1,9 @@
-// Rule-based weekly awards (issue #234). A pure function of one week's matchups, so there is no
-// table to sync or backfill: any week with scores gets awards, and past seasons work automatically.
+// Rule-based weekly awards (issue #234). A pure function of one week's matchups, so any week with
+// scores can be computed. The home page computes last week live; lib/awards/awardSync.ts runs the
+// same rules once per finished week and stores the winners (migration 058) for the trophy cases.
 // Bench- and player-based awards need box-score rows (matchup_player_scores) and are skipped for a
-// week that doesn't have them (e.g. the 2019-2020 backfill). Exact ties award the first team in
-// matchup order; they are rare enough that a tiebreak rule isn't worth the complexity.
+// week that doesn't have them. Exact ties award the first team in matchup order; they are rare
+// enough that a tiebreak rule isn't worth the complexity.
 
 import { isOnIR } from '@/lib/espn/lineupSort'
 import type { Matchup, MatchupPlayerScore } from '@/lib/types/matchup'
@@ -16,6 +17,35 @@ export type AwardId =
   | 'lucky-win'
   | 'benchwarmer'
   | 'top-player'
+
+// The one place an award's emoji, title and plain-English rule are defined; the trophy-case badges
+// and the legend read it too. Keep each `description` in step with the rule in computeWeeklyAwards.
+export const AWARD_META: Record<AwardId, { emoji: string; title: string; description: string }> = {
+  'high-score': { emoji: '🔥', title: 'High Score', description: 'Highest score of the week.' },
+  'low-score': { emoji: '🚽', title: 'Low Score', description: 'Lowest score of the week.' },
+  blowout: { emoji: '💥', title: 'Blowout', description: 'Won by the biggest margin.' },
+  'nail-biter': { emoji: '😰', title: 'Nail-Biter', description: 'Won by the smallest margin.' },
+  'hard-luck': {
+    emoji: '💔',
+    title: 'Hard Luck',
+    description: 'The highest-scoring loser, but only when they outscored at least one winner.',
+  },
+  'lucky-win': {
+    emoji: '🍀',
+    title: 'Lucky Win',
+    description: 'The lowest-scoring winner, but only when they scored below at least one loser.',
+  },
+  benchwarmer: {
+    emoji: '🪑',
+    title: 'Benchwarmer',
+    description: "Left the most points on the bench (injured reserve doesn't count).",
+  },
+  'top-player': {
+    emoji: '⭐',
+    title: 'Player of the Week',
+    description: 'Owns the highest-scoring starter in the league that week.',
+  },
+}
 
 export interface Award {
   id: AwardId
@@ -96,8 +126,7 @@ export function computeWeeklyAwards(
   const low = byScoreDesc[byScoreDesc.length - 1]
   awards.push({
     id: 'high-score',
-    emoji: '🔥',
-    title: 'High Score',
+    ...AWARD_META['high-score'],
     teamId: high.teamId,
     teamName: name(high.teamId),
     detail: `Put up ${fmt(high.score)} against ${name(high.oppId)}`,
@@ -105,8 +134,7 @@ export function computeWeeklyAwards(
   if (low !== high) {
     awards.push({
       id: 'low-score',
-      emoji: '🚽',
-      title: 'Low Score',
+      ...AWARD_META['low-score'],
       teamId: low.teamId,
       teamName: name(low.teamId),
       detail: `Managed just ${fmt(low.score)} against ${name(low.oppId)}`,
@@ -120,8 +148,7 @@ export function computeWeeklyAwards(
   if (blowout) {
     awards.push({
       id: 'blowout',
-      emoji: '💥',
-      title: 'Blowout',
+      ...AWARD_META.blowout,
       teamId: blowout.teamId,
       teamName: name(blowout.teamId),
       detail: `Beat ${name(blowout.oppId)} by ${fmt(blowout.score - blowout.oppScore)}`,
@@ -132,8 +159,7 @@ export function computeWeeklyAwards(
   if (nailBiter && nailBiter !== blowout) {
     awards.push({
       id: 'nail-biter',
-      emoji: '😰',
-      title: 'Nail-Biter',
+      ...AWARD_META['nail-biter'],
       teamId: nailBiter.teamId,
       teamName: name(nailBiter.teamId),
       detail: `Edged ${name(nailBiter.oppId)} by ${fmt(nailBiter.score - nailBiter.oppScore)}`,
@@ -147,8 +173,7 @@ export function computeWeeklyAwards(
   if (hardLuck && winners.some((w) => w.score < hardLuck.score)) {
     awards.push({
       id: 'hard-luck',
-      emoji: '💔',
-      title: 'Hard Luck',
+      ...AWARD_META['hard-luck'],
       teamId: hardLuck.teamId,
       teamName: name(hardLuck.teamId),
       detail: `Lost with the ${ordinal(rankOf(hardLuck))}-highest score of the week (${fmt(hardLuck.score)})`,
@@ -159,8 +184,7 @@ export function computeWeeklyAwards(
   if (lucky && losers.some((l) => l.score > lucky.score)) {
     awards.push({
       id: 'lucky-win',
-      emoji: '🍀',
-      title: 'Lucky Win',
+      ...AWARD_META['lucky-win'],
       teamId: lucky.teamId,
       teamName: name(lucky.teamId),
       detail: `Won with only ${fmt(lucky.score)}, the ${ordinal(sides.length - rankOf(lucky) + 1)}-lowest score of the week`,
@@ -177,8 +201,7 @@ export function computeWeeklyAwards(
     const best = [...benchOf(benchwarmer)].sort((a, b) => b.points - a.points)[0]
     awards.push({
       id: 'benchwarmer',
-      emoji: '🪑',
-      title: 'Benchwarmer',
+      ...AWARD_META.benchwarmer,
       teamId: benchwarmer.teamId,
       teamName: name(benchwarmer.teamId),
       detail: `Left ${fmt(benchTotal(benchwarmer))} points on the bench, including ${best.player_name} (${fmt(best.points)})`,
@@ -196,8 +219,7 @@ export function computeWeeklyAwards(
   if (topPlayer && topPlayer.player.points > 0) {
     awards.push({
       id: 'top-player',
-      emoji: '⭐',
-      title: 'Player of the Week',
+      ...AWARD_META['top-player'],
       teamId: topPlayer.side.teamId,
       teamName: name(topPlayer.side.teamId),
       detail: `${topPlayer.player.player_name} (${topPlayer.player.position}) scored ${fmt(topPlayer.player.points)}`,

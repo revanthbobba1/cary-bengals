@@ -1,3 +1,4 @@
+import AwardTip from '@/components/AwardTip'
 import TeamLogo from '@/components/TeamLogo'
 import type { Award } from '@/lib/awards/weeklyAwards'
 
@@ -18,7 +19,7 @@ export default function WeeklyAwards({ awards, teamLogoById }: Props) {
           </span>
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-              {award.title}
+              <AwardTip id={award.id}>{award.title}</AwardTip>
             </p>
             <p className="flex items-center gap-2 text-sm font-medium text-ink dark:text-gray-100">
               {teamLogoById && <TeamLogo src={teamLogoById[award.teamId] ?? null} />}

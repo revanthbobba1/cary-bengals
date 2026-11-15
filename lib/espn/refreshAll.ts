@@ -14,6 +14,7 @@ import { syncTeamRecords } from '@/lib/espn/teamRecordSync'
 import { syncMatchups } from '@/lib/espn/matchupSync'
 import { syncMatchupPlayerScores } from '@/lib/espn/boxScoreSync'
 import { syncTransactions } from '@/lib/espn/transactionSync'
+import { syncAwardResults } from '@/lib/awards/awardSync'
 
 type SupabaseServerClient = ReturnType<typeof createClient>
 
@@ -76,6 +77,20 @@ export async function refreshAllEspnData(
         )
       : { status: 'rejected', reason: new Error('Skipped: matchup sync failed') }
 
+  // Weekly awards are derived from the matchups and box scores just written, so they run last and
+  // only after BOTH syncs succeeded: stored weeks are never recomputed, so running without fresh
+  // box scores could save a week missing its bench/player awards for good. A failure (or migration
+  // 058 not yet applied) is only a warning -- it must never mask the real sync results above.
+  const awardsCanRun =
+    matchupSettled.status === 'fulfilled' && boxScoreSettled.status === 'fulfilled'
+  const awardSettled: PromiseSettledResult<Awaited<ReturnType<typeof syncAwardResults>>> =
+    awardsCanRun
+      ? await syncAwardResults(supabase, seasonYear).then(
+          (value) => ({ status: 'fulfilled', value }) as const,
+          (reason) => ({ status: 'rejected', reason }) as const
+        )
+      : { status: 'rejected', reason: new Error('Skipped: matchup or box score sync failed') }
+
   const warnings: string[] = []
   let namesUpdated = 0
   let teamCount = 0
@@ -119,6 +134,11 @@ export async function refreshAllEspnData(
     warnings.push(...boxScoreSettled.value.warnings)
   } else {
     warnings.push(`Box score refresh failed: ${errorMessage(boxScoreSettled.reason)}`)
+  }
+
+  // A skipped run needs no warning of its own: the failed sync it depends on already reported one.
+  if (awardSettled.status === 'rejected' && awardsCanRun) {
+    warnings.push(`Weekly awards refresh failed: ${errorMessage(awardSettled.reason)}`)
   }
 
   if (transactionSettled.status === 'fulfilled') {
