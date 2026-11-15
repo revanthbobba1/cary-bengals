@@ -63,22 +63,20 @@ export default async function Page({ params }: { params: { slug: string } }) {
           </ul>
         )}
         {awardCounts.length > 0 && (
-          <>
-            <ul className="mt-4 flex flex-wrap gap-2" aria-label="Weekly award wins">
-              {awardCounts.map(({ id, wins }) => (
-                <li
-                  key={id}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-sm text-ink dark:bg-gray-800 dark:text-gray-100"
-                >
-                  <AwardTip id={id}>
-                    <span aria-hidden="true">{AWARD_META[id].emoji}</span>&nbsp;
-                    {AWARD_META[id].title}
-                  </AwardTip>
-                  <span className="font-semibold tabular-nums">×{wins}</span>
-                </li>
-              ))}
-            </ul>
-          </>
+          <ul className="mt-4 flex flex-wrap gap-2" aria-label="Weekly award wins">
+            {awardCounts.map(({ id, wins }) => (
+              <li
+                key={id}
+                className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-sm text-ink dark:bg-gray-800 dark:text-gray-100"
+              >
+                <AwardTip id={id}>
+                  <span aria-hidden="true">{AWARD_META[id].emoji}</span>&nbsp;
+                  {AWARD_META[id].title}
+                </AwardTip>
+                <span className="font-semibold tabular-nums">×{wins}</span>
+              </li>
+            ))}
+          </ul>
         )}
       </section>
 
