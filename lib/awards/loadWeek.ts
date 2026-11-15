@@ -5,12 +5,16 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { AwardMatchup } from '@/lib/awards/weeklyAwards'
 import type { MatchupPlayerScore } from '@/lib/types/matchup'
 
-// Throws if the matchups read fails. A box-score failure only costs the bench/player awards (the
-// score-based ones still compute), so it is logged and the week is returned without player rows.
+// Throws if the matchups read fails. By default a box-score failure only costs the bench/player
+// awards (the score-based ones still compute), so it is logged and the week is returned without
+// player rows -- fine for a live page that recomputes on every load. Pass `strict` when the result
+// will be stored: a partial week would otherwise be saved and never filled in, so it throws and
+// the week is retried on the next run.
 export async function loadAwardMatchups(
   supabase: SupabaseClient,
   season: number,
-  weekNumber: number
+  weekNumber: number,
+  { strict = false }: { strict?: boolean } = {}
 ): Promise<AwardMatchup[]> {
   const { data: rows, error } = await supabase
     .from('matchups')
@@ -30,7 +34,10 @@ export async function loadAwardMatchups(
       rows.map((m) => m.id)
     )
     .order('sort_order')
-  if (playersError) console.error('Failed to load player scores for awards:', playersError)
+  if (playersError) {
+    if (strict) throw new Error(`Failed to load player scores: ${playersError.message}`)
+    console.error('Failed to load player scores for awards:', playersError)
+  }
 
   const playersBySide = new Map<string, MatchupPlayerScore[]>()
   for (const row of playersError ? [] : (playerRows ?? [])) {

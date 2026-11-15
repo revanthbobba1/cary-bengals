@@ -18,16 +18,33 @@ export type AwardId =
   | 'benchwarmer'
   | 'top-player'
 
-// The one place an award's emoji and title are defined; the trophy-case badges read it too.
-export const AWARD_META: Record<AwardId, { emoji: string; title: string }> = {
-  'high-score': { emoji: '🔥', title: 'High Score' },
-  'low-score': { emoji: '🚽', title: 'Low Score' },
-  blowout: { emoji: '💥', title: 'Blowout' },
-  'nail-biter': { emoji: '😰', title: 'Nail-Biter' },
-  'hard-luck': { emoji: '💔', title: 'Hard Luck' },
-  'lucky-win': { emoji: '🍀', title: 'Lucky Win' },
-  benchwarmer: { emoji: '🪑', title: 'Benchwarmer' },
-  'top-player': { emoji: '⭐', title: 'Player of the Week' },
+// The one place an award's emoji, title and plain-English rule are defined; the trophy-case badges
+// and the legend read it too. Keep each `description` in step with the rule in computeWeeklyAwards.
+export const AWARD_META: Record<AwardId, { emoji: string; title: string; description: string }> = {
+  'high-score': { emoji: '🔥', title: 'High Score', description: 'Highest score of the week.' },
+  'low-score': { emoji: '🚽', title: 'Low Score', description: 'Lowest score of the week.' },
+  blowout: { emoji: '💥', title: 'Blowout', description: 'Won by the biggest margin.' },
+  'nail-biter': { emoji: '😰', title: 'Nail-Biter', description: 'Won by the smallest margin.' },
+  'hard-luck': {
+    emoji: '💔',
+    title: 'Hard Luck',
+    description: 'The highest-scoring loser, but only when they outscored at least one winner.',
+  },
+  'lucky-win': {
+    emoji: '🍀',
+    title: 'Lucky Win',
+    description: 'The lowest-scoring winner, but only when they scored below at least one loser.',
+  },
+  benchwarmer: {
+    emoji: '🪑',
+    title: 'Benchwarmer',
+    description: "Left the most points on the bench (injured reserve doesn't count).",
+  },
+  'top-player': {
+    emoji: '⭐',
+    title: 'Player of the Week',
+    description: 'Owns the highest-scoring starter in the league that week.',
+  },
 }
 
 export interface Award {

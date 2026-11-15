@@ -5,9 +5,6 @@ import { isCommissioner } from '@/lib/supabase/roles'
 import PollWeekManager from '@/components/PollWeekManager'
 import EspnTeamSync from '@/components/EspnTeamSync'
 import EspnDataRefresh from '@/components/EspnDataRefresh'
-import AwardBackfill from '@/components/AwardBackfill'
-import siteMetadata from '@/data/siteMetadata'
-import { FIRST_BACKFILLED_SEASON } from '@/lib/espn/firstSeason'
 import PressConferenceManager from '@/components/PressConferenceManager'
 import AdminSubNav from '@/components/AdminSubNav'
 import PollWeekSelect from '@/components/PollWeekSelect'
@@ -191,14 +188,6 @@ export default async function CommissionerToolsPage({
             <EspnTeamSync initialSeasonYear={new Date().getFullYear()} />
             <div className="mt-6">
               <EspnDataRefresh seasonYear={new Date().getFullYear()} />
-            </div>
-            <div className="mt-6">
-              <AwardBackfill
-                seasons={Array.from(
-                  { length: siteMetadata.currentSeason - FIRST_BACKFILLED_SEASON },
-                  (_, i) => FIRST_BACKFILLED_SEASON + i
-                )}
-              />
             </div>
           </>
         )}
